@@ -1,0 +1,22 @@
+<launch>
+    <!-- Launch file for velodyne16 VLP-16 LiDAR -->
+
+    <arg name="rviz" default="true"/>
+    <arg name="debug" default="false"/>
+    <arg name="record" default="false" />
+    <rosparam command="load" file="$(find pv_lio_plus)/config/mid360_indoor.yaml"/>
+
+    <group if="$(eval arg('debug') == False)">
+        <node pkg="pv_lio_plus" type="pv_lio_plus_node" name="pv_lio_plus_node" output="screen"/>
+    </group>
+    <group if="$(arg rviz)">
+        <node pkg="rviz" type="rviz" name="rviz"
+              args="-d $(find pv_lio_plus)/config/rviz_cfg/voxel_mapping.rviz"/>
+    </group>
+    <group if="$(arg record)">
+		<node pkg="rosbag" type="record" name="bag_record" output="screen" 
+				args="-O $(find pv_lio_plus)/../../output/pv_lio_plus.bag /cloud_registered_lidar" />
+                     <!-- /camera/left/jpeg/undistort/compressed /camera/right/jpeg/undistort/compressed -->
+	</group>
+
+</launch>
