@@ -56,6 +56,10 @@
 #include <thread>
 
 #include "IMU_Processing.hpp"
+#include "map_manager/map_manager.h"
+// The native PV map headers define non-inline functions.  Keep the manager
+// implementation in this translation unit to avoid changing those headers.
+#include "map_manager/map_manager.cpp"
 #include "preprocess.h"
 #include "voxel_map_util.hpp"
 #include "voxelmapplus_util.hpp"
@@ -144,9 +148,11 @@ std::vector<double> layer_point_size;
 bool publish_voxel_map      = false;
 int publish_max_voxel_layer = 0;
 
-std::unordered_map<voxel_map_ns::VOXEL_LOC, voxel_map_ns::OctoTree *> voxel_map;
-std::unordered_map<voxel_map_plus_ns::VOXEL_LOC, voxel_map_plus_ns::UnionFindNode *> voxel_map_plus;
 bool b_use_voxelmap_plus = false;
+bool map_publish_en = true;
+
+pv_lio_plus::MapManager map_manager;
+pv_lio_plus::MapManagerConfig map_manager_config;
 
 /*** EKF inputs and output ***/
 MeasureGroup Measures;
@@ -503,8 +509,9 @@ void publish_frame_lidar(const ros::Publisher &_pub)
 
 void publish_map(const ros::Publisher &pubLaserCloudMap)
 {
+    PointCloudXYZI::Ptr map_cloud = map_manager.snapshot();
     sensor_msgs::PointCloud2 laserCloudMap;
-    pcl::toROSMsg(*feats_map, laserCloudMap);
+    pcl::toROSMsg(*map_cloud, laserCloudMap);
     laserCloudMap.header.stamp    = ros::Time().fromSec(lidar_end_time);
     laserCloudMap.header.frame_id = "camera_init";
     pubLaserCloudMap.publish(laserCloudMap);
@@ -528,7 +535,6 @@ void publish_odometry(const ros::Publisher &pubOdomAftMapped)
     odomAftMapped.child_frame_id  = "body";
     odomAftMapped.header.stamp    = ros::Time().fromSec(lidar_end_time);  // ros::Time().fromSec(lidar_end_time);
     set_posestamp(odomAftMapped.pose);
-    pubOdomAftMapped.publish(odomAftMapped);
     auto P = kf.get_P();
     for (int i = 0; i < 6; i++)
     {
@@ -540,6 +546,7 @@ void publish_odometry(const ros::Publisher &pubOdomAftMapped)
         odomAftMapped.pose.covariance[i * 6 + 4] = P(k, 1);
         odomAftMapped.pose.covariance[i * 6 + 5] = P(k, 2);
     }
+    pubOdomAftMapped.publish(odomAftMapped);
 
     static tf::TransformBroadcaster br;
     tf::Transform transform;
@@ -679,8 +686,7 @@ void observation_model_share(state_ikfom &s, esekfom::dyn_share_datastruct<doubl
     //* 3.查找最近点，计算残差
     std::vector<voxel_map_ns::ptpl> ptpl_list;
     std::vector<V3D> non_match_list;
-    voxel_map_ns::BuildResidualListOMP(voxel_map, voxel_size, 3.0, max_layer,
-                                       pv_list, ptpl_list, non_match_list);
+    map_manager.search(pv_list, ptpl_list, non_match_list);
     search_time += (ros::WallTime::now() - t0).toSec() * 1000;
 
     //* 4.计算用于构建法方程的各矩阵向量，Computation of Measuremnt Jacobian matrix H and measurents vector
@@ -775,7 +781,7 @@ void observation_model_share_plus(state_ikfom &s, esekfom::dyn_share_datastruct<
     //* 3.查找最近点，计算残差
     std::vector<voxel_map_plus_ns::ptpl> ptpl_list;
     std::vector<V3D> non_match_list;
-    voxel_map_plus_ns::BuildResidualListOMP(voxel_map_plus, pv_list, ptpl_list, non_match_list);
+    map_manager.search(pv_list, ptpl_list, non_match_list);
     search_time += (ros::WallTime::now() - t0).toSec() * 1000;
 
     //* 4.计算用于构建法方程的各矩阵向量，Computation of Measuremnt Jacobian matrix H and measurents vector
@@ -885,6 +891,19 @@ int main(int argc, char **argv)
         nh.param<int>("mapping/update_size_threshold", voxel_map_plus_ns::update_size_threshold, 5);
         nh.param<double>("mapping/sigma_num", sigma_num, 3);
         nh.param<bool>("mapping/b_use_voxelmap_plus", b_use_voxelmap_plus, false);
+        std::string map_type_name;
+        nh.param<std::string>("mapping/map_type", map_type_name, "");
+        try
+        {
+            map_manager_config.type = pv_lio_plus::ParseMapType(map_type_name, b_use_voxelmap_plus);
+        }
+        catch (const std::exception &e)
+        {
+            ROS_FATAL("Invalid mapping/map_type: %s", e.what());
+            return 1;
+        }
+        b_use_voxelmap_plus = map_manager_config.type == pv_lio_plus::MapType::VoxelMapPlus;
+        nh.param<bool>("mapping/local_window_en", map_manager_config.local_window_enabled, false);
         std::cout << "filter_size_surf_min:" << filter_size_surf_min << std::endl;
         voxel_map_plus_ns::sigma_num        = static_cast<int>(sigma_num);
         voxel_map_plus_ns::max_points_size  = max_points_size;
@@ -903,6 +922,7 @@ int main(int argc, char **argv)
         // visualization params
         nh.param<bool>("publish/pub_voxel_map", publish_voxel_map, false);
         nh.param<int>("publish/publish_max_voxel_layer", publish_max_voxel_layer, 0);
+        nh.param<bool>("publish/map_en", map_publish_en, true);
 
         nh.param<double>("preprocess/blind", p_pre->blind, 0.01);
         nh.param<int>("preprocess/lidar_type", p_pre->lidar_type, AVIA);
@@ -916,6 +936,22 @@ int main(int argc, char **argv)
         {
             layer_size.push_back(layer_point_size[i]);
         }
+
+        map_manager_config.voxel_size                  = voxel_size;
+        map_manager_config.max_layer                   = max_layer;
+        map_manager_config.layer_point_size            = layer_size;
+        map_manager_config.max_points_size             = max_points_size;
+        map_manager_config.max_cov_points_size         = max_cov_points_size;
+        map_manager_config.plane_threshold             = plannar_threshold;
+        map_manager_config.sigma_num                   = sigma_num;
+        map_manager_config.plus_update_size_threshold  = voxel_map_plus_ns::update_size_threshold;
+        map_manager.configure(map_manager_config);
+        if (!map_manager.supports_selected_backend())
+        {
+            ROS_FATAL("Map backend '%s' is not enabled yet in PV-LIO-PLUS", pv_lio_plus::MapTypeName(map_manager.type()));
+            return 1;
+        }
+        ROS_INFO("Using local map backend: %s", pv_lio_plus::MapTypeName(map_manager.type()));
     }
 
     path.header.stamp    = ros::Time::now();
@@ -1020,7 +1056,7 @@ int main(int argc, char **argv)
                         pv.cov_lidar = voxel_map_plus_ns::calcLidarCov(pv.point_lidar, ranging_cov, angle_cov);
                         pv.cov_world = transformLidarCovToWorld(pv.point_lidar, kf, pv.cov_lidar);  // var 从 lidar 系转换到 world 系
                     }
-                    voxel_map_plus_ns::BuildVoxelMap(pv_list, voxel_map_plus);
+                    map_manager.initialize(pv_list);
                 }
                 else
                 {  // 计算首帧所有点的 covariance 并用于构建初始地图
@@ -1040,8 +1076,7 @@ int main(int argc, char **argv)
                         pv.cov_lidar = voxel_map_ns::calcLidarCov(pv.point_lidar, ranging_cov, angle_cov);
                         pv.cov_world = transformLidarCovToWorld(pv.point_lidar, kf, pv.cov_lidar);  // var 从 lidar 系转换到 world 系
                     }
-                    voxel_map_ns::buildVoxelMap(pv_list, voxel_size, max_layer, layer_size,
-                                                max_points_size, max_cov_points_size, plannar_threshold, voxel_map);
+                    map_manager.initialize(pv_list);
                 }
 
                 double map_build_time = (ros::WallTime::now() - t1).toSec();
@@ -1123,7 +1158,7 @@ int main(int argc, char **argv)
                     pv.cov_world = transformLidarCovToWorld(pv.point_lidar, kf, pv.cov_lidar);
                 }
                 std::sort(pv_list.begin(), pv_list.end(), var_contrast_plus);
-                voxel_map_plus_ns::UpdateVoxelMap(pv_list, voxel_map_plus);
+                map_manager.update(pv_list, static_cast<std::uint32_t>(nScanCount));
             }
             else
             {
@@ -1142,8 +1177,11 @@ int main(int argc, char **argv)
                     pv.cov_world = transformLidarCovToWorld(pv.point_lidar, kf, pv.cov_lidar);
                 }
                 std::sort(pv_list.begin(), pv_list.end(), var_contrast);
-                voxel_map_ns::updateVoxelMapOMP(pv_list, voxel_size, max_layer, layer_size,
-                                                max_points_size, max_cov_points_size, plannar_threshold, voxel_map);
+                map_manager.update(pv_list, static_cast<std::uint32_t>(nScanCount));
+            }
+            if (map_manager_config.local_window_enabled)
+            {
+                map_manager.move_window(state_point.pos, V3D(DET_RANGE, DET_RANGE, DET_RANGE));
             }
             update_time = (ros::WallTime::now() - t3).toSec() * 1000;
 
@@ -1170,12 +1208,13 @@ int main(int argc, char **argv)
             if (publish_voxel_map)
             {
                 if (b_use_voxelmap_plus)
-                    voxel_map_plus_ns::pubVoxelMap(voxel_map_plus, voxel_map_pub);
+                    map_manager.publish_planes(voxel_map_pub, publish_max_voxel_layer);
                 else
-                    voxel_map_ns::pubVoxelMap(voxel_map, publish_max_voxel_layer, voxel_map_pub);
+                    map_manager.publish_planes(voxel_map_pub, publish_max_voxel_layer);
             }
             // publish_effect_world(pubLaserCloudEffect);
-            // publish_map(pubLaserCloudMap);
+            if (map_publish_en)
+                publish_map(pubLaserCloudMap);
 
             total_time = (ros::WallTime::now() - t0).toSec() * 1000;
 

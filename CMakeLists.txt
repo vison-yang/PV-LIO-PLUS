@@ -4,15 +4,15 @@ project(pv_lio_plus)
 # SET(CMAKE_BUILD_TYPE "Debug")
 # set(CMAKE_CXX_FLAGS "-std=c++14 -O0 -ggdb")
 SET(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS "-std=c++14 -O3 -pthread -Wall")
+set(CMAKE_CXX_FLAGS "-O3 -pthread -Wall")
 
 add_definitions(-DROOT_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../../output/\")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fexceptions" )
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -pthread -std=c++0x -std=c++14 -fexceptions")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -fexceptions")
 
 message("Current CPU archtecture: ${CMAKE_SYSTEM_PROCESSOR}")
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)" )
@@ -82,7 +82,9 @@ catkin_package(
   INCLUDE_DIRS
 )
 
-add_executable(pv_lio_plus_node src/voxelMapping.cpp src/preprocess.cpp)
+add_executable(pv_lio_plus_node
+  src/voxelMapping.cpp
+  src/preprocess.cpp)
 add_dependencies(pv_lio_plus_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(pv_lio_plus_node ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES})
 target_include_directories(pv_lio_plus_node PRIVATE ${PYTHON_INCLUDE_DIRS})
