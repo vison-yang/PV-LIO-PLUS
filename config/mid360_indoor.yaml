@@ -22,7 +22,24 @@ mapping:
     max_cov_points_size: 1000
     update_size_threshold: 5
     sigma_num: 3
+    # Select: voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap.
+    # This explicit key takes priority over the legacy boolean below.
+    map_type: voxelmap_plus
     b_use_voxelmap_plus: true
+    local_window_en: false
+
+    # Point-map backend options (ignored by the two PV voxel backends).
+    nearest_point_count: 5
+    nearest_max_range: 5.0
+    plane_fit_threshold: 0.1
+    point_map_downsample_size: 0.1
+    ikd_delete_param: 0.5
+    ikd_balance_param: 0.7
+    ikd_box_length: 0.2
+    ivox_resolution: 0.2
+    ivox_nearby_type: 18
+    ivox_capacity: 1000000
+    c3p_enable_voxel_merging: false
 
     fov_degree:    360
     det_range:     100.0

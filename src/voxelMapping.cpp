@@ -52,6 +52,8 @@
 #include <Eigen/Core>
 #include <csignal>
 #include <fstream>
+#include <filesystem>
+#include <limits>
 #include <mutex>
 #include <thread>
 
@@ -75,6 +77,7 @@ double T1[MAXN], s_plot[MAXN], s_plot2[MAXN], s_plot3[MAXN], s_plot4[MAXN], s_pl
 double match_time = 0, solve_time = 0, solve_const_H_time = 0;
 int kdtree_size_st = 0, kdtree_size_end = 0, add_point_size = 0, kdtree_delete_counter = 0;
 bool time_sync_en = false, extrinsic_est_en = true, path_pub_en = true;
+bool pcd_save_en = false;
 double lidar_time_offset = 0.0;
 /**************************/
 
@@ -97,7 +100,8 @@ double gyr_cov = 0.1, acc_cov = 0.1, b_gyr_cov = 0.0001, b_acc_cov = 0.0001;
 double filter_size_surf_min = 0;
 double total_distance = 0, lidar_end_time = 0, first_lidar_time = 0.0;
 int effct_feat_num = 0, time_log_counter = 0, scan_count = 0, publish_count = 0;
-int iterCount = 0, feats_down_size = 0, NUM_MAX_ITERATIONS = 0, laserCloudValidNum = 0, pcd_index = 0;
+int iterCount = 0, feats_down_size = 0, NUM_MAX_ITERATIONS = 0, laserCloudValidNum = 0;
+int pcd_save_interval = -1, pcd_index = 0, scan_wait_num = 0;
 bool point_selected_surf[100000] = {0};
 bool lidar_pushed, flg_first_scan = true, flg_exit = false, flg_EKF_inited;
 bool scan_pub_en = false, scan_dense_pub_en = false, scan_body_pub_en = false, scan_lidar_pub_en = false;
@@ -466,12 +470,32 @@ void publish_frame_world(const ros::Publisher &pubLaserCloudFull)
         laserCloudmsg.header.frame_id = "camera_init";
         pubLaserCloudFull.publish(laserCloudmsg);
         publish_count -= PUBFRAME_PERIOD;
+    }
 
-        // note: add to output
+    if (pcd_save_en)
+    {
+        PointCloudXYZI laserCloudWorld;
+        laserCloudWorld.reserve(feats_undistort->size());
+        for (const auto &point : feats_undistort->points)
         {
-            *pcl_wait_save += laserCloudWorld;
+            PointType point_world;
+            RGBpointBodyToWorld(&point, &point_world);
+            laserCloudWorld.push_back(point_world);
         }
-        // note: add to output
+        *pcl_wait_save += laserCloudWorld;
+        ++scan_wait_num;
+
+        if (pcd_save_interval > 0 && scan_wait_num >= pcd_save_interval && !pcl_wait_save->empty())
+        {
+            const std::string pcd_dir = std::string(root_dir) + "PCD";
+            std::filesystem::create_directories(pcd_dir);
+            const std::string pcd_path = pcd_dir + "/scans_" + std::to_string(++pcd_index) + ".pcd";
+            pcl::PCDWriter writer;
+            writer.writeBinary(pcd_path, *pcl_wait_save);
+            pcl_wait_save->clear();
+            scan_wait_num = 0;
+            ROS_INFO("Saved point-cloud chunk: %s", pcd_path.c_str());
+        }
     }
 }
 
@@ -569,6 +593,30 @@ void publish_odometry(const ros::Publisher &pubOdomAftMapped)
 }
 
 std::vector<std::vector<double>> vec_poses;
+std::string result_file_stem()
+{
+    switch (map_manager_config.type)
+    {
+    case pv_lio_plus::MapType::VoxelMapPlus:
+        return "pv_lio_plus";
+    case pv_lio_plus::MapType::VoxelMap:
+        return "pv_lio";
+    case pv_lio_plus::MapType::IKDTree:
+        return "pv_lio_ikdtree";
+    case pv_lio_plus::MapType::IVox:
+        return "pv_lio_ivox";
+    case pv_lio_plus::MapType::C3PVoxelMap:
+        return "pv_lio_c3p_voxelmap";
+    }
+    return "pv_lio";
+}
+
+void record_pose()
+{
+    vec_poses.push_back({lidar_end_time, state_point.pos(0), state_point.pos(1), state_point.pos(2),
+                         geoQuat.w, geoQuat.x, geoQuat.y, geoQuat.z});
+}
+
 void publish_path(const ros::Publisher pubPath)
 {
     set_posestamp(msg_body_pose);
@@ -585,10 +633,7 @@ void publish_path(const ros::Publisher pubPath)
         pubPath.publish(path);
     }
 
-    // note: add to output
-    vec_poses.push_back({lidar_end_time, state_point.pos(0), state_point.pos(1), state_point.pos(2),
-                         geoQuat.w, geoQuat.x, geoQuat.y, geoQuat.z});
-    // note: add to output
+    record_pose();
 }
 
 /* -------------------------------------------------------------------------- */
@@ -654,6 +699,47 @@ M3D transformLidarCovToWorld(Eigen::Vector3d &p_lidar, const esekfom::esekf<stat
     // Voxel map 真实实现
     //    M3D cov_world = R_body * COV_lidar * R_body.conjugate() +
     //          (-point_crossmat) * rot_var * (-point_crossmat).transpose() + t_var;
+}
+
+pv_lio_plus::MapPointList make_manager_points(const PointCloudXYZI::Ptr &points_lidar,
+                                              const PointCloudXYZI::Ptr &points_world,
+                                              const std::vector<M3D> &cov_lidar)
+{
+    const std::size_t point_count = std::min(points_lidar->size(), points_world->size());
+    pv_lio_plus::MapPointList result;
+    result.reserve(point_count);
+    for (std::size_t i = 0; i < point_count; ++i)
+    {
+        pv_lio_plus::MapPoint point;
+        point.point_lidar << points_lidar->points[i].x,
+            points_lidar->points[i].y,
+            points_lidar->points[i].z;
+        point.point_world << points_world->points[i].x,
+            points_world->points[i].y,
+            points_world->points[i].z;
+        if (i < cov_lidar.size())
+        {
+            point.cov_lidar = cov_lidar[i];
+            V3D lidar_point = point.point_lidar;
+            point.cov_world = transformLidarCovToWorld(lidar_point, kf, point.cov_lidar);
+        }
+        result.emplace_back(point);
+    }
+    return result;
+}
+
+M3D calc_lidar_cov_for_backend(const V3D &point)
+{
+    V3D safe_point = point;
+    if (safe_point.z() == 0.0)
+    {
+        safe_point.z() = 0.001;
+    }
+    if (map_manager_config.type == pv_lio_plus::MapType::VoxelMapPlus)
+    {
+        return voxel_map_plus_ns::calcLidarCov(safe_point, ranging_cov, angle_cov);
+    }
+    return voxel_map_ns::calcLidarCov(safe_point, ranging_cov, angle_cov);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -853,6 +939,107 @@ void observation_model_share_plus(state_ikfom &s, esekfom::dyn_share_datastruct<
     res_mean_last = total_residual / effct_feat_num;  //? 未使用，total_residual 未计算
 }
 
+void observation_model_share_point_backend(state_ikfom &s,
+                                           esekfom::dyn_share_datastruct<double> &ekfom_data)
+{
+    total_residual = 0.0;
+
+    PointCloudXYZI::Ptr feats_world(new PointCloudXYZI);
+    transformLidar2World(s, feats_undistort_down, feats_world);
+    pv_lio_plus::MapPointList map_points = make_manager_points(feats_undistort_down,
+                                                               feats_world,
+                                                               var_down_lidar);
+
+    ros::WallTime t0 = ros::WallTime::now();
+    pv_lio_plus::PlaneMatchList matches;
+    std::vector<V3D> non_match_list;
+    map_manager.search(map_points, matches, non_match_list);
+    search_time += (ros::WallTime::now() - t0).toSec() * 1000;
+
+    effct_feat_num = static_cast<int>(matches.size());
+    if (effct_feat_num < 1)
+    {
+        ekfom_data.valid = false;
+        ROS_WARN("No Effective Points!");
+        return;
+    }
+
+    ekfom_data.h_x = MatrixXd::Zero(effct_feat_num, 12);
+    ekfom_data.h.resize(effct_feat_num);
+    ekfom_data.R.resize(effct_feat_num, 1);
+
+#ifdef MP_EN
+    omp_set_num_threads(MP_PROC_NUM);
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < effct_feat_num; ++i)
+    {
+        const pv_lio_plus::PlaneMatch &match = matches[static_cast<std::size_t>(i)];
+        const V3D point_this_be = match.point;
+        M3D point_be_crossmat;
+        point_be_crossmat << SKEW_SYM_MATRX(point_this_be);
+
+        const V3D point_this = s.offset_R_L_I * point_this_be + s.offset_T_L_I;
+        M3D point_crossmat;
+        point_crossmat << SKEW_SYM_MATRX(point_this);
+
+        V3D norm_vec = match.normal;
+        const double norm = norm_vec.norm();
+        if (norm > std::numeric_limits<double>::epsilon())
+        {
+            norm_vec /= norm;
+        }
+
+        const V3D C = s.rot.conjugate() * norm_vec;
+        const V3D A = point_crossmat * C;
+        if (extrinsic_est_en)
+        {
+            const V3D B = point_be_crossmat * s.offset_R_L_I.conjugate() * C;
+            ekfom_data.h_x.block<1, 12>(i, 0) << norm_vec.x(), norm_vec.y(), norm_vec.z(),
+                VEC_FROM_ARRAY(A), VEC_FROM_ARRAY(B), VEC_FROM_ARRAY(C);
+        }
+        else
+        {
+            ekfom_data.h_x.block<1, 12>(i, 0) << norm_vec.x(), norm_vec.y(), norm_vec.z(),
+                VEC_FROM_ARRAY(A), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0;
+        }
+
+        ekfom_data.h(i) = -match.distance;
+
+        Eigen::Matrix<double, 1, 6> J_nq;
+        J_nq.block<1, 3>(0, 0) = match.point_world - match.center;
+        J_nq.block<1, 3>(0, 3) = -match.normal;
+        const double sigma_l = (J_nq * match.plane_cov * J_nq.transpose())(0, 0);
+        const double sigma_point = (norm_vec.transpose() * match.point_cov * norm_vec)(0, 0);
+        double total_sigma = sigma_l + sigma_point;
+        if (!std::isfinite(total_sigma) || total_sigma <= 1e-9)
+        {
+            total_sigma = 1e-9;
+        }
+        ekfom_data.R(i) = 1.0 / total_sigma;
+        total_residual += std::abs(match.distance);
+    }
+
+    res_mean_last = total_residual / effct_feat_num;
+}
+
+void observation_model_share_manager(state_ikfom &s,
+                                     esekfom::dyn_share_datastruct<double> &ekfom_data)
+{
+    if (map_manager_config.type == pv_lio_plus::MapType::VoxelMap)
+    {
+        observation_model_share(s, ekfom_data);
+    }
+    else if (map_manager_config.type == pv_lio_plus::MapType::VoxelMapPlus)
+    {
+        observation_model_share_plus(s, ekfom_data);
+    }
+    else
+    {
+        observation_model_share_point_backend(s, ekfom_data);
+    }
+}
+
 /* -------------------------------------------------------------------------- */
 /*                                    main                                    */
 /* -------------------------------------------------------------------------- */
@@ -904,6 +1091,32 @@ int main(int argc, char **argv)
         }
         b_use_voxelmap_plus = map_manager_config.type == pv_lio_plus::MapType::VoxelMapPlus;
         nh.param<bool>("mapping/local_window_en", map_manager_config.local_window_enabled, false);
+        nh.param<int>("mapping/nearest_point_count", map_manager_config.nearest_point_count, NUM_MATCH_POINTS);
+        nh.param<double>("mapping/nearest_max_range", map_manager_config.nearest_max_range, 5.0);
+        nh.param<double>("mapping/plane_fit_threshold", map_manager_config.plane_fit_threshold, 0.1);
+        nh.param<double>("mapping/point_map_downsample_size",
+                         map_manager_config.point_map_downsample_size,
+                         filter_size_surf_min);
+        nh.param<double>("mapping/ikd_delete_param", map_manager_config.ikd_delete_param, 0.5);
+        nh.param<double>("mapping/ikd_balance_param", map_manager_config.ikd_balance_param, 0.7);
+        nh.param<double>("mapping/ikd_box_length", map_manager_config.ikd_box_length, 0.2);
+        nh.param<double>("mapping/ivox_resolution", map_manager_config.ivox_resolution, 0.2);
+        nh.param<int>("mapping/ivox_nearby_type", map_manager_config.ivox_nearby_type, 18);
+        int ivox_capacity = static_cast<int>(map_manager_config.ivox_capacity);
+        nh.param<int>("mapping/ivox_capacity", ivox_capacity, 1000000);
+        map_manager_config.ivox_capacity = static_cast<std::size_t>(std::max(ivox_capacity, 1));
+        nh.param<bool>("mapping/c3p_enable_voxel_merging", map_manager_config.c3p_enable_voxel_merging, false);
+        nh.param<double>("mapping/c3p_merge_theta_thresh", map_manager_config.c3p_merge_theta_thresh, 0.05);
+        nh.param<double>("mapping/c3p_merge_dist_thresh", map_manager_config.c3p_merge_dist_thresh, 0.05);
+        nh.param<double>("mapping/c3p_merge_cov_min_eigen_val_thresh",
+                         map_manager_config.c3p_merge_cov_min_eigen_val_thresh,
+                         0.002);
+        nh.param<double>("mapping/c3p_merge_x_coord_diff_thresh",
+                         map_manager_config.c3p_merge_x_coord_diff_thresh,
+                         5.0);
+        nh.param<double>("mapping/c3p_merge_y_coord_diff_thresh",
+                         map_manager_config.c3p_merge_y_coord_diff_thresh,
+                         5.0);
         std::cout << "filter_size_surf_min:" << filter_size_surf_min << std::endl;
         voxel_map_plus_ns::sigma_num        = static_cast<int>(sigma_num);
         voxel_map_plus_ns::max_points_size  = max_points_size;
@@ -923,6 +1136,8 @@ int main(int argc, char **argv)
         nh.param<bool>("publish/pub_voxel_map", publish_voxel_map, false);
         nh.param<int>("publish/publish_max_voxel_layer", publish_max_voxel_layer, 0);
         nh.param<bool>("publish/map_en", map_publish_en, true);
+        nh.param<bool>("pcd_save/pcd_save_en", pcd_save_en, false);
+        nh.param<int>("pcd_save/interval", pcd_save_interval, -1);
 
         nh.param<double>("preprocess/blind", p_pre->blind, 0.01);
         nh.param<int>("preprocess/lidar_type", p_pre->lidar_type, AVIA);
@@ -973,10 +1188,7 @@ int main(int argc, char **argv)
 
     double epsi[23] = {0.001};
     fill(epsi, epsi + 23, 0.001);
-    if (b_use_voxelmap_plus)
-        kf.init_dyn_share(get_f, df_dx, df_dw, observation_model_share_plus, NUM_MAX_ITERATIONS, epsi);
-    else
-        kf.init_dyn_share(get_f, df_dx, df_dw, observation_model_share, NUM_MAX_ITERATIONS, epsi);
+    kf.init_dyn_share(get_f, df_dx, df_dw, observation_model_share_manager, NUM_MAX_ITERATIONS, epsi);
 
     // 消息订阅器、发布器
     ros::Subscriber sub_pcl                = p_pre->lidar_type == AVIA ? nh.subscribe(lid_topic, 200000, livox_pcl_cbk) : nh.subscribe(lid_topic, 200000, standard_pcl_cbk);
@@ -1043,7 +1255,7 @@ int main(int argc, char **argv)
                 // body 转 world
                 PointCloudXYZI::Ptr feats_world(new PointCloudXYZI);
                 transformLidar2World(state_point, feats_undistort, feats_world);
-                if (b_use_voxelmap_plus)
+                if (map_manager_config.type == pv_lio_plus::MapType::VoxelMapPlus)
                 {
                     std::vector<voxel_map_plus_ns::pointWithCov> pv_list(feats_undistort->size());
                     for (size_t i = 0; i < feats_world->size(); i++)
@@ -1058,7 +1270,7 @@ int main(int argc, char **argv)
                     }
                     map_manager.initialize(pv_list);
                 }
-                else
+                else if (map_manager_config.type == pv_lio_plus::MapType::VoxelMap)
                 {  // 计算首帧所有点的 covariance 并用于构建初始地图
                     std::vector<voxel_map_ns::pointWithCov> pv_list(feats_undistort->size());
                     for (size_t i = 0; i < feats_world->size(); i++)
@@ -1078,12 +1290,21 @@ int main(int argc, char **argv)
                     }
                     map_manager.initialize(pv_list);
                 }
+                else
+                {
+                    std::vector<M3D> cov_lidar;
+                    cov_lidar.reserve(feats_undistort->size());
+                    for (const auto &point : feats_undistort->points)
+                    {
+                        cov_lidar.emplace_back(calc_lidar_cov_for_backend(V3D(point.x, point.y, point.z)));
+                    }
+                    map_manager.initialize(make_manager_points(feats_undistort, feats_world, cov_lidar));
+                }
 
                 double map_build_time = (ros::WallTime::now() - t1).toSec();
-                if (b_use_voxelmap_plus)
-                    std::cout << std::fixed << "[Init Map] Build voxel map plus: " << map_build_time * 1000 << "s\n";
-                else
-                    std::cout << std::fixed << "[Init Map] Build voxel map: " << map_build_time * 1000 << "s \n";
+                std::cout << std::fixed << "[Init Map] Build "
+                          << pv_lio_plus::MapTypeName(map_manager_config.type) << ": "
+                          << map_build_time * 1000 << " ms\n";
 
                 init_map = true;
                 continue;
@@ -1097,23 +1318,10 @@ int main(int argc, char **argv)
 
             //! step4. 体坐标系下各点的协方差阵，迭代时不变，可复用
             var_down_lidar.clear();
-            if (b_use_voxelmap_plus)
+            var_down_lidar.reserve(feats_undistort_down->size());
+            for (const auto &pt : feats_undistort_down->points)
             {
-                for (auto &pt : feats_undistort_down->points)
-                {
-                    //? 不需要和上边一样处理 pt.z？
-                    V3D point_this(pt.x, pt.y, pt.z);
-                    var_down_lidar.push_back(voxel_map_plus_ns::calcLidarCov(point_this, ranging_cov, angle_cov));
-                }
-            }
-            else
-            {
-                for (auto &pt : feats_undistort_down->points)
-                {
-                    //? 不需要和上边一样处理 pt.z？
-                    V3D point_this(pt.x, pt.y, pt.z);
-                    var_down_lidar.push_back(voxel_map_ns::calcLidarCov(point_this, ranging_cov, angle_cov));
-                }
+                var_down_lidar.push_back(calc_lidar_cov_for_backend(V3D(pt.x, pt.y, pt.z)));
             }
 
             if (feats_down_size < 5)
@@ -1146,7 +1354,7 @@ int main(int argc, char **argv)
             PointCloudXYZI::Ptr feats_world(new PointCloudXYZI);
             transformLidar2World(state_point, feats_undistort_down, feats_world);
             // 用最新的状态估计将点及点的covariance转换到world系
-            if (b_use_voxelmap_plus)
+            if (map_manager_config.type == pv_lio_plus::MapType::VoxelMapPlus)
             {
                 std::vector<voxel_map_plus_ns::pointWithCov> pv_list(feats_undistort_down->size());
                 for (size_t i = 0; i < feats_undistort_down->size(); i++)
@@ -1160,7 +1368,7 @@ int main(int argc, char **argv)
                 std::sort(pv_list.begin(), pv_list.end(), var_contrast_plus);
                 map_manager.update(pv_list, static_cast<std::uint32_t>(nScanCount));
             }
-            else
+            else if (map_manager_config.type == pv_lio_plus::MapType::VoxelMap)
             {
                 std::vector<voxel_map_ns::pointWithCov> pv_list(feats_undistort_down->size());
                 for (size_t i = 0; i < feats_undistort_down->size(); i++)
@@ -1178,6 +1386,17 @@ int main(int argc, char **argv)
                 }
                 std::sort(pv_list.begin(), pv_list.end(), var_contrast);
                 map_manager.update(pv_list, static_cast<std::uint32_t>(nScanCount));
+            }
+            else
+            {
+                pv_lio_plus::MapPointList map_points = make_manager_points(feats_undistort_down,
+                                                                            feats_world,
+                                                                            var_down_lidar);
+                std::sort(map_points.begin(), map_points.end(), [](const pv_lio_plus::MapPoint &lhs,
+                                                                    const pv_lio_plus::MapPoint &rhs) {
+                    return lhs.cov_world.diagonal().norm() < rhs.cov_world.diagonal().norm();
+                });
+                map_manager.update(map_points, static_cast<std::uint32_t>(nScanCount));
             }
             if (map_manager_config.local_window_enabled)
             {
@@ -1199,19 +1418,16 @@ int main(int argc, char **argv)
             publish_odometry(pubOdomAftMapped);
             if (path_pub_en)
                 publish_path(pubPath);
-            if (scan_pub_en)
+            else
+                record_pose();
+            if (scan_pub_en || pcd_save_en)
                 publish_frame_world(pubLaserCloudFull);
             if (scan_pub_en && scan_body_pub_en)
                 publish_frame_body(pubLaserCloudFull_body);
             if (scan_pub_en && scan_lidar_pub_en)
                 publish_frame_lidar(pubLaserCloudFull_lidar);
             if (publish_voxel_map)
-            {
-                if (b_use_voxelmap_plus)
-                    map_manager.publish_planes(voxel_map_pub, publish_max_voxel_layer);
-                else
-                    map_manager.publish_planes(voxel_map_pub, publish_max_voxel_layer);
-            }
+                map_manager.publish_planes(voxel_map_pub, publish_max_voxel_layer);
             // publish_effect_world(pubLaserCloudEffect);
             if (map_publish_en)
                 publish_map(pubLaserCloudMap);
@@ -1241,10 +1457,11 @@ int main(int argc, char **argv)
                avg_eseikf_time, avg_search_time, avg_update_time, avg_total_time);
     }
 
-    //* 输出结果
-    if (pcl_wait_save->size() > 0 && vec_poses.size() > 0)
+    //* 输出轨迹
+    if (!vec_poses.empty())
     {
-        std::string fpath_poses = std::string(root_dir) + (b_use_voxelmap_plus ? "pv_lio_plus_pos.txt" : "pv_lio_pos.txt");
+        const std::string stem = result_file_stem();
+        std::string fpath_poses = std::string(root_dir) + stem + "_pos.txt";
         std::ofstream ofs(fpath_poses);
         ofs << std::fixed;
         for (auto pose : vec_poses)
@@ -1257,10 +1474,17 @@ int main(int argc, char **argv)
         }
         ofs.close();
 
-        std::string fpath_cloud = std::string(root_dir) + (b_use_voxelmap_plus ? "pv_lio_plus.pcd" : "pv_lio.pcd");
+        std::cout << "save trajectory to " << fpath_poses << "\n";
+    }
+
+    //* 输出点云轨迹（与 /Laser_map 的当前局部地图快照语义不同）
+    if (pcl_wait_save->size() > 0 && pcd_save_en)
+    {
+        const std::string stem = result_file_stem();
+        std::string fpath_cloud = std::string(root_dir) + stem + ".pcd";
         pcl::io::savePCDFileBinary(fpath_cloud, *pcl_wait_save);
 
-        std::cout << "save results to " << fpath_poses << " and " << fpath_cloud << "\n";
+        std::cout << "save point cloud to " << fpath_cloud << "\n";
     }
 
     return 0;

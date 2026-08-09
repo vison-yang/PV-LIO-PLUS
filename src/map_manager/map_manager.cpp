@@ -1,9 +1,14 @@
 #include "map_manager/map_manager.h"
 
+// ikd-tree is a header/template implementation.  Keep the native source in
+// the PV translation unit so the imported backend is self-contained.
+#include "map_manager/native/ikd_tree/ikd_tree.cpp"
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <numeric>
 
 namespace pv_lio_plus
 {
@@ -81,19 +86,58 @@ void MapManager::configure(const MapManagerConfig &config)
     voxel_map_plus_ns::planer_threshold      = config_.plane_threshold;
     voxel_map_plus_ns::sigma_num             = static_cast<int>(config_.sigma_num);
     voxel_map_plus_ns::quater_length         = config_.voxel_size / 4.0;
+    configure_point_backends();
 }
 
 bool MapManager::supports_selected_backend() const
 {
-    return config_.type == MapType::VoxelMap || config_.type == MapType::VoxelMapPlus;
+    return config_.type == MapType::VoxelMap || config_.type == MapType::VoxelMapPlus ||
+           config_.type == MapType::IKDTree || config_.type == MapType::IVox ||
+           config_.type == MapType::C3PVoxelMap;
 }
 
 void MapManager::require_supported_backend() const
 {
     if (!supports_selected_backend())
     {
-        throw std::runtime_error(std::string("map backend '") + MapTypeName(config_.type)
-                                 + "' is not enabled in this phase");
+        throw std::runtime_error(std::string("map backend '") + MapTypeName(config_.type) + "' is not enabled");
+    }
+}
+
+void MapManager::configure_point_backends()
+{
+    ikd_tree_.reset();
+    ivox_.reset();
+
+    if (config_.type == MapType::IKDTree)
+    {
+        ikd_tree_ = std::make_unique<KD_TREE<PointType>>(static_cast<float>(config_.ikd_delete_param),
+                                                         static_cast<float>(config_.ikd_balance_param),
+                                                         static_cast<float>(config_.ikd_box_length));
+        ikd_tree_->set_downsample_param(static_cast<float>(config_.point_map_downsample_size));
+    }
+    else if (config_.type == MapType::IVox)
+    {
+        IVoxBackend::Options options;
+        options.resolution_ = static_cast<float>(config_.ivox_resolution);
+        options.capacity_   = std::max<std::size_t>(config_.ivox_capacity, 1);
+        switch (config_.ivox_nearby_type)
+        {
+        case 0:
+            options.nearby_type_ = IVoxBackend::NearbyType::CENTER;
+            break;
+        case 6:
+            options.nearby_type_ = IVoxBackend::NearbyType::NEARBY6;
+            break;
+        case 26:
+            options.nearby_type_ = IVoxBackend::NearbyType::NEARBY26;
+            break;
+        case 18:
+        default:
+            options.nearby_type_ = IVoxBackend::NearbyType::NEARBY18;
+            break;
+        }
+        ivox_ = std::make_unique<IVoxBackend>(options);
     }
 }
 
@@ -110,6 +154,17 @@ void MapManager::clear()
         delete entry.second;
     }
     voxel_map_plus_.clear();
+
+    for (auto &entry : c3p_voxel_map_)
+    {
+        delete entry.second;
+    }
+    c3p_voxel_map_.clear();
+    c3p_plane_map_.clear();
+    c3p_merged_table_.clear();
+
+    ivox_.reset();
+    ikd_tree_.reset();
 
     map_points_.clear();
     initialized_ = false;
@@ -156,6 +211,98 @@ MapPoint MapManager::FromVoxelPlusPoint(const voxel_map_plus_ns::pointWithCov &p
     return result;
 }
 
+PointType MapManager::ToPointType(const V3D &point, const float intensity)
+{
+    PointType result;
+    result.x         = static_cast<float>(point.x());
+    result.y         = static_cast<float>(point.y());
+    result.z         = static_cast<float>(point.z());
+    result.intensity = intensity;
+    return result;
+}
+
+MapPoint MapManager::FromPointType(const PointType &point)
+{
+    MapPoint result;
+    result.point_world = V3D(point.x, point.y, point.z);
+    return result;
+}
+
+PlaneMatch MapManager::FromC3PMatch(const c3p_map_ns::ptpl &match)
+{
+    PlaneMatch result;
+    result.map_type    = MapType::C3PVoxelMap;
+    result.point       = match.point;
+    result.point_world = match.point_world;
+    result.normal      = match.normal;
+    result.center      = match.center;
+    result.plane_cov   = match.plane_cov;
+    result.point_cov     = match.point_cov;
+    result.omega         = match.normal;
+    result.omega_norm    = match.normal.norm();
+    result.d             = match.d;
+    result.distance      = match.normal.dot(match.point_world) + match.d;
+    result.layer         = match.layer;
+    return result;
+}
+
+bool MapManager::fit_point_plane(const MapPoint &query,
+                                 const PointVector &neighbors,
+                                 PlaneMatch &match,
+                                 const MapType backend) const
+{
+    if (neighbors.size() < NUM_MATCH_POINTS)
+    {
+        return false;
+    }
+
+    VF(4) plane_coeff;
+    if (!esti_plane(plane_coeff, neighbors, static_cast<float>(config_.plane_fit_threshold)))
+    {
+        return false;
+    }
+
+    const V3D point_world = query.point_world;
+    const V3D normal(plane_coeff(0), plane_coeff(1), plane_coeff(2));
+    const double pd2 = normal.dot(point_world) + plane_coeff(3);
+
+    // FAST-LIO2 rejects planes whose residual is too large relative to the
+    // point range; keep that native gate for ikd-tree.  Faster-LIO uses its
+    // equivalent 81*residual^2 test for iVox.
+    if (backend == MapType::IKDTree)
+    {
+        const double score = 1.0 - 0.9 * std::abs(pd2) / std::sqrt(query.point_lidar.norm());
+        if (score <= 0.9)
+        {
+            return false;
+        }
+    }
+    else if (backend == MapType::IVox && query.point_lidar.norm() <= 81.0 * pd2 * pd2)
+    {
+        return false;
+    }
+
+    match.map_type    = backend;
+    match.point       = query.point_lidar;
+    match.point_world = point_world;
+    match.normal      = normal;
+    match.omega       = normal;
+    match.omega_norm  = normal.norm();
+    match.d           = plane_coeff(3);
+    match.distance    = pd2;
+    match.point_cov   = query.cov_world;
+    match.plane_cov.setZero();
+    match.layer = 0;
+
+    match.center.setZero();
+    for (int i = 0; i < NUM_MATCH_POINTS; ++i)
+    {
+        match.center += V3D(neighbors[i].x, neighbors[i].y, neighbors[i].z);
+    }
+    match.center /= static_cast<double>(NUM_MATCH_POINTS);
+    return true;
+}
+
 void MapManager::initialize(const MapPointList &points)
 {
     require_supported_backend();
@@ -169,7 +316,7 @@ void MapManager::initialize(const MapPointList &points)
         }
         initialize(native_points);
     }
-    else
+    else if (config_.type == MapType::VoxelMapPlus)
     {
         std::vector<voxel_map_plus_ns::pointWithCov> native_points;
         native_points.reserve(points.size());
@@ -179,6 +326,97 @@ void MapManager::initialize(const MapPointList &points)
         }
         initialize(native_points);
     }
+    else if (config_.type == MapType::C3PVoxelMap)
+    {
+        initialize_c3p(points);
+    }
+    else
+    {
+        initialize_point_backend(points);
+    }
+}
+
+void MapManager::initialize_point_backend(const MapPointList &points)
+{
+    if (config_.type != MapType::IKDTree && config_.type != MapType::IVox)
+    {
+        throw std::logic_error("point backend initialization requested for a non-point backend");
+    }
+
+    clear();
+    configure_point_backends();
+
+    PointVector native_points;
+    native_points.reserve(points.size());
+    for (const auto &point : points)
+    {
+        native_points.emplace_back(ToPointType(point.point_world));
+    }
+
+    if (config_.type == MapType::IKDTree)
+    {
+        if (ikd_tree_ && !native_points.empty())
+        {
+            ikd_tree_->Build(native_points);
+        }
+    }
+    else if (ivox_ && !native_points.empty())
+    {
+        ivox_->AddPoints(native_points);
+    }
+
+    map_points_ = points;
+    initialized_ = true;
+}
+
+void MapManager::initialize_c3p(const MapPointList &points)
+{
+    if (config_.type != MapType::C3PVoxelMap)
+    {
+        throw std::logic_error("C3P initialization requested for a non-C3P backend");
+    }
+
+    clear();
+
+    std::vector<c3p_map_ns::pointWithCov> native_points;
+    native_points.reserve(points.size());
+    for (const auto &point : points)
+    {
+        c3p_map_ns::pointWithCov native_point;
+        native_point.point       = point.point_world;
+        native_point.point_world = point.point_world;
+        native_point.cov         = point.cov_world;
+        native_points.emplace_back(native_point);
+    }
+
+    std::vector<int> layer_point_size = config_.layer_point_size;
+    const std::size_t required_layers = static_cast<std::size_t>(std::max(0, config_.max_layer) + 1);
+    if (layer_point_size.empty())
+    {
+        layer_point_size.assign(required_layers, 5);
+    }
+    else if (layer_point_size.size() < required_layers)
+    {
+        layer_point_size.resize(required_layers, layer_point_size.back());
+    }
+
+    c3p_map_ns::buildVoxelMap(config_.c3p_enable_voxel_merging,
+                              native_points,
+                              static_cast<float>(config_.voxel_size),
+                              config_.max_layer,
+                              layer_point_size,
+                              static_cast<float>(config_.plane_threshold),
+                              c3p_voxel_map_,
+                              c3p_plane_map_,
+                              c3p_merged_table_,
+                              config_.c3p_merge_theta_thresh,
+                              config_.c3p_merge_dist_thresh,
+                              config_.c3p_merge_cov_min_eigen_val_thresh,
+                              config_.c3p_merge_x_coord_diff_thresh,
+                              config_.c3p_merge_y_coord_diff_thresh);
+
+    map_points_ = points;
+    initialized_ = true;
 }
 
 void MapManager::initialize(const std::vector<voxel_map_ns::pointWithCov> &points)
@@ -235,7 +473,7 @@ void MapManager::update(const MapPointList &points, const std::uint32_t frame_nu
         }
         update(native_points, frame_number);
     }
-    else
+    else if (config_.type == MapType::VoxelMapPlus)
     {
         std::vector<voxel_map_plus_ns::pointWithCov> native_points;
         native_points.reserve(points.size());
@@ -245,6 +483,251 @@ void MapManager::update(const MapPointList &points, const std::uint32_t frame_nu
         }
         update(native_points, frame_number);
     }
+    else if (config_.type == MapType::C3PVoxelMap)
+    {
+        if (!initialized_)
+        {
+            initialize_c3p(points);
+        }
+        else
+        {
+            update_c3p(points, frame_number);
+        }
+    }
+    else
+    {
+        if (!initialized_)
+        {
+            initialize_point_backend(points);
+        }
+        else if (config_.type == MapType::IKDTree)
+        {
+            update_ikd_tree(points);
+        }
+        else
+        {
+            update_ivox(points);
+        }
+    }
+}
+
+void MapManager::update_ikd_tree(const MapPointList &points)
+{
+    if (!ikd_tree_)
+    {
+        configure_point_backends();
+    }
+
+    PointVector points_to_add;
+    PointVector point_no_need_downsample;
+    points_to_add.reserve(points.size());
+    point_no_need_downsample.reserve(points.size());
+
+    const double downsample_size = std::max(config_.point_map_downsample_size, 1e-6);
+    const int nearest_count = std::max(config_.nearest_point_count, NUM_MATCH_POINTS);
+    const auto squared_distance = [](const PointType &lhs, const PointType &rhs) {
+        const double dx = static_cast<double>(lhs.x) - rhs.x;
+        const double dy = static_cast<double>(lhs.y) - rhs.y;
+        const double dz = static_cast<double>(lhs.z) - rhs.z;
+        return dx * dx + dy * dy + dz * dz;
+    };
+
+    for (const auto &point : points)
+    {
+        const PointType point_world = ToPointType(point.point_world);
+        PointVector points_near;
+        std::vector<float> point_search_sq_dist;
+        if (ikd_tree_ && ikd_tree_->validnum() > 0)
+        {
+            ikd_tree_->Nearest_Search(point_world, nearest_count, points_near, point_search_sq_dist);
+        }
+
+        if (points_near.empty())
+        {
+            points_to_add.emplace_back(point_world);
+            continue;
+        }
+
+        PointType mid_point;
+        mid_point.x = static_cast<float>(std::floor(point_world.x / downsample_size) * downsample_size +
+                                         0.5 * downsample_size);
+        mid_point.y = static_cast<float>(std::floor(point_world.y / downsample_size) * downsample_size +
+                                         0.5 * downsample_size);
+        mid_point.z = static_cast<float>(std::floor(point_world.z / downsample_size) * downsample_size +
+                                         0.5 * downsample_size);
+
+        const double point_to_center = squared_distance(point_world, mid_point);
+        if (std::abs(points_near.front().x - mid_point.x) > 0.5 * downsample_size &&
+            std::abs(points_near.front().y - mid_point.y) > 0.5 * downsample_size &&
+            std::abs(points_near.front().z - mid_point.z) > 0.5 * downsample_size)
+        {
+            point_no_need_downsample.emplace_back(point_world);
+            continue;
+        }
+
+        bool need_add = true;
+        const std::size_t compare_count = std::min<std::size_t>(NUM_MATCH_POINTS, points_near.size());
+        for (std::size_t i = 0; i < compare_count; ++i)
+        {
+            if (squared_distance(points_near[i], mid_point) < point_to_center)
+            {
+                need_add = false;
+                break;
+            }
+        }
+        if (need_add)
+        {
+            points_to_add.emplace_back(point_world);
+        }
+    }
+
+    if (ikd_tree_)
+    {
+        ikd_tree_->Add_Points(points_to_add, true);
+        ikd_tree_->Add_Points(point_no_need_downsample, false);
+    }
+
+    for (const auto &point : points_to_add)
+    {
+        map_points_.emplace_back(FromPointType(point));
+    }
+    for (const auto &point : point_no_need_downsample)
+    {
+        map_points_.emplace_back(FromPointType(point));
+    }
+}
+
+void MapManager::update_ivox(const MapPointList &points)
+{
+    if (!ivox_)
+    {
+        configure_point_backends();
+    }
+
+    PointVector points_to_add;
+    PointVector point_no_need_downsample;
+    points_to_add.reserve(points.size());
+    point_no_need_downsample.reserve(points.size());
+
+    const double downsample_size = std::max(config_.point_map_downsample_size, 1e-6);
+    const int nearest_count = std::max(config_.nearest_point_count, NUM_MATCH_POINTS);
+    const auto squared_distance = [](const PointType &lhs, const PointType &rhs) {
+        const double dx = static_cast<double>(lhs.x) - rhs.x;
+        const double dy = static_cast<double>(lhs.y) - rhs.y;
+        const double dz = static_cast<double>(lhs.z) - rhs.z;
+        return dx * dx + dy * dy + dz * dz;
+    };
+
+    for (const auto &point : points)
+    {
+        const PointType point_world = ToPointType(point.point_world);
+        PointVector points_near;
+        const bool has_near = ivox_ && ivox_->GetClosestPoint(point_world,
+                                                               points_near,
+                                                               nearest_count,
+                                                               config_.nearest_max_range);
+        if (!has_near || points_near.empty())
+        {
+            points_to_add.emplace_back(point_world);
+            continue;
+        }
+
+        PointType mid_point;
+        mid_point.x = static_cast<float>(std::floor(point_world.x / downsample_size) * downsample_size +
+                                         0.5 * downsample_size);
+        mid_point.y = static_cast<float>(std::floor(point_world.y / downsample_size) * downsample_size +
+                                         0.5 * downsample_size);
+        mid_point.z = static_cast<float>(std::floor(point_world.z / downsample_size) * downsample_size +
+                                         0.5 * downsample_size);
+
+        const double point_to_center = squared_distance(point_world, mid_point);
+        if (std::abs(points_near.front().x - mid_point.x) > 0.5 * downsample_size &&
+            std::abs(points_near.front().y - mid_point.y) > 0.5 * downsample_size &&
+            std::abs(points_near.front().z - mid_point.z) > 0.5 * downsample_size)
+        {
+            point_no_need_downsample.emplace_back(point_world);
+            continue;
+        }
+
+        bool need_add = true;
+        const std::size_t compare_count = std::min<std::size_t>(NUM_MATCH_POINTS, points_near.size());
+        for (std::size_t i = 0; i < compare_count; ++i)
+        {
+            if (squared_distance(points_near[i], mid_point) < point_to_center + 1e-6)
+            {
+                need_add = false;
+                break;
+            }
+        }
+        if (need_add)
+        {
+            points_to_add.emplace_back(point_world);
+        }
+    }
+
+    if (ivox_)
+    {
+        ivox_->AddPoints(points_to_add);
+        ivox_->AddPoints(point_no_need_downsample);
+    }
+
+    for (const auto &point : points_to_add)
+    {
+        map_points_.emplace_back(FromPointType(point));
+    }
+    for (const auto &point : point_no_need_downsample)
+    {
+        map_points_.emplace_back(FromPointType(point));
+    }
+}
+
+void MapManager::update_c3p(const MapPointList &points, const std::uint32_t frame_number)
+{
+    if (!initialized_)
+    {
+        initialize_c3p(points);
+        return;
+    }
+
+    std::vector<c3p_map_ns::pointWithCov> native_points;
+    native_points.reserve(points.size());
+    for (const auto &point : points)
+    {
+        c3p_map_ns::pointWithCov native_point;
+        native_point.point       = point.point_world;
+        native_point.point_world = point.point_world;
+        native_point.cov         = point.cov_world;
+        native_points.emplace_back(native_point);
+    }
+
+    std::vector<int> layer_point_size = config_.layer_point_size;
+    const std::size_t required_layers = static_cast<std::size_t>(std::max(0, config_.max_layer) + 1);
+    if (layer_point_size.empty())
+    {
+        layer_point_size.assign(required_layers, 5);
+    }
+    else if (layer_point_size.size() < required_layers)
+    {
+        layer_point_size.resize(required_layers, layer_point_size.back());
+    }
+
+    c3p_map_ns::updateVoxelMap(config_.c3p_enable_voxel_merging,
+                               native_points,
+                               static_cast<float>(config_.voxel_size),
+                               config_.max_layer,
+                               layer_point_size,
+                               static_cast<float>(config_.plane_threshold),
+                               c3p_voxel_map_,
+                               c3p_plane_map_,
+                               c3p_merged_table_,
+                               frame_number,
+                               config_.c3p_merge_theta_thresh,
+                               config_.c3p_merge_dist_thresh,
+                               config_.c3p_merge_cov_min_eigen_val_thresh,
+                               config_.c3p_merge_x_coord_diff_thresh,
+                               config_.c3p_merge_y_coord_diff_thresh);
+
+    map_points_.insert(map_points_.end(), points.begin(), points.end());
 }
 
 void MapManager::update(const std::vector<voxel_map_ns::pointWithCov> &points,
@@ -359,7 +842,7 @@ void MapManager::search(const MapPointList &points, PlaneMatchList &matches,
         }
         non_match = std::move(native_non_match);
     }
-    else
+    else if (config_.type == MapType::VoxelMapPlus)
     {
         std::vector<voxel_map_plus_ns::pointWithCov> native_points;
         std::vector<voxel_map_plus_ns::ptpl> native_matches;
@@ -375,6 +858,135 @@ void MapManager::search(const MapPointList &points, PlaneMatchList &matches,
             matches.emplace_back(FromVoxelPlusMatch(match));
         }
         non_match = std::move(native_non_match);
+    }
+    else
+    {
+        search_point_backend(points, matches, non_match);
+    }
+}
+
+void MapManager::search_point_backend(const MapPointList &points,
+                                      PlaneMatchList &matches,
+                                      std::vector<V3D> &non_match)
+{
+    if (config_.type == MapType::IKDTree)
+    {
+        search_ikd_tree(points, matches, non_match);
+    }
+    else if (config_.type == MapType::IVox)
+    {
+        search_ivox(points, matches, non_match);
+    }
+    else if (config_.type == MapType::C3PVoxelMap)
+    {
+        search_c3p(points, matches, non_match);
+    }
+    else
+    {
+        throw std::logic_error("point-backend search requested for a PV voxel backend");
+    }
+}
+
+void MapManager::search_ikd_tree(const MapPointList &points,
+                                 PlaneMatchList &matches,
+                                 std::vector<V3D> &non_match)
+{
+    matches.clear();
+    non_match.clear();
+    matches.reserve(points.size());
+    non_match.reserve(points.size());
+
+    const int nearest_count = std::max(config_.nearest_point_count, NUM_MATCH_POINTS);
+    for (const auto &point : points)
+    {
+        PointVector neighbors;
+        std::vector<float> point_search_sq_dist;
+        if (ikd_tree_ && ikd_tree_->validnum() > 0)
+        {
+            ikd_tree_->Nearest_Search(ToPointType(point.point_world),
+                                      nearest_count,
+                                      neighbors,
+                                      point_search_sq_dist);
+        }
+
+        if (neighbors.size() < NUM_MATCH_POINTS ||
+            (point_search_sq_dist.size() >= NUM_MATCH_POINTS &&
+             point_search_sq_dist[NUM_MATCH_POINTS - 1] > config_.nearest_max_range))
+        {
+            non_match.emplace_back(point.point_world);
+            continue;
+        }
+
+        PlaneMatch match;
+        if (fit_point_plane(point, neighbors, match, MapType::IKDTree))
+        {
+            matches.emplace_back(match);
+        }
+        else
+        {
+            non_match.emplace_back(point.point_world);
+        }
+    }
+}
+
+void MapManager::search_ivox(const MapPointList &points,
+                             PlaneMatchList &matches,
+                             std::vector<V3D> &non_match)
+{
+    matches.clear();
+    non_match.clear();
+    matches.reserve(points.size());
+    non_match.reserve(points.size());
+
+    const int nearest_count = std::max(config_.nearest_point_count, NUM_MATCH_POINTS);
+    for (const auto &point : points)
+    {
+        PointVector neighbors;
+        const bool found = ivox_ && ivox_->GetClosestPoint(ToPointType(point.point_world),
+                                                           neighbors,
+                                                           nearest_count,
+                                                           config_.nearest_max_range);
+        PlaneMatch match;
+        if (found && fit_point_plane(point, neighbors, match, MapType::IVox))
+        {
+            matches.emplace_back(match);
+        }
+        else
+        {
+            non_match.emplace_back(point.point_world);
+        }
+    }
+}
+
+void MapManager::search_c3p(const MapPointList &points,
+                            PlaneMatchList &matches,
+                            std::vector<V3D> &non_match)
+{
+    std::vector<c3p_map_ns::pointWithCov> native_points;
+    std::vector<c3p_map_ns::ptpl> native_matches;
+    native_points.reserve(points.size());
+    for (const auto &point : points)
+    {
+        c3p_map_ns::pointWithCov native_point;
+        // C3P uses point_world for voxel lookup but returns point as the
+        // original lidar-frame query point for the state Jacobian.
+        native_point.point       = point.point_lidar;
+        native_point.point_world = point.point_world;
+        native_point.cov         = point.cov_world;
+        native_points.emplace_back(native_point);
+    }
+
+    c3p_map_ns::BuildResidualListOMP(c3p_voxel_map_,
+                                     config_.voxel_size,
+                                     config_.sigma_num,
+                                     config_.max_layer,
+                                     native_points,
+                                     native_matches,
+                                     non_match);
+    matches.reserve(native_matches.size());
+    for (const auto &match : native_matches)
+    {
+        matches.emplace_back(FromC3PMatch(match));
     }
 }
 
@@ -442,9 +1054,21 @@ void MapManager::erase_outside_window(const MapWindow &window)
     {
         erase_outside_voxel_window(window);
     }
-    else
+    else if (config_.type == MapType::VoxelMapPlus)
     {
         erase_outside_voxel_plus_window(window);
+    }
+    else if (config_.type == MapType::IKDTree)
+    {
+        erase_outside_ikd_window(window);
+    }
+    else if (config_.type == MapType::IVox)
+    {
+        erase_outside_ivox_window(window);
+    }
+    else if (config_.type == MapType::C3PVoxelMap)
+    {
+        erase_outside_c3p_window(window);
     }
     filter_snapshot_to_window(window);
 }
@@ -485,6 +1109,70 @@ void MapManager::erase_outside_voxel_plus_window(const MapWindow &window)
     }
 }
 
+void MapManager::erase_outside_ikd_window(const MapWindow &window)
+{
+    if (!ikd_tree_ || ikd_tree_->validnum() <= 0)
+    {
+        return;
+    }
+
+    PointVector stored_points;
+    ikd_tree_->flatten(ikd_tree_->Root_Node, stored_points, NOT_RECORD);
+    PointVector points_to_delete;
+    points_to_delete.reserve(stored_points.size());
+    for (const auto &point : stored_points)
+    {
+        if (!Inside(V3D(point.x, point.y, point.z), window))
+        {
+            points_to_delete.emplace_back(point);
+        }
+    }
+    if (!points_to_delete.empty())
+    {
+        ikd_tree_->Delete_Points(points_to_delete);
+    }
+
+    map_points_.clear();
+    stored_points.clear();
+    if (ikd_tree_->Root_Node)
+    {
+        ikd_tree_->flatten(ikd_tree_->Root_Node, stored_points, NOT_RECORD);
+    }
+    map_points_.reserve(stored_points.size());
+    for (const auto &point : stored_points)
+    {
+        map_points_.emplace_back(FromPointType(point));
+    }
+}
+
+void MapManager::erase_outside_ivox_window(const MapWindow &window)
+{
+    MapPointList retained;
+    retained.reserve(map_points_.size());
+    for (const auto &point : map_points_)
+    {
+        if (Inside(point.point_world, window))
+        {
+            retained.emplace_back(point);
+        }
+    }
+    initialize(retained);
+}
+
+void MapManager::erase_outside_c3p_window(const MapWindow &window)
+{
+    MapPointList retained;
+    retained.reserve(map_points_.size());
+    for (const auto &point : map_points_)
+    {
+        if (Inside(point.point_world, window))
+        {
+            retained.emplace_back(point);
+        }
+    }
+    initialize(retained);
+}
+
 void MapManager::filter_snapshot_to_window(const MapWindow &window)
 {
     MapPointList filtered;
@@ -509,19 +1197,42 @@ size_t MapManager::size() const
     {
         return voxel_map_plus_.size();
     }
+    if (config_.type == MapType::IKDTree)
+    {
+        return ikd_tree_ ? static_cast<size_t>(std::max(0, ikd_tree_->validnum())) : 0;
+    }
+    if (config_.type == MapType::IVox)
+    {
+        return ivox_ ? ivox_->NumValidGrids() : 0;
+    }
+    if (config_.type == MapType::C3PVoxelMap)
+    {
+        return c3p_voxel_map_.size();
+    }
     return 0;
 }
 
 PointCloudXYZI::Ptr MapManager::snapshot() const
 {
     PointCloudXYZI::Ptr result(new PointCloudXYZI());
+    if (config_.type == MapType::IKDTree && ikd_tree_ && ikd_tree_->Root_Node)
+    {
+        PointVector stored_points;
+        ikd_tree_->flatten(ikd_tree_->Root_Node, stored_points, NOT_RECORD);
+        result->reserve(stored_points.size());
+        for (const auto &point : stored_points)
+        {
+            PointType output = point;
+            output.intensity = static_cast<float>(V3D(point.x, point.y, point.z).norm());
+            result->push_back(output);
+        }
+        return result;
+    }
+
     result->reserve(map_points_.size());
     for (const auto &point : map_points_)
     {
-        PointType output;
-        output.x         = static_cast<float>(point.point_world.x());
-        output.y         = static_cast<float>(point.point_world.y());
-        output.z         = static_cast<float>(point.point_world.z());
+        PointType output = ToPointType(point.point_world);
         output.intensity = static_cast<float>(point.point_world.norm());
         result->push_back(output);
     }
@@ -537,6 +1248,10 @@ void MapManager::publish_planes(const ros::Publisher &publisher, const int max_v
     else if (config_.type == MapType::VoxelMapPlus)
     {
         voxel_map_plus_ns::pubVoxelMap(voxel_map_plus_, publisher);
+    }
+    else if (config_.type == MapType::C3PVoxelMap)
+    {
+        c3p_map_ns::pubVoxelMap(c3p_voxel_map_, max_voxel_layer, publisher);
     }
 }
 
