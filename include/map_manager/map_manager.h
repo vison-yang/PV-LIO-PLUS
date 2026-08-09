@@ -12,11 +12,15 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 class ImuProcess;
 
 #include "common_lib.h"
+#include "native/c3p_voxel_map_util.hpp"
+#include "native/ikd_tree/ikd_tree.h"
+#include "native/ivox3d/ivox3d.h"
 #include "voxel_map_util.hpp"
 #include "voxelmapplus_util.hpp"
 
@@ -89,6 +93,31 @@ struct MapManagerConfig
     double sigma_num        = 3.0;
     int plus_update_size_threshold = 5;
 
+    // Point-map backends retain the native FAST-LIO/Faster-LIO search
+    // contract: five neighbors, a squared-distance gate, and a plane fit.
+    int nearest_point_count = NUM_MATCH_POINTS;
+    double nearest_max_range = 5.0;
+    double plane_fit_threshold = 0.1;
+    double point_map_downsample_size = 0.5;
+
+    // Native ikd-tree parameters.
+    double ikd_delete_param = 0.5;
+    double ikd_balance_param = 0.7;
+    double ikd_box_length = 0.2;
+
+    // Native iVox parameters.
+    double ivox_resolution = 0.2;
+    int ivox_nearby_type = 18;
+    std::size_t ivox_capacity = 1000000;
+
+    // Native C3P-VoxelMap plane merging parameters.
+    bool c3p_enable_voxel_merging = false;
+    double c3p_merge_theta_thresh = 0.05;
+    double c3p_merge_dist_thresh = 0.05;
+    double c3p_merge_cov_min_eigen_val_thresh = 0.002;
+    double c3p_merge_x_coord_diff_thresh = 5.0;
+    double c3p_merge_y_coord_diff_thresh = 5.0;
+
     // Windowing is deliberately opt-in.  The original PV maps are growing
     // local maps, so enabling this changes their native lifetime semantics.
     bool local_window_enabled = false;
@@ -106,10 +135,10 @@ struct MapWindow
 /**
  * Owns the selected local-map backend and exposes one lifecycle contract.
  *
- * The current implementation intentionally keeps the native PV map data
- * structures and calls their original build/query/update functions.  The
- * other backends are represented in MapType and are added as independent
- * adapters in later phases.
+ * Native PV voxel maps, FAST-LIO's ikd-tree, Faster-LIO's iVox, and the
+ * C3P-VoxelMap implementation are owned here.  The PV observation loop only
+ * consumes PlaneMatch, while each backend keeps its original search/update
+ * semantics inside the manager.
  */
 class MapManager
 {
@@ -173,6 +202,29 @@ private:
 
     static PlaneMatch FromVoxelMatch(const voxel_map_ns::ptpl &match);
     static PlaneMatch FromVoxelPlusMatch(const voxel_map_plus_ns::ptpl &match);
+    static PlaneMatch FromC3PMatch(const c3p_map_ns::ptpl &match);
+    static PointType ToPointType(const V3D &point, float intensity = 0.0f);
+    static MapPoint FromPointType(const PointType &point);
+
+    void configure_point_backends();
+    void initialize_point_backend(const MapPointList &points);
+    void update_ikd_tree(const MapPointList &points);
+    void update_ivox(const MapPointList &points);
+    void initialize_c3p(const MapPointList &points);
+    void update_c3p(const MapPointList &points, std::uint32_t frame_number);
+    void search_point_backend(const MapPointList &points, PlaneMatchList &matches,
+                              std::vector<V3D> &non_match);
+    void search_ikd_tree(const MapPointList &points, PlaneMatchList &matches,
+                         std::vector<V3D> &non_match);
+    void search_ivox(const MapPointList &points, PlaneMatchList &matches,
+                     std::vector<V3D> &non_match);
+    void search_c3p(const MapPointList &points, PlaneMatchList &matches,
+                    std::vector<V3D> &non_match);
+    bool fit_point_plane(const MapPoint &query, const PointVector &neighbors,
+                         PlaneMatch &match, MapType backend) const;
+    void erase_outside_ikd_window(const MapWindow &window);
+    void erase_outside_ivox_window(const MapWindow &window);
+    void erase_outside_c3p_window(const MapWindow &window);
 
     void require_supported_backend() const;
     void erase_outside_voxel_window(const MapWindow &window);
@@ -187,6 +239,13 @@ private:
 
     std::unordered_map<voxel_map_ns::VOXEL_LOC, voxel_map_ns::OctoTree *> voxel_map_;
     std::unordered_map<voxel_map_plus_ns::VOXEL_LOC, voxel_map_plus_ns::UnionFindNode *> voxel_map_plus_;
+
+    using IVoxBackend = faster_lio::IVox<3, faster_lio::IVoxNodeType::DEFAULT, PointType>;
+    std::unique_ptr<KD_TREE<PointType>> ikd_tree_;
+    std::unique_ptr<IVoxBackend> ivox_;
+    std::unordered_map<c3p_map_ns::VOXEL_LOC, c3p_map_ns::OctoTree *> c3p_voxel_map_;
+    std::unordered_map<c3p_map_ns::PlaneDesc, c3p_map_ns::UnionPlane> c3p_plane_map_;
+    std::unordered_map<int, std::unordered_set<c3p_map_ns::NodeLoc>> c3p_merged_table_;
 };
 
 }  // namespace pv_lio_plus
