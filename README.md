@@ -1,192 +1,297 @@
 # PV-LIO-PLUS
 
-This code is forked from [PV-LIO](https://github.com/HViktorTsoi/PV-LIO.git). The [PV-LIO](https://github.com/HViktorTsoi/PV-LIO.git) algorithm is optimized based on the original source code of the [VoxelMap](https://github.com/hku-mars/VoxelMap.git) algorithm. Inspired by [Fast-LIO2](https://github.com/hku-mars/FAST_LIO.git), it utilizes iKFoM as its solver and incorporates tightly-coupled IMU integration. Compared to the original code, PV-LIO features a clearer structure, more stable performance, and higher pose accuracy.
+[中文版本](README.zh-CN.md)
 
-Building upon [VoxelMap](https://github.com/hku-mars/VoxelMap.git), [VoxelMap++](https://github.com/uestc-icsp/VoxelMapPlus_Public.git) optimizes the original local map manager and enhances the residual calculation method. This results in improved computational efficiency and reduced memory consumption.
+PV-LIO-PLUS is a ROS1 LiDAR-inertial odometry (LIO) framework for evaluating
+different local-map models under one experiment and point-to-plane matching
+framework. The project is chiefly inherited from
+[PV-LIO](https://github.com/HViktorTsoi/PV-LIO.git),
+and keeps its tightly coupled LiDAR-IMU estimation structure and IKFoM-based
+iterated filter. PV-LIO itself is built on the probabilistic voxel-map idea of
+[VoxelMap](https://github.com/hku-mars/VoxelMap.git) and is inspired by
+[FAST-LIO2](https://github.com/hku-mars/FAST_LIO.git).
 
-However, during actual testing, the original [VoxelMap](https://github.com/hku-mars/VoxelMap.git), [PV-LIO](https://github.com/HViktorTsoi/PV-LIO.git), and [VoxelMap++](https://github.com/uestc-icsp/VoxelMapPlus_Public.git) often crashed, despite demonstrating excellent performance on some datasets, particularly when fusing IMU data.
+VoxelMap is the first and core local-map algorithm in this project lineage. It
+contributes an efficient probabilistic adaptive voxel map: local surfaces are
+represented by planes, and plane parameters and uncertainty are updated as
+scans arrive. On top of this foundation, PV-LIO-PLUS brings four additional
+local-map backends into the same experiment framework: VoxelMap++, ikd-tree,
+iVox, and C3P-VoxelMap.
 
-We contribute the following improvements:
+Researchers can select a backend from a configuration file and compare map
+search, insertion, deletion/local-window maintenance, and point-to-plane
+matching in the same LIO front end. All bundled local-map sources are kept
+inside PV-LIO-PLUS; the node does not link to another LIO package's source
+tree.
 
-- Fixed an issue in the error propagation formula used for calculating residual weights in PV-LIO, enabling stable operation.
+## Project lineage and map roles
 
-- Integrated the VoxelMap++ algorithm into PV-LIO framework by referencing the source code and papers of both VoxelMap and VoxelMap++, allowing algorithm selection via configuration files.
+| Role | Component | Contribution or characteristic retained here |
+| --- | --- | --- |
+| LIO foundation | [PV-LIO](https://github.com/HViktorTsoi/PV-LIO.git) | Tightly coupled LiDAR-IMU odometry, IKFoM iterated filtering, and the original PV observation flow. |
+| First/core local map | [VoxelMap](https://github.com/hku-mars/VoxelMap.git) | Probabilistic adaptive coarse-to-fine voxel mapping with planes and plane uncertainty as the map representation. |
+| Additional backend | [VoxelMap++](https://github.com/uestc-icsp/VoxelMapPlus_Public.git) | VoxelMap-derived local-map manager and residual-calculation optimizations, with native voxel-plane matching. |
+| Additional backend | [FAST-LIO2 ikd-tree](https://github.com/hku-mars/FAST_LIO.git) | Dynamic incremental KD-tree point map with efficient nearest-neighbor search and native point deletion. |
+| Additional backend | [Faster-LIO iVox](https://github.com/gaoxiang12/faster-lio) | Sparse incremental voxel point map designed for high-throughput nearby-point search. |
+| Additional backend | [C3P-VoxelMap](https://github.com/deptrum/c3p-voxelmap) | Compact, cumulative, and coalescible probabilistic voxel mapping with optional on-demand plane merging. |
+| Integration layer | `MapManager` | Common initialization, search, insertion, snapshot, deletion/window, and publication interfaces while preserving backend-specific logic. |
 
-- Addressed stability issues of the VoxelMap++ algorithm in PV-LIO framework, ensuring robust program execution.
+## Main work
 
-- Added a local `MapManager` facade.  It keeps the native PV VoxelMap and
-  VoxelMap++ implementations available and adds selectable adapters for
-  FAST-LIO2's ikd-tree, Faster-LIO's iVox, and C3P-VoxelMap.  All local map
-  sources are grouped as sibling backend directories under
-  `include/map_manager/native/`; PV-LIO-PLUS does not link against the other
-  ROS packages or their source trees.
+The project keeps the original README's PV-LIO/VoxelMap/VoxelMap++ repair and
+optimization record, while making the scope of each change explicit. These are
+engineering integration and numerical-hardening changes; they do not by
+themselves establish a new covariance model or general improvements in
+stability, efficiency, or accuracy:
 
-- Added map-independent lifecycle operations (initialize, update, search,
-  snapshot, local-window movement, and erase) and a common point-to-plane
-  match contract.  Backend-specific differences remain in the manager: ikd-tree
-  uses native point deletion, while iVox and C3P rebuild from retained points
-  when a local window moves because their native APIs do not expose safe erase
-  or iteration operations.
+- **PV-LIO residual weighting:** retained the historical adjustment to the
+  error-propagation path used to form residual weights, as documented by the
+  original project.
+- **VoxelMap integration:** retained the native probabilistic plane-map logic
+  and made the point/covariance data flow explicit in the common manager,
+  including the LiDAR-to-world covariance convention.
+- **VoxelMap++ integration:** retained its upstream local-map-manager and
+  residual-calculation optimizations, made it selectable from configuration,
+  carried the correct point-covariance frame into the residual, and guarded
+  observed invalid or near-zero residual-variance cases.
+- **Unified local-map evaluation:** added `MapManager` and integrated the four
+  additional backends above. Native plane backends keep their native matching;
+  point-map backends search nearby points and fit a plane for the common
+  residual contract.
+- **Reproducible outputs:** added explicit trajectory and world-frame scan-cloud
+  output semantics, with backend-specific filenames documented below.
+- **Build and packaging:** upgraded the package to C++17 and kept the local-map
+  implementations inside PV-LIO-PLUS so backend comparison does not require
+  linking external LIO source trees.
 
-- The node now selects the observation model and map lifecycle from
-  `mapping/map_type`, and records a trajectory and a finite world-frame point
-  cloud when the corresponding output options are enabled.
+## 1. Architecture
 
+PV-LIO-PLUS separates the LIO state-estimation loop from local-map storage and
+search. The observation model selects the native matching implementation from
+`mapping/map_type`, while `MapManager` provides a common lifecycle and match
+contract.
 
-## Update
-- 2023.07.18: Fix eigen failed error for Ubuntu 20.04. 
-- 2026.08.09: Add the unified local-map manager, selectable ikd-tree/iVox/C3P
-  backends, local-window handling, and explicit trajectory/PCD output semantics.
-
-
-## 1. Prerequisites
-
-### 1.1 **Ubuntu** and **ROS**
-**Ubuntu >= 16.04**
-
-For **Ubuntu 18.04 or higher**, the **default** PCL and Eigen is enough for PV-LIO to work normally.
-
-ROS    >= Melodic. [ROS Installation](http://wiki.ros.org/ROS/Installation)
-
-### 1.2. **PCL && Eigen**
-PCL    >= 1.8,   Follow [PCL Installation](http://www.pointclouds.org/downloads/linux.html).
-
-Eigen  >= 3.3.4, Follow [Eigen Installation](http://eigen.tuxfamily.org/index.php?title=Main_Page).
-
-### 1.3. **livox_ros_driver**
-Follow [livox_ros_driver Installation](https://github.com/Livox-SDK/livox_ros_driver).
-
-*Remarks:*
-- The **livox_ros_driver** must be installed and **sourced** before run any PV-LIO launch file.
-- How to source? The easiest way is add the line ``` source $Livox_ros_driver_dir$/devel/setup.bash ``` to the end of file ``` ~/.bashrc ```, where ``` $Livox_ros_driver_dir$ ``` is the directory of the livox ros driver workspace (should be the ``` ws_livox ``` directory if you completely followed the livox official document).
-
-
-## 2. Build
-Clone the repository and build the workspace with `catkin_make`:
-
-```
-    cd ~/$A_ROS_DIR$/src
-    git clone https://github.com/vison-yang/PV-LIO-PLUS.git
-    cd PV_LIO_PLUS
-    cd ../..
-    catkin_make
-    source devel/setup.bash
-```
-- Remember to source the livox_ros_driver before build (follow 1.3 **livox_ros_driver**)
-
-The current implementation uses C++17.  A normal workspace build is the
-acceptance build; `catkin_make --pkg pv_lio_plus` is useful for a quick
-iteration but does not replace the full workspace build.
-
-PV-LIO-PLUS does not define its own ROS messages, so its CMake configuration
-does not invoke `generate_messages()`.  Legacy warnings from the locally
-vendored IKD-Tree/C3P/iVox implementations are scoped to those backend files;
-they do not suppress diagnostics in the PV-LIO-PLUS application code.  A full
-workspace configure may still print warnings from the installed PCL/VTK
-packages or other packages in the workspace; those indicate external package
-metadata or optional components and are independent of this node's build.
-
-## 3. Local-map backends
-
-Set one of the following values in the launch YAML under `mapping/map_type`:
-
-| `map_type` | implementation and search contract |
-| --- | --- |
-| `voxelmap` | PV's original probabilistic adaptive voxel map |
-| `voxelmap_plus` | PV's VoxelMap++ map and residual logic |
-| `ikdtree` | FAST-LIO2 native k-nearest search, plane fit, and incremental downsample/update |
-| `ivox` | Faster-LIO native iVox grid search and incremental downsample/update |
-| `c3p_voxelmap` | C3P-VoxelMap native octree residual and optional plane-merging logic |
-
-The legacy `mapping/b_use_voxelmap_plus` switch is still accepted when
-`mapping/map_type` is absent.  When both are present, `map_type` has priority.
-The point-map parameters (`nearest_point_count`, `nearest_max_range`,
-`plane_fit_threshold`, `point_map_downsample_size`, `ivox_*`, `ikd_*`) and the
-C3P merge parameters are optional and fall back to native-compatible defaults.
-
-The local backend sources are kept together without changing their native
-algorithms:
-
-```
-include/map_manager/native/
-  voxelmap/       voxel_map_util.hpp
-  voxelmap_plus/  voxelmapplus_util.hpp
-  ikdtree/        ikd_tree.h, ikd_tree.cpp
-  ivox/           ivox3d.h, ivox3d_node.hpp, eigen_types.h, hilbert.hpp
-  c3p_voxelmap/   c3p_voxel_map_util.hpp
+```text
+LiDAR / IMU
+    │
+    ▼
+PV-LIO state estimation and point-to-plane residuals
+    │
+    ▼
+MapManager
+    ├── VoxelMap       ─ probabilistic adaptive voxel planes
+    ├── VoxelMap++     ─ enhanced voxel planes and residual logic
+    ├── ikd-tree       ─ incremental point map and plane fitting
+    ├── iVox           ─ voxelized point map and plane fitting
+    └── C3P-VoxelMap   ─ compact cumulative probabilistic voxels
 ```
 
-`mapping/local_window_en` is opt-in.  Its half extent is `mapping/det_range`.
-The window is centered on the current estimated LiDAR position after each map
-update.  VoxelMap/++ retain their native voxel deletion behavior; ikd-tree
-deletes points outside the window; iVox and C3P rebuild from the manager's
-retained point list.
+The manager preserves the native algorithmic behavior as far as each API
+allows. Backend-specific differences are isolated in the manager adapters:
 
-## 4. Running and outputs
+- VoxelMap and VoxelMap++ use their native voxel-plane search and update logic;
+  VoxelMap++ additionally retains its native residual formulation.
+- ikd-tree uses an incremental KD-tree point map and its native deletion path.
+- iVox uses a sparse voxel point map for nearby-point search; the adapter fits a
+  local plane before creating the common point-to-plane match.
+- C3P-VoxelMap uses its compact probabilistic plane representation and optional
+  on-demand plane merging.
+- When local-window mode is enabled, ikd-tree uses native point deletion.
+  iVox and C3P-VoxelMap rebuild from the manager's retained points because
+  their native APIs do not expose a safe erase-and-iterate operation.
 
-For the included Mid-360 launch file:
+### Source layout
+
+```text
+PV_LIO_PLUS/
+├── include/map_manager/map_manager.h
+├── src/map_manager/map_manager.cpp
+└── include/map_manager/native/
+    ├── voxelmap/       # PV-LIO VoxelMap implementation
+    ├── voxelmap_plus/  # VoxelMap++ implementation
+    ├── ikdtree/        # FAST-LIO2 ikd-tree implementation
+    ├── ivox/           # Faster-LIO iVox implementation
+    └── c3p_voxelmap/   # C3P-VoxelMap implementation
+```
+
+## 2. Requirements
+
+The workspace is tested with Ubuntu 20.04, ROS Noetic, C++17, PCL, Eigen, and
+Livox ROS messages. Other ROS1 distributions may work when their compiler and
+dependency versions provide C++17 support.
+
+- ROS1 Melodic or later; ROS Noetic is recommended.
+- PCL >= 1.8.
+- Eigen >= 3.3.4.
+- A sourced `livox_ros_driver` workspace providing `livox_ros_driver/CustomMsg.h`.
+- A C++17-capable compiler.
+
+The bundled local-map backends do not require Ceres. PV-LIO-PLUS builds them
+as part of the package and does not link against the source trees of the other
+LIO packages.
+
+## 3. Build
+
+From the catkin workspace root:
+
+```bash
+cd ~/src/lio_ws
+source /opt/ros/noetic/setup.bash
+# Source the workspace that provides livox_ros_driver, if it is separate.
+source <livox_driver_ws>/devel/setup.bash
+catkin_make
+source devel/setup.bash
+```
+
+The normal workspace build with `catkin_make` is the recommended build check.
+`catkin_make --pkg pv_lio_plus` is useful for quick iteration, but does not
+replace a complete workspace build.
+
+## 4. Select a local-map backend
+
+Set `mapping/map_type` in
+[`config/mid360_indoor.yaml`](config/mid360_indoor.yaml):
+
+| `map_type` | Local-map model | Matching strategy |
+| --- | --- | --- |
+| `voxelmap` | PV-LIO's original VoxelMap | Native adaptive voxel-plane matching |
+| `voxelmap_plus` | VoxelMap++ | Native voxel-plane and residual logic |
+| `ikdtree` | FAST-LIO2 ikd-tree | Nearby point search followed by plane fitting |
+| `ivox` | Faster-LIO iVox | Voxelized nearby-point search followed by plane fitting |
+| `c3p_voxelmap` | C3P-VoxelMap | Compact probabilistic plane matching with optional merging |
+
+Example:
+
+```yaml
+mapping:
+    map_type: ikdtree
+    local_window_en: false
+    det_range: 100.0
+```
+
+`mapping/map_type` takes priority over the legacy
+`mapping/b_use_voxelmap_plus` boolean. If `map_type` is absent, the legacy
+boolean selects VoxelMap++ or the original VoxelMap.
+
+The common point-map parameters include `nearest_point_count`,
+`nearest_max_range`, `plane_fit_threshold`, and
+`point_map_downsample_size`. Backend-specific parameters include `ikd_*`,
+`ivox_*`, and `c3p_*`; the native-compatible defaults are used when they are
+omitted.
+
+### Local-window mode
+
+Set `mapping/local_window_en: true` to enable a moving local map. The window is
+centered at the current LiDAR position and uses `mapping/det_range` as its half
+extent. The manager applies the backend-appropriate deletion or rebuild policy
+described in the architecture section above.
+
+## 5. Run
+
+Start ROS and launch the included Mid-360 configuration:
 
 ```bash
 source /opt/ros/noetic/setup.bash
 source devel/setup.bash
+roscore
 roslaunch pv_lio_plus mapping_mid360.launch rviz:=false
 ```
 
-The node subscribes to `/livox/lidar` and `/livox/imu`, publishes odometry on
-`/Odometry`, the path on `/path`, and the current manager snapshot on
-`/Laser_map`.  Plane markers on `/planes` are published for the voxel-plane
-backends; point-map backends intentionally do not synthesize plane markers.
-
-When `pcd_save/pcd_save_en` is true, the node records the undistorted world
-point cloud.  On shutdown it writes `output/<backend>_pos.txt` and
-`output/<backend>.pcd`, where the backend stems are `pv_lio`, `pv_lio_plus`,
-`pv_lio_ikdtree`, `pv_lio_ivox`, and `pv_lio_c3p_voxelmap`.  A positive
-`pcd_save/interval` additionally writes intermediate chunks under
-`output/PCD/`; `-1` keeps one final PCD.  The saved PCD is the accumulated
-world-frame scan cloud, while `/Laser_map` is the selected local-map snapshot.
-Trajectory recording is independent of whether `/path` visualization is
-enabled.
-
-For backend comparison, run each backend with the same bag and move only the
-two final files after shutdown into
-`output/full_map_tests_<date>/<backend>/`; switching can be done with runtime
-`rosparam` values for `mapping/map_type` and does not require source or YAML
-changes.  The completed full-bag verification for this workspace is under
-`../../output/full_map_tests_20260809/` with one directory per backend.
-
-For a short local replay, start `roscore` first and then use:
+In another terminal, play a ROS1 bag with simulated time enabled:
 
 ```bash
+source /opt/ros/noetic/setup.bash
+source ~/src/lio_ws/devel/setup.bash
 rosbag play --clock /home/yxy/data/outdoor_Mainbuilding_10hz_2020-12-24-16-38-00.bag
 ```
 
-The PCL warning about a very small VoxelGrid leaf can occur with this dataset;
-it is non-fatal.  The expected acceptance checks are finite trajectory values,
-finite PCD fields, and a clean shutdown after Ctrl-C.
+The launch file loads the YAML configuration and subscribes to the topics
+specified by `common/lid_topic` and `common/imu_topic`. Make sure the LiDAR and
+IMU timestamps are synchronized. The warning `Failed to find match for field
+'time'.` indicates that per-point LiDAR timestamps are missing and can affect
+the motion compensation and propagation result.
 
-## 5. Directly run
-Noted:
+## 6. ROS interfaces and saved results
 
-A. Please make sure the IMU and LiDAR are **Synchronized**, that's important.
+| Interface | Meaning |
+| --- | --- |
+| `/Odometry` | Estimated LiDAR/IMU odometry |
+| `/path` | `nav_msgs/Path` trajectory for visualization |
+| `/Laser_map` | Snapshot of the selected local map |
+| `/planes` | Plane markers for voxel-plane backends |
+| `/cloud_registered` | Registered world-frame cloud |
+| `/cloud_registered_body` | Registered body-frame cloud |
+| `/cloud_registered_lidar` | Registered LiDAR-frame cloud |
 
-B. The warning message "Failed to find match for field 'time'." means the timestamps of each LiDAR points are missed in the rosbag file. That is important for the forward propagation and backwark propagation.
+On shutdown, the node writes results under the workspace `output/` directory:
 
-## 6. Related Works
-1. [VoxelMap](https://github.com/hku-mars/VoxelMap): An efficient and probabilistic adaptive voxel mapping method for LiDAR odometry.
-2. [FAST-LIO](https://github.com/hku-mars/FAST_LIO): A computationally efficient and robust LiDAR-inertial odometry (LIO) package.
-3. [IKFoM](https://github.com/hku-mars/IKFoM): A computationally efficient and convenient toolkit of iterated Kalman filter.
-4. [VoxelMap++](https://github.com/uestc-icsp/VoxelMapPlus_Public.git).
-5. [PV-LIO](https://github.com/HViktorTsoi/PV-LIO.git).
-6. [Faster-LIO](https://github.com/gaoxiang12/faster-lio): source of the local
-   iVox implementation copied into `include/map_manager/native/ivox/`.
-7. [C3P-VoxelMap](https://github.com/deptrum/c3p-voxelmap): source of the local
-   C3P voxel-map implementation copied into
-   `include/map_manager/native/c3p_voxelmap/c3p_voxel_map_util.hpp`.
+| Backend | Trajectory | Backend-named PCD when enabled |
+| --- | --- | --- |
+| `voxelmap` | `pv_lio_pos.txt` | `pv_lio.pcd` |
+| `voxelmap_plus` | `pv_lio_plus_pos.txt` | `pv_lio_plus.pcd` |
+| `ikdtree` | `pv_lio_ikdtree_pos.txt` | `pv_lio_ikdtree.pcd` |
+| `ivox` | `pv_lio_ivox_pos.txt` | `pv_lio_ivox.pcd` |
+| `c3p_voxelmap` | `pv_lio_c3p_voxelmap_pos.txt` | `pv_lio_c3p_voxelmap.pcd` |
 
-The local copies preserve their upstream headers and implementation logic;
-please retain the corresponding upstream license/notice requirements when
-redistributing this package.
+Each trajectory row contains:
 
+```text
+timestamp  tx  ty  tz  qw  qx  qy  qz
+```
 
-## 7. Acknowledgments
-Thanks a lot for the authors of [VoxelMap](https://github.com/hku-mars/VoxelMap), [IKFoM](https://github.com/hku-mars/IKFoM), [FAST-LIO](https://github.com/hku-mars/FAST_LIO), [VoxelMap++](https://github.com/uestc-icsp/VoxelMapPlus_Public.git), and [PV-LIO](https://github.com/HViktorTsoi/PV-LIO.git).
+The saved PCD is an accumulated undistorted world-frame scan cloud. It is
+different from `/Laser_map`, which is the current selected local-map snapshot
+and not a standardized saved-map file. With `pcd_save/interval: -1`, one final
+complete PCD is written. With a positive interval, completed chunks are written
+under `output/PCD/`; the backend-named PCD written at shutdown, if any, only
+contains the remaining unflushed tail and may not be present.
+
+The result stem is selected from `mapping/map_type`; therefore different map
+types intentionally save different final filenames. Do not assume that every
+run produces `pv_lio_pos.txt` and `pv_lio.pcd`. Intermediate chunks use the
+shared names `output/PCD/scans_N.pcd`, so move or rename that directory after
+each run when comparing backends.
+
+## 7. Recommended backend comparison procedure
+
+For a meaningful comparison:
+
+1. Use the same bag, sensor topics, initial state, noise parameters, and
+   preprocessing settings for every backend.
+2. Change only `mapping/map_type` between runs; do not change the LIO residual
+   or state-estimation code.
+3. Stop each run cleanly with `Ctrl-C` so the final trajectory and PCD are
+   flushed.
+4. Move the generated files into a separate result directory, for example:
+
+   ```bash
+   mkdir -p output/map_comparison/ikdtree
+   mv output/pv_lio_ikdtree_pos.txt output/map_comparison/ikdtree/
+   mv output/pv_lio_ikdtree.pcd output/map_comparison/ikdtree/
+   ```
+
+5. Check trajectory length, runtime, map size, and finite numeric values before
+   comparing accuracy or scene-dependent failure cases.
+
+This procedure keeps the source tree unchanged while preserving independent
+outputs for `voxelmap`, `voxelmap_plus`, `ikdtree`, `ivox`, and `c3p_voxelmap`.
+
+## 8. Related work and upstream implementations
+
+- [PV-LIO](https://github.com/HViktorTsoi/PV-LIO.git)
+- [VoxelMap](https://github.com/hku-mars/VoxelMap.git)
+- [VoxelMap++](https://github.com/uestc-icsp/VoxelMapPlus_Public.git)
+- [FAST-LIO2 / ikd-tree](https://github.com/hku-mars/FAST_LIO.git)
+- [Faster-LIO / iVox](https://github.com/gaoxiang12/faster-lio)
+- [C3P-VoxelMap](https://github.com/deptrum/c3p-voxelmap)
+- [IKFoM](https://github.com/hku-mars/IKFoM)
+
+The upstream implementations are locally integrated under
+`include/map_manager/native/` to keep backend selection inside PV-LIO-PLUS.
+Please retain the corresponding upstream licenses and notices when
+redistributing the project. See [`LICENSE`](LICENSE).
+
+## 9. Acknowledgements
+
+Thanks to the authors and contributors of PV-LIO, VoxelMap, VoxelMap++,
+FAST-LIO2, Faster-LIO, C3P-VoxelMap, and IKFoM.

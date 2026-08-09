@@ -32,6 +32,12 @@
 // CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
+
+/**
+ * @file voxelMapping.cpp
+ * @brief PV-LIO-PLUS node, observation models, and map-manager integration.
+ */
+
 #include <Python.h>
 #include <geometry_msgs/Vector3.h>
 #include <livox_ros_driver/CustomMsg.h>
@@ -77,6 +83,7 @@ double T1[MAXN], s_plot[MAXN], s_plot2[MAXN], s_plot3[MAXN], s_plot4[MAXN], s_pl
 double match_time = 0, solve_time = 0, solve_const_H_time = 0;
 int kdtree_size_st = 0, kdtree_size_end = 0, add_point_size = 0, kdtree_delete_counter = 0;
 bool time_sync_en = false, extrinsic_est_en = true, path_pub_en = true;
+/** @brief Enables accumulation and final saving of world-frame scan points. */
 bool pcd_save_en = false;
 double lidar_time_offset = 0.0;
 /**************************/
@@ -101,7 +108,12 @@ double filter_size_surf_min = 0;
 double total_distance = 0, lidar_end_time = 0, first_lidar_time = 0.0;
 int effct_feat_num = 0, time_log_counter = 0, scan_count = 0, publish_count = 0;
 int iterCount = 0, feats_down_size = 0, NUM_MAX_ITERATIONS = 0, laserCloudValidNum = 0;
-int pcd_save_interval = -1, pcd_index = 0, scan_wait_num = 0;
+/** @brief Number of frames accumulated before writing an intermediate PCD. */
+int pcd_save_interval = -1;
+/** @brief Index of the next intermediate PCD chunk. */
+int pcd_index = 0;
+/** @brief Number of frames accumulated in the current PCD chunk. */
+int scan_wait_num = 0;
 bool point_selected_surf[100000] = {0};
 bool lidar_pushed, flg_first_scan = true, flg_exit = false, flg_EKF_inited;
 bool scan_pub_en = false, scan_dense_pub_en = false, scan_body_pub_en = false, scan_lidar_pub_en = false;
@@ -153,9 +165,12 @@ bool publish_voxel_map      = false;
 int publish_max_voxel_layer = 0;
 
 bool b_use_voxelmap_plus = false;
+/** @brief Enables publication of the selected local-map snapshot. */
 bool map_publish_en = true;
 
+/** @brief Unified local-map facade used by the LIO observation loop. */
 pv_lio_plus::MapManager map_manager;
+/** @brief Runtime configuration passed to @ref map_manager. */
 pv_lio_plus::MapManagerConfig map_manager_config;
 
 /*** EKF inputs and output ***/
@@ -441,9 +456,17 @@ bool sync_packages(MeasureGroup &meas)
 /*                         publish and record results                         */
 /* -------------------------------------------------------------------------- */
 
+/** @brief Reusable cloud buffer for registered-cloud publication. */
 PointCloudXYZI::Ptr pcl_wait_pub(new PointCloudXYZI(500000, 1));
+/** @brief Accumulated world-frame scan cloud pending PCD output. */
 PointCloudXYZI::Ptr pcl_wait_save(new PointCloudXYZI());
 
+/**
+ * @brief Publishes the current world-frame scan and optionally saves it.
+ * @param pubLaserCloudFull Publisher for `/cloud_registered`.
+ *
+ * Saved points are accumulated independently from the `/Laser_map` snapshot.
+ */
 void publish_frame_world(const ros::Publisher &pubLaserCloudFull)
 {
     if (scan_pub_en)
@@ -531,6 +554,10 @@ void publish_frame_lidar(const ros::Publisher &_pub)
     // publish_count -= PUBFRAME_PERIOD;
 }
 
+/**
+ * @brief Publishes a snapshot of the selected local-map backend.
+ * @param pubLaserCloudMap Publisher for `/Laser_map`.
+ */
 void publish_map(const ros::Publisher &pubLaserCloudMap)
 {
     PointCloudXYZI::Ptr map_cloud = map_manager.snapshot();
@@ -592,7 +619,13 @@ void publish_odometry(const ros::Publisher &pubOdomAftMapped)
     br_world.sendTransform(tf::StampedTransform(transform, odomAftMapped.header.stamp, "world", "camera_init"));
 }
 
+/** @brief In-memory trajectory records flushed on node shutdown. */
 std::vector<std::vector<double>> vec_poses;
+
+/**
+ * @brief Returns the output filename stem for the selected map backend.
+ * @return Backend-specific stem used for trajectory and final PCD files.
+ */
 std::string result_file_stem()
 {
     switch (map_manager_config.type)
@@ -611,6 +644,7 @@ std::string result_file_stem()
     return "pv_lio";
 }
 
+/** @brief Appends the current timestamp, position, and orientation to output. */
 void record_pose()
 {
     vec_poses.push_back({lidar_end_time, state_point.pos(0), state_point.pos(1), state_point.pos(2),
@@ -701,6 +735,13 @@ M3D transformLidarCovToWorld(Eigen::Vector3d &p_lidar, const esekfom::esekf<stat
     //          (-point_crossmat) * rot_var * (-point_crossmat).transpose() + t_var;
 }
 
+/**
+ * @brief Converts synchronized LiDAR/world clouds to manager points.
+ * @param points_lidar Points in the current LiDAR frame.
+ * @param points_world The same points transformed to the world frame.
+ * @param cov_lidar LiDAR-frame covariance for each point, when available.
+ * @return Eigen-aligned points accepted by @ref pv_lio_plus::MapManager.
+ */
 pv_lio_plus::MapPointList make_manager_points(const PointCloudXYZI::Ptr &points_lidar,
                                               const PointCloudXYZI::Ptr &points_world,
                                               const std::vector<M3D> &cov_lidar)
@@ -728,6 +769,11 @@ pv_lio_plus::MapPointList make_manager_points(const PointCloudXYZI::Ptr &points_
     return result;
 }
 
+/**
+ * @brief Computes LiDAR-frame covariance for the selected PV backend.
+ * @param point Point coordinates in the LiDAR frame.
+ * @return Covariance using the configured ranging and angular noise.
+ */
 M3D calc_lidar_cov_for_backend(const V3D &point)
 {
     V3D safe_point = point;
@@ -939,6 +985,11 @@ void observation_model_share_plus(state_ikfom &s, esekfom::dyn_share_datastruct<
     res_mean_last = total_residual / effct_feat_num;  //? 未使用，total_residual 未计算
 }
 
+/**
+ * @brief Builds EKF residuals from ikd-tree, iVox, or C3P matches.
+ * @param s Current iterated filter state.
+ * @param ekfom_data EKF measurement Jacobian, residual, and weight outputs.
+ */
 void observation_model_share_point_backend(state_ikfom &s,
                                            esekfom::dyn_share_datastruct<double> &ekfom_data)
 {
@@ -1023,6 +1074,11 @@ void observation_model_share_point_backend(state_ikfom &s,
     res_mean_last = total_residual / effct_feat_num;
 }
 
+/**
+ * @brief Dispatches the EKF observation model to the selected map backend.
+ * @param s Current iterated filter state.
+ * @param ekfom_data EKF measurement Jacobian, residual, and weight outputs.
+ */
 void observation_model_share_manager(state_ikfom &s,
                                      esekfom::dyn_share_datastruct<double> &ekfom_data)
 {
