@@ -17,6 +17,16 @@
 #include "common_lib.h"
 #include "omp.h"
 
+// This file is a local copy of the upstream C3P implementation.  Keep its
+// original numerical code unchanged and limit legacy-warning suppression to
+// this backend only.
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#endif
+
 namespace c3p_map_ns
 {
 
@@ -2368,5 +2378,9 @@ void calcBodyCov(Eigen::Vector3d& pb,
 };
 
 }  // namespace c3p_map_ns
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 #endif

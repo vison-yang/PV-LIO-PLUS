@@ -49,7 +49,6 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   tf
   livox_ros_driver
-  message_generation
   eigen_conversions
 )
 
@@ -66,18 +65,8 @@ include_directories(
   ${PYTHON_INCLUDE_DIRS}
   include)
 
-#add_message_files(
-#  FILES
-#  Pose6D.msg
-#)
-
-generate_messages(
- DEPENDENCIES
- geometry_msgs
-)
-
 catkin_package(
-  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs message_runtime livox_ros_driver
+  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs livox_ros_driver
   DEPENDS EIGEN3 PCL
   INCLUDE_DIRS
 )

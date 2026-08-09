@@ -77,6 +77,14 @@ The current implementation uses C++17.  A normal workspace build is the
 acceptance build; `catkin_make --pkg pv_lio_plus` is useful for a quick
 iteration but does not replace the full workspace build.
 
+PV-LIO-PLUS does not define its own ROS messages, so its CMake configuration
+does not invoke `generate_messages()`.  Legacy warnings from the locally
+vendored IKD-Tree/C3P/iVox implementations are scoped to those backend files;
+they do not suppress diagnostics in the PV-LIO-PLUS application code.  A full
+workspace configure may still print warnings from the installed PCL/VTK
+packages or other packages in the workspace; those indicate external package
+metadata or optional components and are independent of this node's build.
+
 ## 3. Local-map backends
 
 Set one of the following values in the launch YAML under `mapping/map_type`:
