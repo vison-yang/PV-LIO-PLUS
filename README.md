@@ -16,9 +16,10 @@ We contribute the following improvements:
 
 - Added a local `MapManager` facade.  It keeps the native PV VoxelMap and
   VoxelMap++ implementations available and adds selectable adapters for
-  FAST-LIO2's ikd-tree, Faster-LIO's iVox, and C3P-VoxelMap.  The imported
-  backend sources are copied under `include/map_manager/native/`; PV-LIO-PLUS
-  does not link against the other ROS packages or their source trees.
+  FAST-LIO2's ikd-tree, Faster-LIO's iVox, and C3P-VoxelMap.  All local map
+  sources are grouped as sibling backend directories under
+  `include/map_manager/native/`; PV-LIO-PLUS does not link against the other
+  ROS packages or their source trees.
 
 - Added map-independent lifecycle operations (initialize, update, search,
   snapshot, local-window movement, and erase) and a common point-to-plane
@@ -103,6 +104,18 @@ The point-map parameters (`nearest_point_count`, `nearest_max_range`,
 `plane_fit_threshold`, `point_map_downsample_size`, `ivox_*`, `ikd_*`) and the
 C3P merge parameters are optional and fall back to native-compatible defaults.
 
+The local backend sources are kept together without changing their native
+algorithms:
+
+```
+include/map_manager/native/
+  voxelmap/       voxel_map_util.hpp
+  voxelmap_plus/  voxelmapplus_util.hpp
+  ikdtree/        ikd_tree.h, ikd_tree.cpp
+  ivox/           ivox3d.h, ivox3d_node.hpp, eigen_types.h, hilbert.hpp
+  c3p_voxelmap/   c3p_voxel_map_util.hpp
+```
+
 `mapping/local_window_en` is opt-in.  Its half extent is `mapping/det_range`.
 The window is centered on the current estimated LiDAR position after each map
 update.  VoxelMap/++ retain their native voxel deletion behavior; ikd-tree
@@ -134,6 +147,13 @@ world-frame scan cloud, while `/Laser_map` is the selected local-map snapshot.
 Trajectory recording is independent of whether `/path` visualization is
 enabled.
 
+For backend comparison, run each backend with the same bag and move only the
+two final files after shutdown into
+`output/full_map_tests_<date>/<backend>/`; switching can be done with runtime
+`rosparam` values for `mapping/map_type` and does not require source or YAML
+changes.  The completed full-bag verification for this workspace is under
+`../../output/full_map_tests_20260809/` with one directory per backend.
+
 For a short local replay, start `roscore` first and then use:
 
 ```bash
@@ -158,10 +178,10 @@ B. The warning message "Failed to find match for field 'time'." means the timest
 4. [VoxelMap++](https://github.com/uestc-icsp/VoxelMapPlus_Public.git).
 5. [PV-LIO](https://github.com/HViktorTsoi/PV-LIO.git).
 6. [Faster-LIO](https://github.com/gaoxiang12/faster-lio): source of the local
-   iVox implementation copied into `include/map_manager/native/ivox3d/`.
+   iVox implementation copied into `include/map_manager/native/ivox/`.
 7. [C3P-VoxelMap](https://github.com/deptrum/c3p-voxelmap): source of the local
    C3P voxel-map implementation copied into
-   `include/map_manager/native/c3p_voxel_map_util.hpp`.
+   `include/map_manager/native/c3p_voxelmap/c3p_voxel_map_util.hpp`.
 
 The local copies preserve their upstream headers and implementation logic;
 please retain the corresponding upstream license/notice requirements when

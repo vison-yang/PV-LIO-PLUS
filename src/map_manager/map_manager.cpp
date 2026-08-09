@@ -2,7 +2,7 @@
 
 // ikd-tree is a header/template implementation.  Keep the native source in
 // the PV translation unit so the imported backend is self-contained.
-#include "map_manager/native/ikd_tree/ikd_tree.cpp"
+#include "map_manager/native/ikdtree/ikd_tree.cpp"
 
 #include <algorithm>
 #include <cmath>

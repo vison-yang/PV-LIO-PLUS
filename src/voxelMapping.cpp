@@ -63,8 +63,8 @@
 // implementation in this translation unit to avoid changing those headers.
 #include "map_manager/map_manager.cpp"
 #include "preprocess.h"
-#include "voxel_map_util.hpp"
-#include "voxelmapplus_util.hpp"
+#include "map_manager/native/voxelmap/voxel_map_util.hpp"
+#include "map_manager/native/voxelmap_plus/voxelmapplus_util.hpp"
 
 #define INIT_TIME       (0.1)
 #define LASER_POINT_COV (0.001)
