@@ -1,5 +1,14 @@
 #include "ikd_tree.h"
 
+// This file is a local copy of the upstream ikd-Tree implementation.  Keep
+// its algorithm unchanged and scope legacy-warning suppression to this copy.
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wparentheses"
+#endif
+
 /*
 Description: ikd-Tree: an incremental k-d tree for robotic applications
 Author: Yixi Cai
@@ -1725,3 +1734,7 @@ bool KD_TREE<PointType>::point_cmp_z(PointType a, PointType b) { return a.z < b.
 template class KD_TREE<pcl::PointXYZ>;
 template class KD_TREE<pcl::PointXYZI>;
 template class KD_TREE<pcl::PointXYZINormal>;
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif

@@ -6,6 +6,7 @@
 #define FASTER_LIO_IVOX3D_H
 
 #include <execution>
+#include <cstddef>
 #include <iostream>
 #include <list>
 #include <thread>
@@ -132,6 +133,10 @@ bool IVox<dim, node_type, PointType>::GetClosestPoint(const PointType& pt, Point
 template <int dim, IVoxNodeType node_type, typename PointType>
 bool IVox<dim, node_type, PointType>::GetClosestPoint(const PointType& pt, PointVector& closest_pt, int max_num,
                                                       double max_range) {
+    if (max_num <= 0) {
+        return false;
+    }
+    const std::size_t max_num_size = static_cast<std::size_t>(max_num);
     std::vector<DistPoint> candidates;
     candidates.reserve(max_num * nearby_grids_.size());
 
@@ -153,7 +158,7 @@ bool IVox<dim, node_type, PointType>::GetClosestPoint(const PointType& pt, Point
 #ifdef INNER_TIMER
             auto t1 = std::chrono::high_resolution_clock::now();
 #endif
-            auto tmp = iter->second->second.KNNPointByCondition(candidates, pt, max_num, max_range);
+            iter->second->second.KNNPointByCondition(candidates, pt, max_num, max_range);
 #ifdef INNER_TIMER
             auto t2 = std::chrono::high_resolution_clock::now();
             auto knn = std::chrono::duration_cast<std::chrono::nanoseconds>(t2 - t1).count();
@@ -170,10 +175,12 @@ bool IVox<dim, node_type, PointType>::GetClosestPoint(const PointType& pt, Point
     auto t1 = std::chrono::high_resolution_clock::now();
 #endif
 
-    if (candidates.size() <= max_num) {
+    if (candidates.size() <= max_num_size) {
     } else {
-        std::nth_element(candidates.begin(), candidates.begin() + max_num - 1, candidates.end());
-        candidates.resize(max_num);
+        std::nth_element(candidates.begin(),
+                         candidates.begin() + static_cast<std::ptrdiff_t>(max_num_size - 1),
+                         candidates.end());
+        candidates.resize(max_num_size);
     }
     std::nth_element(candidates.begin(), candidates.begin(), candidates.end());
 

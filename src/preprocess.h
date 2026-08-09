@@ -4,6 +4,7 @@
 #include <sensor_msgs/PointCloud2.h>
 
 #include <algorithm>
+#include <cstdint>
 
 using namespace std;
 
@@ -67,12 +68,12 @@ namespace velodyne_ros
         PCL_ADD_POINT4D;
         float intensity;
         float time;
-        uint16_t ring;
+        std::uint16_t ring;
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     };
 }  // namespace velodyne_ros
 POINT_CLOUD_REGISTER_POINT_STRUCT(velodyne_ros::Point,
-                                  (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(float, time, time)(uint16_t, ring, ring))
+                                  (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(float, time, time)(std::uint16_t, ring, ring))
 
 namespace ouster_ros
 {
