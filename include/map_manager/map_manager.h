@@ -18,11 +18,11 @@
 class ImuProcess;
 
 #include "common_lib.h"
-#include "native/c3p_voxel_map_util.hpp"
-#include "native/ikd_tree/ikd_tree.h"
-#include "native/ivox3d/ivox3d.h"
-#include "voxel_map_util.hpp"
-#include "voxelmapplus_util.hpp"
+#include "native/c3p_voxelmap/c3p_voxel_map_util.hpp"
+#include "native/ikdtree/ikd_tree.h"
+#include "native/ivox/ivox3d.h"
+#include "native/voxelmap/voxel_map_util.hpp"
+#include "native/voxelmap_plus/voxelmapplus_util.hpp"
 
 namespace pv_lio_plus
 {
