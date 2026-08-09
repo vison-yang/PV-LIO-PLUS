@@ -1,6 +1,11 @@
 #ifndef COMMON_LIB_H
 #define COMMON_LIB_H
 
+/**
+ * @file common_lib.h
+ * @brief Shared point, state, covariance, and geometry utilities.
+ */
+
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <so3_math.h>
@@ -34,12 +39,19 @@ using namespace Eigen;
 #define STD_VEC_FROM_EIGEN(mat) vector<decltype(mat)::Scalar>(mat.data(), mat.data() + mat.rows() * mat.cols())
 #define DEBUG_FILE_DIR(name)    (string(string(ROOT_DIR) + "Log/" + name))
 
+/** @brief Point type used by the LiDAR pipeline and point-map backends. */
 typedef pcl::PointXYZINormal PointType;
+/** @brief PCL cloud of @ref PointType points. */
 typedef pcl::PointCloud<PointType> PointCloudXYZI;
+/** @brief Eigen-aligned collection of @ref PointType points. */
 typedef vector<PointType, Eigen::aligned_allocator<PointType>> PointVector;
+/** @brief Three-dimensional double-precision vector. */
 typedef Vector3d V3D;
+/** @brief Three-dimensional double-precision matrix. */
 typedef Matrix3d M3D;
+/** @brief Three-dimensional single-precision vector. */
 typedef Vector3f V3F;
+/** @brief Three-dimensional single-precision matrix. */
 typedef Matrix3f M3F;
 
 #define MD(a, b) Matrix<double, (a), (b)>
@@ -47,32 +59,55 @@ typedef Matrix3f M3F;
 #define MF(a, b) Matrix<float, (a), (b)>
 #define VF(a)    Matrix<float, (a), 1>
 
+/// Three-dimensional double-precision identity matrix.
 M3D Eye3d(M3D::Identity());
+/// Three-dimensional single-precision identity matrix.
 M3F Eye3f(M3F::Identity());
+/// Three-dimensional double-precision zero vector.
 V3D Zero3d(0, 0, 0);
+/// Three-dimensional single-precision zero vector.
 V3F Zero3f(0, 0, 0);
 
-struct MeasureGroup  // Lidar data and imu dates for the curent process
+/** @brief Synchronized LiDAR and IMU data for one processing step. */
+struct MeasureGroup
 {
+    /** @brief Initializes the LiDAR cloud and beginning timestamp. */
     MeasureGroup()
     {
         lidar_beg_time = 0.0;
         this->lidar.reset(new PointCloudXYZI());
     };
+    /// Timestamp of the first point in the LiDAR scan.
     double lidar_beg_time;
+    /// Timestamp of the last point in the LiDAR scan.
     double lidar_end_time;
+    /// Preprocessed LiDAR points for this measurement.
     PointCloudXYZI::Ptr lidar;
+    /// IMU messages covering the LiDAR scan interval.
     deque<sensor_msgs::Imu::ConstPtr> imu;
 };
 
+/** @brief Pose and motion sample used by IMU propagation. */
 struct Pose6D
 {
+    /// Offset time of the sample within the scan.
     double offset_time;
-    double acc[3], gyr[3], vel[3], pos[3], rot[9];
+    /// Specific force in the IMU frame.
+    double acc[3];
+    /// Angular velocity in the IMU frame.
+    double gyr[3];
+    /// Linear velocity in the world frame.
+    double vel[3];
+    /// Position in the world frame.
+    double pos[3];
+    /// Row-major rotation matrix from IMU to world frame.
+    double rot[9];
 };
 
+/** @brief Iterated filter state, covariance, and motion quantities. */
 struct StatesGroup
 {
+    /** @brief Constructs the default state and initial covariance. */
     StatesGroup()
     {
         this->rot_end               = M3D::Identity();
@@ -85,6 +120,10 @@ struct StatesGroup
         this->cov.block<9, 9>(9, 9) = MD(9, 9)::Identity() * 0.00001;
     };
 
+    /**
+     * @brief Copies all state and covariance fields.
+     * @param b State to copy.
+     */
     StatesGroup(const StatesGroup &b)
     {
         this->rot_end = b.rot_end;
@@ -96,6 +135,11 @@ struct StatesGroup
         this->cov     = b.cov;
     };
 
+    /**
+     * @brief Assigns all state and covariance fields.
+     * @param b State to copy.
+     * @return This state after assignment.
+     */
     StatesGroup &operator=(const StatesGroup &b)
     {
         this->rot_end = b.rot_end;
@@ -108,6 +152,11 @@ struct StatesGroup
         return *this;
     };
 
+    /**
+     * @brief Returns the state after applying a perturbation.
+     * @param state_add Local state perturbation.
+     * @return Perturbed state.
+     */
     StatesGroup operator+(const Matrix<double, DIM_STATE, 1> &state_add)
     {
         StatesGroup a;
@@ -121,6 +170,11 @@ struct StatesGroup
         return a;
     };
 
+    /**
+     * @brief Applies a perturbation in place.
+     * @param state_add Local state perturbation.
+     * @return This state after the update.
+     */
     StatesGroup &operator+=(const Matrix<double, DIM_STATE, 1> &state_add)
     {
         this->rot_end = this->rot_end * Exp(state_add(0, 0), state_add(1, 0), state_add(2, 0));
@@ -132,6 +186,11 @@ struct StatesGroup
         return *this;
     };
 
+    /**
+     * @brief Returns the local perturbation from @p b to this state.
+     * @param b Reference state.
+     * @return Local perturbation vector.
+     */
     Matrix<double, DIM_STATE, 1> operator-(const StatesGroup &b)
     {
         Matrix<double, DIM_STATE, 1> a;
@@ -145,6 +204,7 @@ struct StatesGroup
         return a;
     };
 
+    /** @brief Resets pose, position, and velocity. */
     void resetpose()
     {
         this->rot_end = M3D::Identity();
@@ -152,27 +212,57 @@ struct StatesGroup
         this->vel_end = Zero3d;
     }
 
-    M3D rot_end;                               // the estimated attitude (rotation matrix) at the end lidar point
-    V3D pos_end;                               // the estimated position at the end lidar point (world frame)
-    V3D vel_end;                               // the estimated velocity at the end lidar point (world frame)
-    V3D bias_g;                                // gyroscope bias
-    V3D bias_a;                                // accelerator bias
-    V3D gravity;                               // the estimated gravity acceleration
-    Matrix<double, DIM_STATE, DIM_STATE> cov;  // states covariance
+    /// Estimated attitude at the end of the LiDAR scan.
+    M3D rot_end;
+    /// Estimated position at the end of the LiDAR scan, in world frame.
+    V3D pos_end;
+    /// Estimated velocity at the end of the LiDAR scan, in world frame.
+    V3D vel_end;
+    /// Gyroscope bias.
+    V3D bias_g;
+    /// Accelerometer bias.
+    V3D bias_a;
+    /// Estimated gravity acceleration.
+    V3D gravity;
+    /// State covariance.
+    Matrix<double, DIM_STATE, DIM_STATE> cov;
 };
 
+/**
+ * @brief Converts radians to degrees.
+ * @tparam T Scalar type.
+ * @param radians Angle in radians.
+ * @return Angle in degrees.
+ */
 template <typename T>
 T rad2deg(T radians)
 {
     return radians * 180.0 / PI_M;
 }
 
+/**
+ * @brief Converts degrees to radians.
+ * @tparam T Scalar type.
+ * @param degrees Angle in degrees.
+ * @return Angle in radians.
+ */
 template <typename T>
 T deg2rad(T degrees)
 {
     return degrees * PI_M / 180.0;
 }
 
+/**
+ * @brief Packs motion and rotation data into a @ref Pose6D sample.
+ * @tparam T Scalar type of the input vectors and matrix.
+ * @param t Sample offset time.
+ * @param a Specific force vector.
+ * @param g Angular velocity vector.
+ * @param v Linear velocity vector.
+ * @param p Position vector.
+ * @param R Rotation matrix.
+ * @return Packed pose and motion sample.
+ */
 template <typename T>
 auto set_pose6d(const double t, const Matrix<T, 3, 1> &a, const Matrix<T, 3, 1> &g,
                 const Matrix<T, 3, 1> &v, const Matrix<T, 3, 1> &p, const Matrix<T, 3, 3> &R)
@@ -191,13 +281,15 @@ auto set_pose6d(const double t, const Matrix<T, 3, 1> &a, const Matrix<T, 3, 1> 
     return rot_kp;
 }
 
-/* comment
-plane equation: Ax + By + Cz + D = 0
-convert to: A/D*x + B/D*y + C/D*z = -1
-solve: A0*x0 = b0
-where A0_i = [x_i, y_i, z_i], x0 = [A/D, B/D, C/D]^T, b0 = [-1, ..., -1]^T
-normvec:  normalized x0
-*/
+/**
+ * @brief Estimates a normalized plane normal from a point set.
+ * @tparam T Scalar type of the output normal and threshold.
+ * @param normvec Output unit normal.
+ * @param point Input points.
+ * @param threshold Maximum accepted point-to-plane residual.
+ * @param point_num Number of points to use from @p point.
+ * @return True when all selected points satisfy the threshold.
+ */
 template <typename T>
 bool esti_normvector(Matrix<T, 3, 1> &normvec, const PointVector &point, const T &threshold, const int &point_num)
 {
@@ -226,12 +318,26 @@ bool esti_normvector(Matrix<T, 3, 1> &normvec, const PointVector &point, const T
     return true;
 }
 
+/**
+ * @brief Returns the squared Euclidean distance between two points.
+ * @param p1 First point.
+ * @param p2 Second point.
+ * @return Squared Euclidean distance.
+ */
 float calc_dist(PointType p1, PointType p2)
 {
     float d = (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y) + (p1.z - p2.z) * (p1.z - p2.z);
     return d;
 }
 
+/**
+ * @brief Estimates normalized plane coefficients from five points.
+ * @tparam T Scalar type of the output coefficients and threshold.
+ * @param pca_result Output `[nx, ny, nz, d]` plane coefficients.
+ * @param point Input point set; the first @ref NUM_MATCH_POINTS points are used.
+ * @param threshold Maximum accepted point-to-plane residual.
+ * @return True when all selected points satisfy the threshold.
+ */
 template <typename T>
 bool esti_plane(Matrix<T, 4, 1> &pca_result, const PointVector &point, const T &threshold)
 {
@@ -267,6 +373,11 @@ bool esti_plane(Matrix<T, 4, 1> &pca_result, const PointVector &point, const T &
     return true;
 }
 
+/**
+ * @brief Converts a rotation matrix to yaw-pitch-roll angles in degrees.
+ * @param R Rotation matrix.
+ * @return Yaw, pitch, and roll in degrees.
+ */
 static Eigen::Vector3d R2ypr(const Eigen::Matrix3d &R)
 {
     Eigen::Vector3d n = R.col(0);
@@ -284,6 +395,12 @@ static Eigen::Vector3d R2ypr(const Eigen::Matrix3d &R)
     return ypr / M_PI * 180.0;
 }
 
+/**
+ * @brief Converts yaw-pitch-roll angles in degrees to a rotation matrix.
+ * @tparam Derived Eigen expression type containing three angles.
+ * @param ypr Yaw, pitch, and roll in degrees.
+ * @return Rotation matrix.
+ */
 template <typename Derived>
 static Eigen::Matrix<typename Derived::Scalar, 3, 3> ypr2R(const Eigen::MatrixBase<Derived> &ypr)
 {
@@ -311,6 +428,11 @@ static Eigen::Matrix<typename Derived::Scalar, 3, 3> ypr2R(const Eigen::MatrixBa
     return Rz * Ry * Rx;
 }
 
+/**
+ * @brief Computes a world-frame rotation that aligns gravity to +Z.
+ * @param g Measured gravity direction.
+ * @return Rotation aligning @p g with the positive Z axis.
+ */
 Eigen::Matrix3d g2R(const Eigen::Vector3d &g)
 {
     Eigen::Matrix3d R0;
@@ -323,6 +445,12 @@ Eigen::Matrix3d g2R(const Eigen::Vector3d &g)
     return R0;
 }
 
+/**
+ * @brief Computes the adjugate of a 3x3 matrix.
+ * @tparam T Matrix scalar type.
+ * @param s Input matrix.
+ * @param t Output adjugate matrix.
+ */
 template <typename T>
 void adjugateM3D(const Matrix<T, 3, 3> &s, Matrix<T, 3, 3> &t)
 {

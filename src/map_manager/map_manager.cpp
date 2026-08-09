@@ -1,3 +1,8 @@
+/**
+ * @file map_manager.cpp
+ * @brief Backend dispatch and local-window implementation for MapManager.
+ */
+
 #include "map_manager/map_manager.h"
 
 // ikd-tree is a header/template implementation.  Keep the native source in
@@ -13,6 +18,13 @@
 namespace pv_lio_plus
 {
 
+/**
+ * @brief Parses a configured local-map backend name.
+ * @param name Backend name; an empty name selects the legacy setting.
+ * @param legacy_voxelmap_plus Legacy VoxelMap++ selection.
+ * @return The selected backend type.
+ * @throws std::invalid_argument If @p name is not recognized.
+ */
 MapType ParseMapType(const std::string &name, const bool legacy_voxelmap_plus)
 {
     if (name.empty())
@@ -44,6 +56,11 @@ MapType ParseMapType(const std::string &name, const bool legacy_voxelmap_plus)
     throw std::invalid_argument("unknown mapping/map_type: " + name);
 }
 
+/**
+ * @brief Returns the canonical configuration name of a backend.
+ * @param type Backend type to name.
+ * @return Stable configuration string for @p type.
+ */
 const char *MapTypeName(const MapType type)
 {
     switch (type)
@@ -62,16 +79,28 @@ const char *MapTypeName(const MapType type)
     return "unknown";
 }
 
+/** @brief Constructs an unconfigured map manager. */
+MapManager::MapManager() = default;
+
+/**
+ * @brief Constructs and configures a map manager.
+ * @param config Backend and map-maintenance configuration.
+ */
 MapManager::MapManager(const MapManagerConfig &config)
 {
     configure(config);
 }
 
+/** @brief Releases all backend-owned map data. */
 MapManager::~MapManager()
 {
     clear();
 }
 
+/**
+ * @brief Applies configuration and resets any initialized map.
+ * @param config Backend and map-maintenance configuration.
+ */
 void MapManager::configure(const MapManagerConfig &config)
 {
     if (initialized_)
@@ -89,6 +118,37 @@ void MapManager::configure(const MapManagerConfig &config)
     configure_point_backends();
 }
 
+/**
+ * @brief Returns the active backend configuration.
+ * @return Current manager configuration.
+ */
+const MapManagerConfig &MapManager::config() const
+{
+    return config_;
+}
+
+/**
+ * @brief Returns the selected backend type.
+ * @return Active backend type.
+ */
+MapType MapManager::type() const
+{
+    return config_.type;
+}
+
+/**
+ * @brief Reports whether a map has been initialized.
+ * @return True after at least one point batch initialized the backend.
+ */
+bool MapManager::initialized() const
+{
+    return initialized_;
+}
+
+/**
+ * @brief Checks whether the selected backend is supported.
+ * @return True when the backend has an implementation in this package.
+ */
 bool MapManager::supports_selected_backend() const
 {
     return config_.type == MapType::VoxelMap || config_.type == MapType::VoxelMapPlus ||
@@ -96,6 +156,10 @@ bool MapManager::supports_selected_backend() const
            config_.type == MapType::C3PVoxelMap;
 }
 
+/**
+ * @brief Throws when the selected backend is unsupported.
+ * @throws std::runtime_error If no implementation handles the configured type.
+ */
 void MapManager::require_supported_backend() const
 {
     if (!supports_selected_backend())
@@ -104,6 +168,7 @@ void MapManager::require_supported_backend() const
     }
 }
 
+/** @brief Creates or resets the selected point-map backend. */
 void MapManager::configure_point_backends()
 {
     ikd_tree_.reset();
@@ -141,6 +206,7 @@ void MapManager::configure_point_backends()
     }
 }
 
+/** @brief Clears all backend data, retained points, and window state. */
 void MapManager::clear()
 {
     for (auto &entry : voxel_map_)
@@ -171,6 +237,11 @@ void MapManager::clear()
     window_       = MapWindow();
 }
 
+/**
+ * @brief Converts a common point to the VoxelMap representation.
+ * @param point Common LiDAR/world point and covariance.
+ * @return Native VoxelMap point.
+ */
 voxel_map_ns::pointWithCov MapManager::ToVoxelPoint(const MapPoint &point)
 {
     voxel_map_ns::pointWithCov result;
@@ -181,6 +252,11 @@ voxel_map_ns::pointWithCov MapManager::ToVoxelPoint(const MapPoint &point)
     return result;
 }
 
+/**
+ * @brief Converts a common point to the VoxelMap++ representation.
+ * @param point Common LiDAR/world point and covariance.
+ * @return Native VoxelMap++ point.
+ */
 voxel_map_plus_ns::pointWithCov MapManager::ToVoxelPlusPoint(const MapPoint &point)
 {
     voxel_map_plus_ns::pointWithCov result;
@@ -191,6 +267,11 @@ voxel_map_plus_ns::pointWithCov MapManager::ToVoxelPlusPoint(const MapPoint &poi
     return result;
 }
 
+/**
+ * @brief Converts a native VoxelMap point to the common representation.
+ * @param point Native VoxelMap point.
+ * @return Common point with both covariance frames preserved.
+ */
 MapPoint MapManager::FromVoxelPoint(const voxel_map_ns::pointWithCov &point)
 {
     MapPoint result;
@@ -201,6 +282,11 @@ MapPoint MapManager::FromVoxelPoint(const voxel_map_ns::pointWithCov &point)
     return result;
 }
 
+/**
+ * @brief Converts a native VoxelMap++ point to the common representation.
+ * @param point Native VoxelMap++ point.
+ * @return Common point with both covariance frames preserved.
+ */
 MapPoint MapManager::FromVoxelPlusPoint(const voxel_map_plus_ns::pointWithCov &point)
 {
     MapPoint result;
@@ -211,6 +297,12 @@ MapPoint MapManager::FromVoxelPlusPoint(const voxel_map_plus_ns::pointWithCov &p
     return result;
 }
 
+/**
+ * @brief Converts world coordinates to the iVox/ikd-tree point type.
+ * @param point World-frame position.
+ * @param intensity Point intensity to store.
+ * @return Native point-map point.
+ */
 PointType MapManager::ToPointType(const V3D &point, const float intensity)
 {
     PointType result;
@@ -221,6 +313,11 @@ PointType MapManager::ToPointType(const V3D &point, const float intensity)
     return result;
 }
 
+/**
+ * @brief Converts a point-map point to the common representation.
+ * @param point Native world-frame point.
+ * @return Common point with its world position populated.
+ */
 MapPoint MapManager::FromPointType(const PointType &point)
 {
     MapPoint result;
@@ -228,6 +325,11 @@ MapPoint MapManager::FromPointType(const PointType &point)
     return result;
 }
 
+/**
+ * @brief Converts a native C3P match to the common contract.
+ * @param match Native C3P point-to-plane match.
+ * @return Backend-independent match.
+ */
 PlaneMatch MapManager::FromC3PMatch(const c3p_map_ns::ptpl &match)
 {
     PlaneMatch result;
@@ -246,6 +348,14 @@ PlaneMatch MapManager::FromC3PMatch(const c3p_map_ns::ptpl &match)
     return result;
 }
 
+/**
+ * @brief Fits and validates a plane from point-map neighbors.
+ * @param query Query point and covariance.
+ * @param neighbors Nearby world-frame points.
+ * @param match Output backend-independent match.
+ * @param backend Point-map backend applying its native residual gate.
+ * @return True when a valid plane and backend-specific gate are obtained.
+ */
 bool MapManager::fit_point_plane(const MapPoint &query,
                                  const PointVector &neighbors,
                                  PlaneMatch &match,
@@ -303,6 +413,11 @@ bool MapManager::fit_point_plane(const MapPoint &query,
     return true;
 }
 
+/**
+ * @brief Initializes the selected backend from common map points.
+ * @param points Initial points in LiDAR and world frames.
+ * @throws std::logic_error If the selected backend cannot be initialized.
+ */
 void MapManager::initialize(const MapPointList &points)
 {
     require_supported_backend();
@@ -336,6 +451,11 @@ void MapManager::initialize(const MapPointList &points)
     }
 }
 
+/**
+ * @brief Initializes ikd-tree or iVox from common points.
+ * @param points Initial world-frame points.
+ * @throws std::logic_error If a non-point backend is selected.
+ */
 void MapManager::initialize_point_backend(const MapPointList &points)
 {
     if (config_.type != MapType::IKDTree && config_.type != MapType::IVox)
@@ -369,6 +489,11 @@ void MapManager::initialize_point_backend(const MapPointList &points)
     initialized_ = true;
 }
 
+/**
+ * @brief Initializes the C3P-VoxelMap backend.
+ * @param points Initial points and world-frame covariances.
+ * @throws std::logic_error If C3P-VoxelMap is not selected.
+ */
 void MapManager::initialize_c3p(const MapPointList &points)
 {
     if (config_.type != MapType::C3PVoxelMap)
@@ -419,6 +544,11 @@ void MapManager::initialize_c3p(const MapPointList &points)
     initialized_ = true;
 }
 
+/**
+ * @brief Initializes VoxelMap from native points.
+ * @param points Native VoxelMap points.
+ * @throws std::logic_error If VoxelMap is not selected.
+ */
 void MapManager::initialize(const std::vector<voxel_map_ns::pointWithCov> &points)
 {
     require_supported_backend();
@@ -443,6 +573,11 @@ void MapManager::initialize(const std::vector<voxel_map_ns::pointWithCov> &point
     initialized_ = true;
 }
 
+/**
+ * @brief Initializes VoxelMap++ from native points.
+ * @param points Native VoxelMap++ points.
+ * @throws std::logic_error If VoxelMap++ is not selected.
+ */
 void MapManager::initialize(const std::vector<voxel_map_plus_ns::pointWithCov> &points)
 {
     require_supported_backend();
@@ -460,6 +595,12 @@ void MapManager::initialize(const std::vector<voxel_map_plus_ns::pointWithCov> &
     initialized_ = true;
 }
 
+/**
+ * @brief Inserts a frame of common points into the selected backend.
+ * @param points New points in LiDAR and world frames.
+ * @param frame_number Backend update frame number.
+ * @throws std::logic_error If the selected backend is unsupported.
+ */
 void MapManager::update(const MapPointList &points, const std::uint32_t frame_number)
 {
     require_supported_backend();
@@ -511,6 +652,10 @@ void MapManager::update(const MapPointList &points, const std::uint32_t frame_nu
     }
 }
 
+/**
+ * @brief Updates the ikd-tree backend with a frame of points.
+ * @param points New points in LiDAR and world frames.
+ */
 void MapManager::update_ikd_tree(const MapPointList &points)
 {
     if (!ikd_tree_)
@@ -597,6 +742,10 @@ void MapManager::update_ikd_tree(const MapPointList &points)
     }
 }
 
+/**
+ * @brief Updates the iVox backend with a frame of points.
+ * @param points New points in LiDAR and world frames.
+ */
 void MapManager::update_ivox(const MapPointList &points)
 {
     if (!ivox_)
@@ -681,6 +830,11 @@ void MapManager::update_ivox(const MapPointList &points)
     }
 }
 
+/**
+ * @brief Updates the C3P-VoxelMap backend.
+ * @param points New points and world-frame covariances.
+ * @param frame_number C3P update frame number.
+ */
 void MapManager::update_c3p(const MapPointList &points, const std::uint32_t frame_number)
 {
     if (!initialized_)
@@ -730,6 +884,11 @@ void MapManager::update_c3p(const MapPointList &points, const std::uint32_t fram
     map_points_.insert(map_points_.end(), points.begin(), points.end());
 }
 
+/**
+ * @brief Updates VoxelMap from native points.
+ * @param points New native VoxelMap points.
+ * @param frame_number Unused by VoxelMap; retained for API uniformity.
+ */
 void MapManager::update(const std::vector<voxel_map_ns::pointWithCov> &points,
                         const std::uint32_t /*frame_number*/)
 {
@@ -758,6 +917,11 @@ void MapManager::update(const std::vector<voxel_map_ns::pointWithCov> &points,
     }
 }
 
+/**
+ * @brief Updates VoxelMap++ from native points.
+ * @param points New native VoxelMap++ points.
+ * @param frame_number Unused by VoxelMap++; retained for API uniformity.
+ */
 void MapManager::update(const std::vector<voxel_map_plus_ns::pointWithCov> &points,
                         const std::uint32_t /*frame_number*/)
 {
@@ -779,6 +943,11 @@ void MapManager::update(const std::vector<voxel_map_plus_ns::pointWithCov> &poin
     }
 }
 
+/**
+ * @brief Converts a native VoxelMap match to the common contract.
+ * @param match Native VoxelMap point-to-plane match.
+ * @return Backend-independent match.
+ */
 PlaneMatch MapManager::FromVoxelMatch(const voxel_map_ns::ptpl &match)
 {
     PlaneMatch result;
@@ -797,6 +966,11 @@ PlaneMatch MapManager::FromVoxelMatch(const voxel_map_ns::ptpl &match)
     return result;
 }
 
+/**
+ * @brief Converts a native VoxelMap++ match to the common contract.
+ * @param match Native VoxelMap++ point-to-plane match.
+ * @return Backend-independent match.
+ */
 PlaneMatch MapManager::FromVoxelPlusMatch(const voxel_map_plus_ns::ptpl &match)
 {
     PlaneMatch result;
@@ -817,6 +991,12 @@ PlaneMatch MapManager::FromVoxelPlusMatch(const voxel_map_plus_ns::ptpl &match)
     return result;
 }
 
+/**
+ * @brief Searches the selected backend and returns common matches.
+ * @param points Query points in LiDAR and world frames.
+ * @param matches Accepted matches; cleared before filling.
+ * @param non_match World-frame queries without a valid match.
+ */
 void MapManager::search(const MapPointList &points, PlaneMatchList &matches,
                         std::vector<V3D> &non_match)
 {
@@ -865,6 +1045,12 @@ void MapManager::search(const MapPointList &points, PlaneMatchList &matches,
     }
 }
 
+/**
+ * @brief Dispatches point-map search to the selected backend.
+ * @param points Query points in LiDAR and world frames.
+ * @param matches Output common point-to-plane matches.
+ * @param non_match Output world-frame queries without a match.
+ */
 void MapManager::search_point_backend(const MapPointList &points,
                                       PlaneMatchList &matches,
                                       std::vector<V3D> &non_match)
@@ -887,6 +1073,12 @@ void MapManager::search_point_backend(const MapPointList &points,
     }
 }
 
+/**
+ * @brief Searches ikd-tree neighbors and fits planes.
+ * @param points Query points in LiDAR and world frames.
+ * @param matches Output accepted matches.
+ * @param non_match Output world-frame queries without a valid match.
+ */
 void MapManager::search_ikd_tree(const MapPointList &points,
                                  PlaneMatchList &matches,
                                  std::vector<V3D> &non_match)
@@ -929,6 +1121,12 @@ void MapManager::search_ikd_tree(const MapPointList &points,
     }
 }
 
+/**
+ * @brief Searches iVox neighbors and fits planes.
+ * @param points Query points in LiDAR and world frames.
+ * @param matches Output accepted matches.
+ * @param non_match Output world-frame queries without a valid match.
+ */
 void MapManager::search_ivox(const MapPointList &points,
                              PlaneMatchList &matches,
                              std::vector<V3D> &non_match)
@@ -958,6 +1156,12 @@ void MapManager::search_ivox(const MapPointList &points,
     }
 }
 
+/**
+ * @brief Searches C3P-VoxelMap with its native residual builder.
+ * @param points Query points in LiDAR and world frames.
+ * @param matches Output common point-to-plane matches.
+ * @param non_match Output world-frame queries without a valid match.
+ */
 void MapManager::search_c3p(const MapPointList &points,
                             PlaneMatchList &matches,
                             std::vector<V3D> &non_match)
@@ -990,6 +1194,12 @@ void MapManager::search_c3p(const MapPointList &points,
     }
 }
 
+/**
+ * @brief Searches VoxelMap and returns native matches.
+ * @param points Native VoxelMap query points.
+ * @param matches Output native matches.
+ * @param non_match Output world-frame queries without a match.
+ */
 void MapManager::search(const std::vector<voxel_map_ns::pointWithCov> &points,
                         std::vector<voxel_map_ns::ptpl> &matches,
                         std::vector<V3D> &non_match)
@@ -1008,6 +1218,12 @@ void MapManager::search(const std::vector<voxel_map_ns::pointWithCov> &points,
                                        non_match);
 }
 
+/**
+ * @brief Searches VoxelMap++ and returns native matches.
+ * @param points Native VoxelMap++ query points.
+ * @param matches Output native matches.
+ * @param non_match Output world-frame queries without a match.
+ */
 void MapManager::search(const std::vector<voxel_map_plus_ns::pointWithCov> &points,
                         std::vector<voxel_map_plus_ns::ptpl> &matches,
                         std::vector<V3D> &non_match)
@@ -1020,6 +1236,12 @@ void MapManager::search(const std::vector<voxel_map_plus_ns::pointWithCov> &poin
     voxel_map_plus_ns::BuildResidualListOMP(voxel_map_plus_, points, matches, non_match);
 }
 
+/**
+ * @brief Tests whether a point lies inside a local-window bound.
+ * @param point World-frame point.
+ * @param window Axis-aligned window.
+ * @return True when the point is inside the initialized window.
+ */
 bool MapManager::Inside(const V3D &point, const MapWindow &window)
 {
     return window.initialized &&
@@ -1027,6 +1249,11 @@ bool MapManager::Inside(const V3D &point, const MapWindow &window)
            (point.array() <= window.max_bound.array()).all();
 }
 
+/**
+ * @brief Moves the enabled local window and removes entries outside it.
+ * @param center World-frame window center.
+ * @param half_extent Positive x/y/z half extents.
+ */
 void MapManager::move_window(const V3D &center, const V3D &half_extent)
 {
     if (!config_.local_window_enabled)
@@ -1042,6 +1269,10 @@ void MapManager::move_window(const V3D &center, const V3D &half_extent)
     window_ = next_window;
 }
 
+/**
+ * @brief Removes backend entries outside a local-window bound.
+ * @param window Initialized axis-aligned world-frame window.
+ */
 void MapManager::erase_outside_window(const MapWindow &window)
 {
     require_supported_backend();
@@ -1073,6 +1304,10 @@ void MapManager::erase_outside_window(const MapWindow &window)
     filter_snapshot_to_window(window);
 }
 
+/**
+ * @brief Removes entries outside a VoxelMap window.
+ * @param window Initialized axis-aligned world-frame window.
+ */
 void MapManager::erase_outside_voxel_window(const MapWindow &window)
 {
     for (auto iter = voxel_map_.begin(); iter != voxel_map_.end();)
@@ -1091,6 +1326,10 @@ void MapManager::erase_outside_voxel_window(const MapWindow &window)
     }
 }
 
+/**
+ * @brief Removes entries outside a VoxelMap++ window.
+ * @param window Initialized axis-aligned world-frame window.
+ */
 void MapManager::erase_outside_voxel_plus_window(const MapWindow &window)
 {
     for (auto iter = voxel_map_plus_.begin(); iter != voxel_map_plus_.end();)
@@ -1109,6 +1348,10 @@ void MapManager::erase_outside_voxel_plus_window(const MapWindow &window)
     }
 }
 
+/**
+ * @brief Removes points outside the ikd-tree window.
+ * @param window Initialized axis-aligned world-frame window.
+ */
 void MapManager::erase_outside_ikd_window(const MapWindow &window)
 {
     if (!ikd_tree_ || ikd_tree_->validnum() <= 0)
@@ -1145,6 +1388,10 @@ void MapManager::erase_outside_ikd_window(const MapWindow &window)
     }
 }
 
+/**
+ * @brief Rebuilds iVox after filtering points by the window.
+ * @param window Initialized axis-aligned world-frame window.
+ */
 void MapManager::erase_outside_ivox_window(const MapWindow &window)
 {
     MapPointList retained;
@@ -1159,6 +1406,10 @@ void MapManager::erase_outside_ivox_window(const MapWindow &window)
     initialize(retained);
 }
 
+/**
+ * @brief Rebuilds C3P-VoxelMap after filtering points by the window.
+ * @param window Initialized axis-aligned world-frame window.
+ */
 void MapManager::erase_outside_c3p_window(const MapWindow &window)
 {
     MapPointList retained;
@@ -1173,6 +1424,10 @@ void MapManager::erase_outside_c3p_window(const MapWindow &window)
     initialize(retained);
 }
 
+/**
+ * @brief Filters retained snapshot points to a local window.
+ * @param window Initialized axis-aligned world-frame window.
+ */
 void MapManager::filter_snapshot_to_window(const MapWindow &window)
 {
     MapPointList filtered;
@@ -1187,6 +1442,19 @@ void MapManager::filter_snapshot_to_window(const MapWindow &window)
     map_points_.swap(filtered);
 }
 
+/**
+ * @brief Returns the current local-window bounds.
+ * @return Current window descriptor.
+ */
+const MapWindow &MapManager::window() const
+{
+    return window_;
+}
+
+/**
+ * @brief Returns the backend-dependent map size.
+ * @return Number of backend entries or valid grids.
+ */
 size_t MapManager::size() const
 {
     if (config_.type == MapType::VoxelMap)
@@ -1212,6 +1480,19 @@ size_t MapManager::size() const
     return 0;
 }
 
+/**
+ * @brief Returns the number of points retained for snapshots and rebuilds.
+ * @return Number of retained common points.
+ */
+size_t MapManager::point_count() const
+{
+    return map_points_.size();
+}
+
+/**
+ * @brief Returns a world-frame point-cloud snapshot of the selected map.
+ * @return Shared point-cloud snapshot.
+ */
 PointCloudXYZI::Ptr MapManager::snapshot() const
 {
     PointCloudXYZI::Ptr result(new PointCloudXYZI());
@@ -1239,6 +1520,11 @@ PointCloudXYZI::Ptr MapManager::snapshot() const
     return result;
 }
 
+/**
+ * @brief Publishes native voxel-plane markers when supported.
+ * @param publisher ROS publisher for the marker array.
+ * @param max_voxel_layer Highest voxel layer to publish.
+ */
 void MapManager::publish_planes(const ros::Publisher &publisher, const int max_voxel_layer) const
 {
     if (config_.type == MapType::VoxelMap)
