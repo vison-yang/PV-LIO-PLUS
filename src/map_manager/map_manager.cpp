@@ -20,16 +20,15 @@ namespace pv_lio_plus
 
 /**
  * @brief Parses a configured local-map backend name.
- * @param name Backend name; an empty name selects the legacy setting.
- * @param legacy_voxelmap_plus Legacy VoxelMap++ selection.
+ * @param name Backend name; an empty name selects the original VoxelMap.
  * @return The selected backend type.
  * @throws std::invalid_argument If @p name is not recognized.
  */
-MapType ParseMapType(const std::string &name, const bool legacy_voxelmap_plus)
+MapType ParseMapType(const std::string &name)
 {
     if (name.empty())
     {
-        return legacy_voxelmap_plus ? MapType::VoxelMapPlus : MapType::VoxelMap;
+        return MapType::VoxelMap;
     }
 
     if (name == "voxelmap" || name == "voxel_map" || name == "voxel")

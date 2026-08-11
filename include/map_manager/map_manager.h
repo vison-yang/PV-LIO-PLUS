@@ -47,7 +47,7 @@ enum class MapType
     C3PVoxelMap
 };
 
-MapType ParseMapType(const std::string &name, bool legacy_voxelmap_plus);
+MapType ParseMapType(const std::string &name);
 
 const char *MapTypeName(MapType type);
 

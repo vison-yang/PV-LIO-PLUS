@@ -134,8 +134,9 @@ pv_lio_plus` 适合快速迭代，但不能替代完整工作空间编译。
 
 ## 4. 选择局部地图后端
 
-在 [`config/mid360_indoor.yaml`](config/mid360_indoor.yaml) 中设置
-`mapping/map_type`：
+在所用传感器对应的 YAML 中设置 `mapping/map_type`，例如
+[`config/mid360_indoor.yaml`](config/mid360_indoor.yaml) 或
+[`config/avia.yaml`](config/avia.yaml)：
 
 | `map_type` | 局部地图模型 | 匹配方式 |
 | --- | --- | --- |
@@ -154,9 +155,11 @@ mapping:
     det_range: 100.0
 ```
 
-`mapping/map_type` 的优先级高于旧版的
-`mapping/b_use_voxelmap_plus` 布尔参数。如果没有设置 `map_type`，则由旧
-参数选择 VoxelMap++ 或原始 VoxelMap。
+`mapping/map_type` 是唯一的局部地图后端选择入口。如果没有设置
+`map_type`，运行时默认使用原始 VoxelMap。
+
+五种后端的全部参数都集中在对应传感器 YAML 的 `mapping` 段中。launch 文件
+只负责加载 YAML 和启动节点，不再覆盖地图类型或其他算法参数。
 
 通用点地图参数包括 `nearest_point_count`、`nearest_max_range`、
 `plane_fit_threshold` 和 `point_map_downsample_size`。后端专用参数包括
@@ -170,13 +173,13 @@ mapping:
 
 ## 5. 运行
 
-启动 ROS，并运行内置的 Mid-360 配置：
+启动 ROS，并运行与传感器对应的配置：
 
 ```bash
 source /opt/ros/noetic/setup.bash
 source devel/setup.bash
 roscore
-roslaunch pv_lio_plus mapping_mid360.launch rviz:=false
+roslaunch pv_lio_plus mapping_avia.launch
 ```
 
 在另一个终端播放带模拟时间的 ROS1 数据包：
@@ -184,7 +187,7 @@ roslaunch pv_lio_plus mapping_mid360.launch rviz:=false
 ```bash
 source /opt/ros/noetic/setup.bash
 source ~/src/lio_ws/devel/setup.bash
-rosbag play --clock /home/yxy/data/outdoor_Mainbuilding_10hz_2020-12-24-16-38-00.bag
+rosbag play --clock /home/yxy/data/avia/outdoor_Mainbuilding_100Hz_2020-12-24-16-46-29.bag
 ```
 
 启动文件会加载 YAML 配置，并订阅 `common/lid_topic` 和

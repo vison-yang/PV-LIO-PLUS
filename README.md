@@ -149,8 +149,9 @@ replace a complete workspace build.
 
 ## 4. Select a local-map backend
 
-Set `mapping/map_type` in
-[`config/mid360_indoor.yaml`](config/mid360_indoor.yaml):
+Set `mapping/map_type` in the YAML for the sensor being used, for example
+[`config/mid360_indoor.yaml`](config/mid360_indoor.yaml) or
+[`config/avia.yaml`](config/avia.yaml):
 
 | `map_type` | Local-map model | Matching strategy |
 | --- | --- | --- |
@@ -169,9 +170,12 @@ mapping:
     det_range: 100.0
 ```
 
-`mapping/map_type` takes priority over the legacy
-`mapping/b_use_voxelmap_plus` boolean. If `map_type` is absent, the legacy
-boolean selects VoxelMap++ or the original VoxelMap.
+`mapping/map_type` is the only local-map backend selector. If it is absent, the
+runtime defaults to the original VoxelMap.
+
+All five backends' parameters are kept in the same sensor YAML under the
+`mapping` section. The launch files only load that YAML and start the node;
+they do not override the selected backend or its algorithm parameters.
 
 The common point-map parameters include `nearest_point_count`,
 `nearest_max_range`, `plane_fit_threshold`, and
@@ -188,13 +192,13 @@ described in the architecture section above.
 
 ## 5. Run
 
-Start ROS and launch the included Mid-360 configuration:
+Start ROS and launch the configuration matching the sensor:
 
 ```bash
 source /opt/ros/noetic/setup.bash
 source devel/setup.bash
 roscore
-roslaunch pv_lio_plus mapping_mid360.launch rviz:=false
+roslaunch pv_lio_plus mapping_avia.launch
 ```
 
 In another terminal, play a ROS1 bag with simulated time enabled:
@@ -202,7 +206,7 @@ In another terminal, play a ROS1 bag with simulated time enabled:
 ```bash
 source /opt/ros/noetic/setup.bash
 source ~/src/lio_ws/devel/setup.bash
-rosbag play --clock /home/yxy/data/outdoor_Mainbuilding_10hz_2020-12-24-16-38-00.bag
+rosbag play --clock /home/yxy/data/avia/outdoor_Mainbuilding_100Hz_2020-12-24-16-46-29.bag
 ```
 
 The launch file loads the YAML configuration and subscribes to the topics
