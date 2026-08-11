@@ -7,14 +7,14 @@ common:
 
 preprocess:
     lidar_type: 1                          # 1=Livox/Avia, 2=Velodyne, 3=Ouster
-    scan_line: 4
+    scan_line: 6
     scan_rate: 10
     blind: 0.1                             # m
     maximum_range: 70.0                    # m
     vertical_angle_min: -45.0              # deg
     vertical_angle_max: 45.0               # deg
-    horizontal_angle_min: -60.0            # deg
-    horizontal_angle_max: 60.0             # deg
+    horizontal_angle_min: -180.0            # deg
+    horizontal_angle_max: 180.0             # deg
     point_filter_num: 1
     feature_extract_enable: false
 
@@ -55,7 +55,7 @@ mapping:
     c3p_merge_y_coord_diff_thresh: 5.0
 
     extrinsic_est_en: false                 # enable online IMU-LiDAR extrinsic estimation
-    extrinsic_T: [0.011, 0.02329, -0.04412] # LiDAR-to-IMU translation [m]
+    extrinsic_T: [0.04165, 0.02326, -0.0284] # LiDAR-to-IMU translation [m]
     extrinsic_R: [1, 0, 0,
                   0, 1, 0,
                   0, 0, 1]                 # row-major LiDAR-to-IMU rotation
@@ -72,8 +72,8 @@ publish:
     pub_voxel_map: false
     map_en: true
     publish_max_voxel_layer: 2             # publish layers 0..2
-    path_en:  true
-    scan_publish_en:  true                 # enable point-cloud output
+    path_en: true
+    scan_publish_en: true                  # enable point-cloud output
     dense_publish_en: false                # reduce global-frame point-cloud density
     scan_bodyframe_pub_en: false           # publish scan in IMU-body frame
     scan_lidarframe_pub_en: true           # publish scan in LiDAR frame

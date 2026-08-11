@@ -1,5 +1,5 @@
 <launch>
-    <rosparam command="load" file="$(find pv_lio_plus)/config/mid360_indoor.yaml"/>
+    <rosparam command="load" file="$(find pv_lio_plus)/config/avia.yaml"/>
     <node pkg="pv_lio_plus" type="pv_lio_plus_node"
           name="pv_lio_plus_node" output="screen"/>
     <node pkg="rviz" type="rviz" name="rviz"

@@ -164,7 +164,6 @@ std::vector<double> layer_point_size;
 bool publish_voxel_map      = false;
 int publish_max_voxel_layer = 0;
 
-bool b_use_voxelmap_plus = false;
 /** @brief Enables publication of the selected local-map snapshot. */
 bool map_publish_en = true;
 
@@ -1133,19 +1132,17 @@ int main(int argc, char **argv)
         nh.param<vector<double>>("mapping/extrinsic_R", extrinR, vector<double>());
         nh.param<int>("mapping/update_size_threshold", voxel_map_plus_ns::update_size_threshold, 5);
         nh.param<double>("mapping/sigma_num", sigma_num, 3);
-        nh.param<bool>("mapping/b_use_voxelmap_plus", b_use_voxelmap_plus, false);
         std::string map_type_name;
-        nh.param<std::string>("mapping/map_type", map_type_name, "");
+        nh.param<std::string>("mapping/map_type", map_type_name, "voxelmap");
         try
         {
-            map_manager_config.type = pv_lio_plus::ParseMapType(map_type_name, b_use_voxelmap_plus);
+            map_manager_config.type = pv_lio_plus::ParseMapType(map_type_name);
         }
         catch (const std::exception &e)
         {
             ROS_FATAL("Invalid mapping/map_type: %s", e.what());
             return 1;
         }
-        b_use_voxelmap_plus = map_manager_config.type == pv_lio_plus::MapType::VoxelMapPlus;
         nh.param<bool>("mapping/local_window_en", map_manager_config.local_window_enabled, false);
         nh.param<int>("mapping/nearest_point_count", map_manager_config.nearest_point_count, NUM_MATCH_POINTS);
         nh.param<double>("mapping/nearest_max_range", map_manager_config.nearest_max_range, 5.0);
@@ -1196,6 +1193,11 @@ int main(int argc, char **argv)
         nh.param<int>("pcd_save/interval", pcd_save_interval, -1);
 
         nh.param<double>("preprocess/blind", p_pre->blind, 0.01);
+        nh.param<double>("preprocess/maximum_range", p_pre->maximum_range, 70.0);
+        nh.param<double>("preprocess/vertical_angle_min", p_pre->vertical_angle_min, -45.0);
+        nh.param<double>("preprocess/vertical_angle_max", p_pre->vertical_angle_max, 45.0);
+        nh.param<double>("preprocess/horizontal_angle_min", p_pre->horizontal_angle_min, -60.0);
+        nh.param<double>("preprocess/horizontal_angle_max", p_pre->horizontal_angle_max, 60.0);
         nh.param<int>("preprocess/lidar_type", p_pre->lidar_type, AVIA);
         nh.param<int>("preprocess/scan_line", p_pre->N_SCANS, 16);
         nh.param<int>("preprocess/scan_rate", p_pre->SCAN_RATE, 10);

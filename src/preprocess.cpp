@@ -1,10 +1,12 @@
 #include "preprocess.h"
+#include <cmath>
 
 #define RETURN0     0x00
 #define RETURN0AND1 0x10
 
 Preprocess::Preprocess()
-    : lidar_type(AVIA), point_filter_num(1), blind(0.01), feature_enabled(false), given_offset_time(false)
+    : lidar_type(AVIA), point_filter_num(1), blind(0.01), maximum_range(70.0), vertical_angle_min(-45.0), vertical_angle_max(45.0),
+      horizontal_angle_min(-60.0), horizontal_angle_max(60.0), feature_enabled(false), given_offset_time(false)
 {
     inf_bound         = 10;
     N_SCANS           = 6;
@@ -55,6 +57,10 @@ void Preprocess::process(const sensor_msgs::PointCloud2::ConstPtr &msg, PointClo
 
     case VELO16:
         velodyne_handler(msg);
+        break;
+
+    case SOLID:
+        solid_handler(msg);
         break;
 
     default:
@@ -446,6 +452,113 @@ void Preprocess::velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
                 }
             }
         }
+    }
+}
+
+void Preprocess::solid_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
+{
+    pl_surf.clear();
+    pl_corn.clear();
+    pl_full.clear();
+
+    // seeker_data2bag.py uses "timestamp" while the native point type uses "time".
+    sensor_msgs::PointCloud2 normalized_msg;
+    const sensor_msgs::PointCloud2 *input_msg = msg.get();
+    bool has_time = false;
+    bool has_timestamp = false;
+    for (const auto &field : msg->fields)
+    {
+        has_time = has_time || field.name == "time";
+        has_timestamp = has_timestamp || field.name == "timestamp";
+    }
+    if (!has_time && has_timestamp)
+    {
+        normalized_msg = *msg;
+        for (auto &field : normalized_msg.fields)
+        {
+            if (field.name == "timestamp")
+            {
+                const uint32_t time_offset = field.offset;
+                field.name = "time";
+                field.datatype = sensor_msgs::PointField::FLOAT32;
+
+                // The converter stores an absolute FLOAT64 frame stamp here;
+                // SOLID consumes a FLOAT32 relative offset, which is zero
+                // for this per-frame converted cloud.
+                for (uint32_t row = 0; row < normalized_msg.height; ++row)
+                {
+                    for (uint32_t column = 0; column < normalized_msg.width; ++column)
+                    {
+                        const std::size_t offset = row * normalized_msg.row_step +
+                                                   column * normalized_msg.point_step + time_offset;
+                        if (offset + sizeof(float) <= normalized_msg.data.size())
+                        {
+                            std::fill(normalized_msg.data.begin() + offset,
+                                      normalized_msg.data.begin() + offset + sizeof(float), 0);
+                        }
+                    }
+                }
+                break;
+            }
+        }
+        input_msg = &normalized_msg;
+    }
+
+    pcl::PointCloud<velodyne_ros::Point> pl_orig;
+    pcl::fromROSMsg(*input_msg, pl_orig);
+    if (pl_orig.empty())
+    {
+        return;
+    }
+
+    pl_surf.reserve(pl_orig.size());
+
+    const double blind_sq         = blind * blind;
+    const double maximum_range_sq = maximum_range * maximum_range;
+    const double sin_vertical_min = std::sin(vertical_angle_min * M_PI / 180.0);
+    const double sin_vertical_max = std::sin(vertical_angle_max * M_PI / 180.0);
+    const double tan_horizontal_min = std::tan(horizontal_angle_min * M_PI / 180.0);
+    const double tan_horizontal_max = std::tan(horizontal_angle_max * M_PI / 180.0);
+    const float first_point_time = pl_orig.points.front().time;
+
+    for (const auto &point : pl_orig.points)
+    {
+        const double sq_dist = point.x * point.x + point.y * point.y + point.z * point.z;
+        if (sq_dist <= 1e-7 || sq_dist > maximum_range_sq)
+        {
+            continue;
+        }
+
+        if (point.x <= 1e-7)
+        {
+            continue;
+        }
+
+        const double range = std::sqrt(sq_dist);
+        if (point.z < sin_vertical_min * range || point.z > sin_vertical_max * range)
+        {
+            continue;
+        }
+        if (point.y < tan_horizontal_min * point.x || point.y > tan_horizontal_max * point.x)
+        {
+            continue;
+        }
+
+        if (sq_dist < blind_sq)
+        {
+            continue;
+        }
+
+        PointType added_pt;
+        added_pt.x         = point.x;
+        added_pt.y         = point.y;
+        added_pt.z         = point.z;
+        added_pt.intensity = point.intensity;
+        added_pt.curvature = (point.time - first_point_time) * 1000.0;  // curvature unit: ms
+        added_pt.normal_x  = 0;
+        added_pt.normal_y  = 0;
+        added_pt.normal_z  = 0;
+        pl_surf.points.push_back(added_pt);
     }
 }
 
