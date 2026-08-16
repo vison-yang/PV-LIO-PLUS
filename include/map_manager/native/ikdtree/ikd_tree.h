@@ -1,3 +1,16 @@
+/*
+ * PV-LIO-PLUS local copy of ikd-Tree.
+ *
+ * Upstream: https://github.com/hku-mars/ikd-Tree
+ * Original author: Yixi Cai; FAST-LIO2 integration: Wei Xu.
+ * Original license: GPLv2. See LICENSE and THIRD_PARTY_NOTICES.md.
+ *
+ * Local modifications by PV-LIO-PLUS contributors:
+ * - renamed and placed in the native backend include layout.
+ * Modified: 2026-08-09; license notice updated: 2026-08-16.
+ * The original algorithmic behavior is unchanged.
+ */
+
 #pragma once
 #include <stdio.h>
 #include <queue>

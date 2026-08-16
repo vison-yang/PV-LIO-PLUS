@@ -20,6 +20,11 @@
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
 
+// PV-LIO-PLUS modification notice:
+// This is a locally packaged copy used by the iVox backend. No functional
+// changes were made; only source-tree placement and this notice differ.
+// Modified: 2026-08-09; license notice updated: 2026-08-16.
+
 #ifndef INCLUDED_HILBERT_HPP
 #define INCLUDED_HILBERT_HPP
 #pragma once

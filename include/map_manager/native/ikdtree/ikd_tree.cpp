@@ -1,3 +1,17 @@
+/*
+ * PV-LIO-PLUS local copy of ikd-Tree.
+ *
+ * Upstream: https://github.com/hku-mars/ikd-Tree
+ * Original author: Yixi Cai.
+ * Original license: GPLv2. See LICENSE and THIRD_PARTY_NOTICES.md.
+ *
+ * Local modifications by PV-LIO-PLUS contributors:
+ * - adapted the local header name and include path;
+ * - scoped compiler warning suppression to this imported implementation.
+ * Modified: 2026-08-09; license notice updated: 2026-08-16.
+ * The original algorithmic behavior is unchanged.
+ */
+
 #include "ikd_tree.h"
 
 // This file is a local copy of the upstream ikd-Tree implementation.  Keep

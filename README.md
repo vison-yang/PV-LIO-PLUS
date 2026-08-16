@@ -32,46 +32,36 @@ this package; the full external LIO packages are not linked into PV-LIO-PLUS.
 
 The inventory distinguishes a local-map backend from a complete LIO package.
 PV-LIO-PLUS integrates the map layer into its own estimation loop; it does not
-embed another package's complete state-estimation node.
+embed another package's complete state-estimation node. This repository only
+bundles the local-map layers under `include/map_manager/native/`.
 
 ### Integrated local-map backends
 
-| Algorithm / map | Workspace source or reference | Selector | Note |
+| Algorithm / map | Source included in this repository | Selector | Note |
 | --- | --- | --- | --- |
-| VoxelMap | `src/VoxelMap`; native copy in `include/map_manager/native/voxelmap` | `voxelmap` | Probabilistic adaptive voxel planes; the first core local map in the PV-LIO lineage. |
-| VoxelMap++ | Native copy in `include/map_manager/native/voxelmap_plus` | `voxelmap_plus` | VoxelMap-derived map and residual optimizations; its standalone clone is not kept. |
-| FAST-LIO2 / ikd-tree | `src/FAST_LIO`; native copy in `include/map_manager/native/ikdtree` | `ikdtree` | FAST-LIO2's incremental KD-tree map is integrated; the complete `fast_lio` node remains an independent package. |
-| Faster-LIO / iVox | `src/faster_lio`; native copy in `include/map_manager/native/ivox` | `ivox` | Faster-LIO's sparse incremental voxel map is integrated; the complete `faster_lio` node remains an independent package. |
-| C3P-VoxelMap | `src/c3p_voxelmap`; native copy in `include/map_manager/native/c3p_voxelmap` | `c3p_voxelmap` | Compact probabilistic voxel map with native plane matching and merging. |
+| VoxelMap | `include/map_manager/native/voxelmap` | `voxelmap` | Probabilistic adaptive voxel planes; the first core local map in the PV-LIO lineage. |
+| VoxelMap++ | `include/map_manager/native/voxelmap_plus` | `voxelmap_plus` | VoxelMap-derived map and residual optimizations. |
+| FAST-LIO2 / ikd-tree | `include/map_manager/native/ikdtree` | `ikdtree` | FAST-LIO2's incremental KD-tree map. |
+| Faster-LIO / iVox | `include/map_manager/native/ivox` | `ivox` | Faster-LIO's sparse incremental voxel map. |
+| C3P-VoxelMap | `include/map_manager/native/c3p_voxelmap` | `c3p_voxelmap` | Compact probabilistic voxel map with native plane matching and merging. |
 
-Therefore FAST-LIO2 and Faster-LIO are already represented in the integrated
-map-backend list through ikd-tree and iVox. Their complete standalone nodes
-remain available for end-to-end comparison, but are not a second pending
-`MapManager` backend task.
+FAST-LIO2 and Faster-LIO are therefore represented through ikd-tree and iVox.
+Their complete nodes are not included in this repository; obtain and build the
+upstream projects separately when an end-to-end baseline is needed.
 
-### Other algorithms pending integration
+### Candidate local-map backends
 
-These algorithms are present in the workspace but their map and/or residual
-logic has not been merged into `MapManager`.
+The following public projects are candidates for future `MapManager` backends.
+They are neither bundled with PV-LIO-PLUS nor required to build it.
 
-| Algorithm | Location | Current status / characteristic |
+| Algorithm | Upstream project | Current status / characteristic |
 | --- | --- | --- |
-| Hybrid-VoxelMap | `src/Hybrid-VoxelMap` | Pending; hybrid voxel/plane representation. |
-| R-VoxelMap | `src/R-VoxelMap` | Pending; robust recursive voxel-plane estimation. |
-| Super-LIO / OctVox | `src/Super-LIO` | Pending; OctVox is an internal map structure of Super-LIO, not a separate package here. |
-| BIEVR-LIO | `research/BIEVR-LIO` | Pending; voxelized map with map-informed sampling and geometric statistics. |
-| Surfel-LIO / hVox | `research/Surfel-LIO` | Pending; hierarchical voxel hash with precomputed surfels. |
-| LIO-GVM | `research/lio_gvm` | Pending; Gaussian voxel map and Gaussian-based scan matching. |
-
-The complete `fast_lio` and `faster_lio` nodes remain independently buildable
-at `src/FAST_LIO` and `src/faster_lio` for end-to-end comparison. They are not
-listed as pending `MapManager` backends because their local-map layers are
-already integrated above.
-
-`src/livox_ros_driver` is a sensor driver and is not counted as an algorithm.
-`research/build` contains build artifacts and is not counted. CT-VoxelMap and
-RC-Vox have no confirmed source directory in the current workspace; they are
-tracked in the workspace [TODO.md](../../TODO.md).
+| Hybrid-VoxelMap | [Hybrid-VoxelMap](https://github.com/haiyang2022/Hybrid-VoxelMap) | Candidate; hybrid voxel/plane representation. |
+| R-VoxelMap | [R-VoxelMap](https://github.com/NKU-MobFly-Robotics/R-VoxelMap) | Candidate; robust recursive voxel-plane estimation. |
+| Super-LIO / OctVox | [Super-LIO](https://github.com/Liansheng-Wang/Super-LIO/tree/ros1) | Candidate; OctVox is an internal map structure of Super-LIO. |
+| BIEVR-LIO | [BIEVR-LIO](https://github.com/ethz-asl/BIEVR-LIO) | Candidate; voxelized map with map-informed sampling and geometric statistics. |
+| Surfel-LIO / hVox | [Surfel-LIO](https://github.com/93won/lidar_inertial_odometry) | Candidate; hierarchical voxel hash with precomputed surfels. |
+| LIO-GVM | [LIO-GVM](https://github.com/Ji1Xingyu/lio_gvm) | Candidate; Gaussian voxel map and Gaussian-based scan matching. |
 
 ## Architecture
 
@@ -97,12 +87,18 @@ comparisons possible without changing the LIO state-estimation loop.
 
 ## Requirements and build
 
-- Ubuntu 20.04
-- ROS Noetic
-- PCL, Eigen, Sophus, YAML-CPP, and the dependencies of the ROS workspace
+- Ubuntu 20.04 and ROS Noetic
+- PCL 1.8 or later, Eigen3, Boost (Timer), and Python development headers
+- `livox_ros_driver` in the same catkin workspace (provides
+  `livox_ros_driver/CustomMsg.h`)
 
 ```bash
-cd ~/src/lio_ws
+mkdir -p ~/catkin_ws/src
+cd ~/catkin_ws/src
+git clone https://github.com/vison-yang/PV-LIO-PLUS.git
+# Run this only when livox_ros_driver is not already available in the workspace.
+git clone https://github.com/Livox-SDK/livox_ros_driver.git
+cd ..
 source /opt/ros/noetic/setup.bash
 catkin_make
 source devel/setup.bash
@@ -125,7 +121,7 @@ and are ignored when another backend is selected.
 
 ```bash
 source /opt/ros/noetic/setup.bash
-source ~/src/lio_ws/devel/setup.bash
+source ~/catkin_ws/devel/setup.bash
 roscore
 roslaunch pv_lio_plus mapping_avia.launch
 rosbag play --clock /path/to/your.bag
@@ -151,6 +147,15 @@ The trajectory is stored as timestamped pose records. Point-cloud chunks may
 also be written under `output/PCD/` according to the configured scan-saving
 options. When comparing maps, use the same bag segment, sensor parameters,
 window settings, and output directory layout for every backend.
+
+## License and third-party notices
+
+PV-LIO-PLUS is distributed under the GNU General Public License, version 2 or
+any later version. See [LICENSE](LICENSE) for the complete license text and
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the provenance and license
+status of the local map implementations and other bundled third-party code.
+The VoxelMap++ and C3P-VoxelMap entries in that notice require upstream license
+clarification before public redistribution of those local copies.
 
 ## References
 

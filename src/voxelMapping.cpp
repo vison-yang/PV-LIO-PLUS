@@ -33,6 +33,14 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+/*
+ * PV-LIO-PLUS modifications retain the LOAM/Livox BSD-3-Clause notice above.
+ * Local changes include MapManager dispatch, selectable local-map backends,
+ * backend-specific residual construction, and result-file naming.
+ * Modified: 2026-08-09; license notice updated: 2026-08-16.
+ * See LICENSE and THIRD_PARTY_NOTICES.md.
+ */
+
 /**
  * @file voxelMapping.cpp
  * @brief PV-LIO-PLUS node, observation models, and map-manager integration.
@@ -1101,7 +1109,7 @@ void observation_model_share_manager(state_ikfom &s,
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "laserMapping");
+    ros::init(argc, argv, "pv_lio_plus_node");
     ros::NodeHandle nh;
 
     //* ---------------------------------- Init ---------------------------------- */

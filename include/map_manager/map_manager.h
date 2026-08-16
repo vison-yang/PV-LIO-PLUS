@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2026 PV-LIO-PLUS contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * PV-LIO-PLUS local-map management interface.
+ * Created: 2026-08-09; license notice updated: 2026-08-16.
+ */
+
 #ifndef PV_LIO_PLUS_MAP_MANAGER_H
 #define PV_LIO_PLUS_MAP_MANAGER_H
 
