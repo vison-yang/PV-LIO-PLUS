@@ -18,37 +18,32 @@ PV-LIO-PLUS 是一个 ROS1 激光-惯性里程计（LIO）框架，使用相同�
 
 ## 算法清单
 
-清单区分“局部地图后端”和“完整 LIO 软件包”。PV-LIO-PLUS 将局部地图层接入自身的状态估计循环，不会把其它软件包的完整状态估计节点嵌入进来。
+清单区分“局部地图后端”和“完整 LIO 软件包”。PV-LIO-PLUS 将局部地图层接入自身的状态估计循环，不会把其它软件包的完整状态估计节点嵌入进来。本仓库只包含 `include/map_manager/native/` 下的局部地图层。
 
 ### 已合入的局部地图后端
 
-| 算法 / 地图 | 工作区源码或参考位置 | 配置项 | 说明 |
+| 算法 / 地图 | 本仓库包含的源码 | 配置项 | 说明 |
 | --- | --- | --- | --- |
-| VoxelMap | `src/VoxelMap`；本包副本位于 `include/map_manager/native/voxelmap` | `voxelmap` | 概率自适应体素平面，是 PV-LIO 技术路线中的首个核心局部地图。 |
-| VoxelMap++ | 本包副本位于 `include/map_manager/native/voxelmap_plus` | `voxelmap_plus` | 基于 VoxelMap 的地图和残差优化；独立副本已不再保留。 |
-| FAST-LIO2 / ikd-tree | `src/FAST_LIO`；本包副本位于 `include/map_manager/native/ikdtree` | `ikdtree` | FAST-LIO2 的增量 KD-tree 地图已合入；完整 `fast_lio` 节点仍作为独立软件包保留。 |
-| Faster-LIO / iVox | `src/faster_lio`；本包副本位于 `include/map_manager/native/ivox` | `ivox` | Faster-LIO 的稀疏增量体素地图已合入；完整 `faster_lio` 节点仍作为独立软件包保留。 |
-| C3P-VoxelMap | `src/c3p_voxelmap`；本包副本位于 `include/map_manager/native/c3p_voxelmap` | `c3p_voxelmap` | 紧凑概率体素地图，使用原生平面匹配和地图合并逻辑。 |
+| VoxelMap | `include/map_manager/native/voxelmap` | `voxelmap` | 概率自适应体素平面，是 PV-LIO 技术路线中的首个核心局部地图。 |
+| VoxelMap++ | `include/map_manager/native/voxelmap_plus` | `voxelmap_plus` | 基于 VoxelMap 的地图和残差优化。 |
+| FAST-LIO2 / ikd-tree | `include/map_manager/native/ikdtree` | `ikdtree` | FAST-LIO2 的增量 KD-tree 地图。 |
+| Faster-LIO / iVox | `include/map_manager/native/ivox` | `ivox` | Faster-LIO 的稀疏增量体素地图。 |
+| C3P-VoxelMap | `include/map_manager/native/c3p_voxelmap` | `c3p_voxelmap` | 紧凑概率体素地图，使用原生平面匹配和地图合并逻辑。 |
 
-因此，FAST-LIO2 和 Faster-LIO 已经分别通过 ikd-tree 和 iVox 体现在已合入的局部地图后端中。它们的完整独立节点仍可用于端到端对比，但不再作为另一项 `MapManager` 待合入后端。
+因此，FAST-LIO2 和 Faster-LIO 已经分别通过 ikd-tree 和 iVox 体现在已合入的局部地图后端中。本仓库不包含它们的完整节点；如需端到端基线对比，请另行获取并编译上游工程。
 
-### 其它待合入算法
+### 候选局部地图后端
 
-以下算法存在于工作区，但其地图和/或残差逻辑尚未合入 `MapManager`。
+以下公开项目是未来 `MapManager` 后端的候选项，不随 PV-LIO-PLUS 发布，也不是本包的构建依赖。
 
-| 算法 | 位置 | 当前状态 / 特点 |
+| 算法 | 上游项目 | 当前状态 / 特点 |
 | --- | --- | --- |
-| Hybrid-VoxelMap | `src/Hybrid-VoxelMap` | 待合入；混合体素/平面表示。 |
-| R-VoxelMap | `src/R-VoxelMap` | 待合入；鲁棒递归体素平面估计。 |
-| Super-LIO / OctVox | `src/Super-LIO` | 待合入；OctVox 是 Super-LIO 内部的地图结构，当前不是独立软件包。 |
-| BIEVR-LIO | `research/BIEVR-LIO` | 待合入；体素化地图、地图引导采样和几何统计。 |
-| Surfel-LIO / hVox | `research/Surfel-LIO` | 待合入；层次化体素哈希和预计算 surfel。 |
-| LIO-GVM | `research/lio_gvm` | 待合入；高斯体素地图和基于高斯的点云匹配。 |
-
-完整的 `fast_lio` 和 `faster_lio` 节点仍可在 `src/FAST_LIO` 和
-`src/faster_lio` 中独立编译，用于端到端对比。由于它们的局部地图层已在上表合入，因此不再列为 `MapManager` 的待合入后端。
-
-`src/livox_ros_driver` 是传感器驱动，不计入算法清单；`research/build` 是编译产物，也不计入算法清单。CT-VoxelMap 和 RC-Vox 在当前工作区没有确认的源码目录，已记录到工作区的 [TODO.md](../../TODO.md)。
+| Hybrid-VoxelMap | [Hybrid-VoxelMap](https://github.com/haiyang2022/Hybrid-VoxelMap) | 候选；混合体素/平面表示。 |
+| R-VoxelMap | [R-VoxelMap](https://github.com/NKU-MobFly-Robotics/R-VoxelMap) | 候选；鲁棒递归体素平面估计。 |
+| Super-LIO / OctVox | [Super-LIO](https://github.com/Liansheng-Wang/Super-LIO/tree/ros1) | 候选；OctVox 是 Super-LIO 内部的地图结构。 |
+| BIEVR-LIO | [BIEVR-LIO](https://github.com/ethz-asl/BIEVR-LIO) | 候选；体素化地图、地图引导采样和几何统计。 |
+| Surfel-LIO / hVox | [Surfel-LIO](https://github.com/93won/lidar_inertial_odometry) | 候选；层次化体素哈希和预计算 surfel。 |
+| LIO-GVM | [LIO-GVM](https://github.com/Ji1Xingyu/lio_gvm) | 候选；高斯体素地图和基于高斯的点云匹配。 |
 
 ## 结构
 
@@ -71,12 +66,18 @@ VoxelMap 和 VoxelMap++ 保留原生平面地图匹配；ikd-tree 和 iVox 保�
 
 ## 环境与编译
 
-- Ubuntu 20.04
-- ROS Noetic
-- PCL、Eigen、Sophus、YAML-CPP 及 ROS 工作区依赖
+- Ubuntu 20.04 和 ROS Noetic
+- PCL 1.8 或更高版本、Eigen3、Boost（Timer）和 Python 开发头文件
+- 与 PV-LIO-PLUS 位于同一 catkin 工作空间的 `livox_ros_driver`（提供
+  `livox_ros_driver/CustomMsg.h`）
 
 ```bash
-cd ~/src/lio_ws
+mkdir -p ~/catkin_ws/src
+cd ~/catkin_ws/src
+git clone https://github.com/vison-yang/PV-LIO-PLUS.git
+# 仅当工作空间中尚未有 livox_ros_driver 时执行。
+git clone https://github.com/Livox-SDK/livox_ros_driver.git
+cd ..
 source /opt/ros/noetic/setup.bash
 catkin_make
 source devel/setup.bash
@@ -97,7 +98,7 @@ mapping:
 
 ```bash
 source /opt/ros/noetic/setup.bash
-source ~/src/lio_ws/devel/setup.bash
+source ~/catkin_ws/devel/setup.bash
 roscore
 roslaunch pv_lio_plus mapping_avia.launch
 rosbag play --clock /path/to/your.bag
@@ -118,6 +119,13 @@ rosbag play --clock /path/to/your.bag
 | `c3p_voxelmap` | `pv_lio_c3p_voxelmap_pos.txt` | `pv_lio_c3p_voxelmap.pcd` |
 
 轨迹文件保存带时间戳的位姿记录。根据点云保存配置，还可能在 `output/PCD/` 下生成分段点云。进行地图对比时，应对所有后端使用相同的数据包片段、传感器参数、窗口设置和输出目录组织方式。
+
+## 许可证与第三方声明
+
+PV-LIO-PLUS 以 GNU 通用公共许可证第二版或更高版本发布。完整许可证文本见
+[LICENSE](LICENSE)，本包内局部地图实现和其他第三方代码的来源、许可证及当前状态见
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。其中 VoxelMap++ 和
+C3P-VoxelMap 的上游许可证声明仍需进一步确认，在确认前不应公开再分发这两份本地副本。
 
 ## 参考项目
 

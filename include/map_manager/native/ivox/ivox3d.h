@@ -1,3 +1,18 @@
+/*
+ * PV-LIO-PLUS local adaptation of Faster-LIO iVox.
+ *
+ * Upstream: https://github.com/gaoxiang12/faster-lio
+ * Upstream authors: Chunge Bai, Tao Xiang, Yajie Chen, Haoqian Wang,
+ * Fang Zhang, and Xiang Gao.
+ * Original license: GPLv2. See LICENSE and THIRD_PARTY_NOTICES.md.
+ *
+ * Local modifications by PV-LIO-PLUS contributors:
+ * - removed the glog dependency and use standard error reporting;
+ * - validate non-positive KNN requests and use size-safe candidate handling;
+ * - placed the source in the native backend include layout.
+ * Modified: 2026-08-09; license notice updated: 2026-08-16.
+ */
+
 //
 // Created by xiang on 2021/9/16.
 //

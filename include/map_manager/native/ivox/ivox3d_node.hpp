@@ -1,3 +1,17 @@
+/*
+ * PV-LIO-PLUS local copy of Faster-LIO iVox node primitives.
+ *
+ * Upstream: https://github.com/gaoxiang12/faster-lio
+ * Upstream authors: Chunge Bai, Tao Xiang, Yajie Chen, Haoqian Wang,
+ * Fang Zhang, and Xiang Gao.
+ * Original license: GPLv2. See LICENSE and THIRD_PARTY_NOTICES.md.
+ *
+ * Local modifications by PV-LIO-PLUS contributors:
+ * - placed in the native backend include layout.
+ * Modified: 2026-08-09; license notice updated: 2026-08-16.
+ * No functional changes were made to the node implementation.
+ */
+
 #include <pcl/common/centroid.h>
 #include <algorithm>
 #include <cmath>

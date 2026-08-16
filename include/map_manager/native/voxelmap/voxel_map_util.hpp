@@ -1,3 +1,17 @@
+/*
+ * PV-LIO-PLUS local adaptation of VoxelMap.
+ *
+ * Upstream: https://github.com/hku-mars/VoxelMap
+ * Upstream developers: Chongjian Yuan and Wei Xu.
+ * Original license: GPLv2. See LICENSE and THIRD_PARTY_NOTICES.md.
+ *
+ * Local modifications by PV-LIO-PLUS contributors:
+ * - isolated native symbols in voxel_map_ns for backend coexistence;
+ * - adapted point, covariance, and point-to-plane match representations;
+ * - adapted map calls for MapManager integration and local-map operation.
+ * Modified: 2025-06-09, 2026-08-09; license notice updated: 2026-08-16.
+ */
+
 #ifndef VOXEL_MAP_UTIL_HPP
 #define VOXEL_MAP_UTIL_HPP
 #include <Eigen/Core>

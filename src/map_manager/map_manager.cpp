@@ -1,3 +1,11 @@
+/*
+ * Copyright (C) 2026 PV-LIO-PLUS contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * PV-LIO-PLUS local-map management implementation.
+ * Created: 2026-08-09; license notice updated: 2026-08-16.
+ */
+
 /**
  * @file map_manager.cpp
  * @brief Backend dispatch and local-window implementation for MapManager.

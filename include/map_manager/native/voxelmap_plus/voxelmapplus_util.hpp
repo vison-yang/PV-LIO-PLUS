@@ -1,3 +1,17 @@
+/*
+ * PV-LIO-PLUS local adaptation of VoxelMap++.
+ *
+ * Upstream: https://github.com/uestc-icsp/VoxelMapPlus_Public
+ * The upstream repository has no standalone license text. Its package metadata
+ * declares BSD while its README describes an extension of VoxelMap; see
+ * THIRD_PARTY_NOTICES.md. No additional license grant is inferred here.
+ *
+ * Local modifications by PV-LIO-PLUS contributors:
+ * - isolated native symbols in voxel_map_plus_ns for backend coexistence;
+ * - adapted shared point/covariance data and MapManager-facing map calls.
+ * Modified: 2025-06-09, 2026-08-09; license notice updated: 2026-08-16.
+ */
+
 #ifndef VOXEL_MAP_PLUS_UTIL_HPP
 #define VOXEL_MAP_PLUS_UTIL_HPP
 
