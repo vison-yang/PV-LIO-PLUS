@@ -1,3 +1,18 @@
+/*
+ * PV-LIO-PLUS local adaptation of C3P-VoxelMap.
+ *
+ * Upstream: https://github.com/deptrum/c3p-voxelmap
+ * The upstream repository has no standalone license text. Its README states
+ * that it is based on VoxelMap while package metadata declares BSD; see
+ * THIRD_PARTY_NOTICES.md. No additional license grant is inferred here.
+ *
+ * Local modifications by PV-LIO-PLUS contributors:
+ * - introduced a distinct include guard and c3p_map_ns namespace;
+ * - adapted standard hash specializations and match point/covariance fields;
+ * - scoped compiler warning suppression to this imported implementation.
+ * Modified: 2026-08-09; license notice updated: 2026-08-16.
+ */
+
 #ifndef PV_LIO_PLUS_NATIVE_C3P_VOXEL_MAP_UTIL_HPP
 #define PV_LIO_PLUS_NATIVE_C3P_VOXEL_MAP_UTIL_HPP
 #include <openssl/md5.h>
