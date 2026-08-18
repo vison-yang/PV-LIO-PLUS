@@ -60,13 +60,13 @@ typedef Matrix3f M3F;
 #define VF(a)    Matrix<float, (a), 1>
 
 /// Three-dimensional double-precision identity matrix.
-M3D Eye3d(M3D::Identity());
+inline M3D Eye3d(M3D::Identity());
 /// Three-dimensional single-precision identity matrix.
-M3F Eye3f(M3F::Identity());
+inline M3F Eye3f(M3F::Identity());
 /// Three-dimensional double-precision zero vector.
-V3D Zero3d(0, 0, 0);
+inline V3D Zero3d(0, 0, 0);
 /// Three-dimensional single-precision zero vector.
-V3F Zero3f(0, 0, 0);
+inline V3F Zero3f(0, 0, 0);
 
 /** @brief Synchronized LiDAR and IMU data for one processing step. */
 struct MeasureGroup
@@ -324,7 +324,7 @@ bool esti_normvector(Matrix<T, 3, 1> &normvec, const PointVector &point, const T
  * @param p2 Second point.
  * @return Squared Euclidean distance.
  */
-float calc_dist(PointType p1, PointType p2)
+inline float calc_dist(PointType p1, PointType p2)
 {
     float d = (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y) + (p1.z - p2.z) * (p1.z - p2.z);
     return d;
@@ -433,7 +433,7 @@ static Eigen::Matrix<typename Derived::Scalar, 3, 3> ypr2R(const Eigen::MatrixBa
  * @param g Measured gravity direction.
  * @return Rotation aligning @p g with the positive Z axis.
  */
-Eigen::Matrix3d g2R(const Eigen::Vector3d &g)
+inline Eigen::Matrix3d g2R(const Eigen::Vector3d &g)
 {
     Eigen::Matrix3d R0;
     Eigen::Vector3d ng1 = g.normalized();

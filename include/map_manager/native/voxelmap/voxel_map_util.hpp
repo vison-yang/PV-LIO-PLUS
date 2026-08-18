@@ -673,7 +673,7 @@ namespace voxel_map_ns
             for (int j = 0; j < 3; j++)
             {
                 // note: modified 这是 voxel_map 本身的变量使用混乱，
-                // note: 但是由于 voxelMapping.cpp 中调用时仔细审查，未对程序造成影响，这里修改回来
+                // note: 但是由于 mapping.cpp 中调用时仔细审查，未对程序造成影响，这里修改回来
                 loc_xyz[j] = p_v.point_world[j] / voxel_size;
                 if (loc_xyz[j] < 0)
                 {
@@ -728,7 +728,7 @@ namespace voxel_map_ns
             for (int j = 0; j < 3; j++)
             {
                 // note: modified 这是 voxel_map 本身的变量使用混乱，
-                // note: 但是由于 voxelMapping.cpp 中调用时仔细审查，未对程序造成影响，这里修改回来
+                // note: 但是由于 mapping.cpp 中调用时仔细审查，未对程序造成影响，这里修改回来
                 loc_xyz[j] = p_v.point_world[j] / voxel_size;
                 if (loc_xyz[j] < 0)
                 {
@@ -776,7 +776,7 @@ namespace voxel_map_ns
             for (int j = 0; j < 3; j++)
             {
                 // note: modified 这是 voxel_map 本身的变量使用混乱，
-                // note: 但是由于 voxelMapping.cpp 中调用时仔细审查，未对程序造成影响，这里修改回来
+                // note: 但是由于 mapping.cpp 中调用时仔细审查，未对程序造成影响，这里修改回来
                 loc_xyz[j] = p_v.point_world[j] / voxel_size;
                 if (loc_xyz[j] < 0)
                 {
