@@ -18,7 +18,7 @@ MTK_BUILD_MANIFOLD(input_ikfom,
 MTK_BUILD_MANIFOLD(process_noise_ikfom,
                    ((vect3, ng))((vect3, na))((vect3, nbg))((vect3, nba)));
 
-MTK::get_cov<process_noise_ikfom>::type process_noise_cov()
+inline MTK::get_cov<process_noise_ikfom>::type process_noise_cov()
 {
     MTK::get_cov<process_noise_ikfom>::type cov = MTK::get_cov<process_noise_ikfom>::type::Zero();
     MTK::setDiagonal<process_noise_ikfom, vect3, 0>(cov, &process_noise_ikfom::ng, 0.0001);    // 0.03
@@ -30,7 +30,7 @@ MTK::get_cov<process_noise_ikfom>::type process_noise_cov()
 
 // double L_offset_to_I[3] = {0.04165, 0.02326, -0.0284}; // Avia
 // vect3 Lidar_offset_to_IMU(L_offset_to_I, 3);
-Eigen::Matrix<double, 24, 1> get_f(state_ikfom &s, const input_ikfom &in)
+inline Eigen::Matrix<double, 24, 1> get_f(state_ikfom &s, const input_ikfom &in)
 {
     Eigen::Matrix<double, 24, 1> res = Eigen::Matrix<double, 24, 1>::Zero();
     vect3 omega;
@@ -45,7 +45,7 @@ Eigen::Matrix<double, 24, 1> get_f(state_ikfom &s, const input_ikfom &in)
     return res;
 }
 
-Eigen::Matrix<double, 24, 23> df_dx(state_ikfom &s, const input_ikfom &in)
+inline Eigen::Matrix<double, 24, 23> df_dx(state_ikfom &s, const input_ikfom &in)
 {
     Eigen::Matrix<double, 24, 23> cov = Eigen::Matrix<double, 24, 23>::Zero();
     cov.template block<3, 3>(0, 12)   = Eigen::Matrix3d::Identity();
@@ -63,7 +63,7 @@ Eigen::Matrix<double, 24, 23> df_dx(state_ikfom &s, const input_ikfom &in)
     return cov;
 }
 
-Eigen::Matrix<double, 24, 12> df_dw(state_ikfom &s, const input_ikfom &in)
+inline Eigen::Matrix<double, 24, 12> df_dw(state_ikfom &s, const input_ikfom &in)
 {
     Eigen::Matrix<double, 24, 12> cov = Eigen::Matrix<double, 24, 12>::Zero();
     cov.template block<3, 3>(12, 3)   = -s.rot.toRotationMatrix();
@@ -73,7 +73,7 @@ Eigen::Matrix<double, 24, 12> df_dw(state_ikfom &s, const input_ikfom &in)
     return cov;
 }
 
-vect3 SO3ToEuler(const SO3 &orient)
+inline vect3 SO3ToEuler(const SO3 &orient)
 {
     Eigen::Matrix<double, 3, 1> _ang;
     Eigen::Vector4d q_data = orient.coeffs().transpose();

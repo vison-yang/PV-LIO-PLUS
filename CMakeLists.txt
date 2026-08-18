@@ -72,8 +72,11 @@ catkin_package(
 )
 
 add_executable(pv_lio_plus_node
-  src/voxelMapping.cpp
-  src/preprocess.cpp)
+  src/lio_main.cpp
+  src/mapping.cpp
+  src/utils.cpp
+  src/preprocess.cpp
+  src/imu_processing.cpp)
 add_dependencies(pv_lio_plus_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(pv_lio_plus_node ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES})
 target_include_directories(pv_lio_plus_node PRIVATE ${PYTHON_INCLUDE_DIRS})

@@ -1,90 +1,19 @@
-#include <common_lib.h>
-#include <eigen_conversions/eigen_msg.h>
-#include <geometry_msgs/Vector3.h>
-#include <math.h>
-#include <nav_msgs/Odometry.h>
-#include <pcl/common/io.h>
-#include <pcl/common/transforms.h>
-#include <pcl/kdtree/kdtree_flann.h>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-#include <pcl_conversions/pcl_conversions.h>
-#include <ros/ros.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/PointCloud2.h>
-#include <so3_math.h>
-#include <tf/transform_broadcaster.h>
+#include "imu_processing.hpp"
 
-#include <Eigen/Eigen>
+#include <algorithm>
 #include <cmath>
-#include <condition_variable>
-#include <csignal>
-#include <deque>
-#include <fstream>
-#include <mutex>
-#include <thread>
 
-#include "use-ikfom.hpp"
+#include <ros/ros.h>
 
-/// *************Preconfiguration
-
-#define MAX_INI_COUNT (200)  // (20)
-
-const bool time_list(PointType &x, PointType &y) { return (x.curvature < y.curvature); };
-
-/// *************IMU Process and undistortion
-class ImuProcess
+namespace
 {
-public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+constexpr int kMaxIniCount = 200;
 
-    ImuProcess();
-    ~ImuProcess();
-
-    void Reset();
-    void Reset(double start_timestamp, const sensor_msgs::ImuConstPtr &lastimu);
-    void set_extrinsic(const V3D &transl, const M3D &rot);
-    void set_extrinsic(const V3D &transl);
-    void set_extrinsic(const MD(4, 4) & T);
-    void set_gyr_cov(const V3D &scaler);
-    void set_acc_cov(const V3D &scaler);
-    void set_gyr_bias_cov(const V3D &b_g);
-    void set_acc_bias_cov(const V3D &b_a);
-    Eigen::Matrix<double, 12, 12> Q;
-    void Process(const MeasureGroup &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, PointCloudXYZI::Ptr pcl_un_);
-
-    ofstream fout_imu;
-    V3D cov_acc;
-    V3D cov_gyr;
-    V3D cov_acc_scale;
-    V3D cov_gyr_scale;
-    V3D cov_bias_gyr;
-    V3D cov_bias_acc;
-    double first_lidar_time;
-
-    SO3 Initial_R_wrt_G;
-
-private:
-    void IMU_init(const MeasureGroup &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, int &N);
-    void UndistortPcl(const MeasureGroup &meas, esekfom::esekf<state_ikfom, 12, input_ikfom> &kf_state, PointCloudXYZI &pcl_in_out);
-
-    PointCloudXYZI::Ptr cur_pcl_un_;
-    sensor_msgs::ImuConstPtr last_imu_;
-    deque<sensor_msgs::ImuConstPtr> v_imu_;
-    vector<Pose6D> IMUpose;
-    vector<M3D> v_rot_pcl_;
-    M3D Lidar_R_wrt_IMU;
-    V3D Lidar_T_wrt_IMU;
-    V3D mean_acc;
-    V3D mean_gyr;
-    V3D angvel_last;
-    V3D acc_s_last;
-    double last_lidar_end_time_;
-    int init_iter_num   = 1;
-    bool b_first_frame_ = true;
-    bool imu_need_init_ = true;
-    double start_timestamp_;
-};
+bool PointTimeLess(const PointType &x, const PointType &y)
+{
+    return x.curvature < y.curvature;
+}
+}  // namespace
 
 ImuProcess::ImuProcess()
     : b_first_frame_(true), imu_need_init_(true), start_timestamp_(-1)
@@ -162,7 +91,7 @@ void ImuProcess::IMU_init(const MeasureGroup &meas, esekfom::esekf<state_ikfom, 
 {
     /** 1. initializing the gravity, gyro bias, acc and gyro covariance
      ** 2. normalize the acceleration measurenments to unit gravity **/
-    ROS_INFO("IMU Initializing: %.1f %%", double(N) / MAX_INI_COUNT * 100);
+    ROS_INFO("IMU Initializing: %.1f %%", double(N) / kMaxIniCount * 100);
     V3D cur_acc, cur_gyr;
 
     if (b_first_frame_)
@@ -237,7 +166,7 @@ void ImuProcess::UndistortPcl(const MeasureGroup &meas, esekfom::esekf<state_ikf
 
     /*** sort point clouds by offset time ***/
     pcl_out = *(meas.lidar);
-    sort(pcl_out.points.begin(), pcl_out.points.end(), time_list);
+    sort(pcl_out.points.begin(), pcl_out.points.end(), PointTimeLess);
     // cout<<"[ IMU Process ]: Process lidar from "<<pcl_beg_time<<" to "<<pcl_end_time<<", "
     //          <<meas.imu.size()<<" imu msgs from "<<imu_beg_time<<" to "<<imu_end_time<<endl;
 
@@ -365,7 +294,7 @@ void ImuProcess::Process(const MeasureGroup &meas, esekfom::esekf<state_ikfom, 1
         last_imu_ = meas.imu.back();
 
         state_ikfom imu_state = kf_state.get_x();
-        if (init_iter_num > MAX_INI_COUNT)
+        if (init_iter_num > kMaxIniCount)
         {
             cov_acc *= pow(G_m_s2 / mean_acc.norm(), 2);
             imu_need_init_ = false;
