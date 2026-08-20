@@ -62,6 +62,12 @@ They are neither bundled with PV-LIO-PLUS nor required to build it.
 | BIEVR-LIO | [BIEVR-LIO](https://github.com/ethz-asl/BIEVR-LIO) | Candidate; voxelized map with map-informed sampling and geometric statistics. |
 | Surfel-LIO / hVox | [Surfel-LIO](https://github.com/93won/lidar_inertial_odometry) | Candidate; hierarchical voxel hash with precomputed surfels. |
 | LIO-GVM | [LIO-GVM](https://github.com/Ji1Xingyu/lio_gvm) | Candidate; Gaussian voxel map and Gaussian-based scan matching. |
+| [FR-LIO](https://arxiv.org/abs/2302.04031) | — | Paper available; no public source found currently, awaiting release or independent implementation. |
+| [CT-VoxelMap](https://arxiv.org/abs/2604.03747) | — | Paper available; no public source found currently, awaiting release or independent implementation. |
+| [GenZ-LIO](https://arxiv.org/abs/2603.16273) | [GenZ-ICP](https://github.com/cocel-postech/genz-icp) (related project) | Paper available; the related repository does not currently release GenZ-LIO source, awaiting release or independent implementation. |
+| [SA-LIVO](https://arxiv.org/abs/2606.25699) | — | Paper available; the authors state that code will be open-sourced, but it is not released yet; awaiting release or independent implementation. |
+| [SV-LIO](https://doi.org/10.3390/electronics15081744) | — | Paper available; no public source found currently, awaiting release or independent implementation. |
+| [Environment-Adaptive Solid-State LiDAR-Inertial Odometry](https://arxiv.org/abs/2604.15864) | — | Paper available; no public source found currently, awaiting release or independent implementation. |
 
 ## Architecture
 

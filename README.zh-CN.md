@@ -44,6 +44,12 @@ PV-LIO-PLUS 是一个 ROS1 激光-惯性里程计（LIO）框架，使用相同�
 | BIEVR-LIO | [BIEVR-LIO](https://github.com/ethz-asl/BIEVR-LIO) | 候选；体素化地图、地图引导采样和几何统计。 |
 | Surfel-LIO / hVox | [Surfel-LIO](https://github.com/93won/lidar_inertial_odometry) | 候选；层次化体素哈希和预计算 surfel。 |
 | LIO-GVM | [LIO-GVM](https://github.com/Ji1Xingyu/lio_gvm) | 候选；高斯体素地图和基于高斯的点云匹配。 |
+| [FR-LIO](https://arxiv.org/abs/2302.04031) | — | 论文已有；当前未发现公开源码，等待开源或自行实现。 |
+| [CT-VoxelMap](https://arxiv.org/abs/2604.03747) | — | 论文已有；当前未发现公开源码，等待开源或自行实现。 |
+| [GenZ-LIO](https://arxiv.org/abs/2603.16273) | [GenZ-ICP](https://github.com/cocel-postech/genz-icp)（相关项目） | 论文已有；相关仓库目前未释放 GenZ-LIO 源码，等待开源或自行实现。 |
+| [SA-LIVO](https://arxiv.org/abs/2606.25699) | — | 论文已有；作者声明将开源，但当前尚未释放源码，等待开源或自行实现。 |
+| [SV-LIO](https://doi.org/10.3390/electronics15081744) | — | 论文已有；当前未发现公开源码，等待开源或自行实现。 |
+| [Environment-Adaptive Solid-State LiDAR-Inertial Odometry](https://arxiv.org/abs/2604.15864) | — | 论文已有；当前未发现公开源码，等待开源或自行实现。 |
 
 ## 结构
 
