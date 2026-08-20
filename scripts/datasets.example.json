@@ -1,0 +1,33 @@
+{
+  "algorithms": [
+    "voxelmap",
+    "voxelmap_plus",
+    "ikdtree",
+    "ivox",
+    "c3p_voxelmap"
+  ],
+  "datasets": [
+    {
+      "name": "avia_outdoor",
+      "bag": "/absolute/path/to/avia.bag",
+      "config": "../config/avia.yaml",
+      "lidar_type": "avia",
+      "lidar_topic": "/livox/lidar",
+      "imu_type": "sensor_msgs/Imu",
+      "imu_topic": "/livox/imu",
+      "start": 0,
+      "duration": 60,
+      "rate": 1.0
+    },
+    {
+      "name": "solid_indoor",
+      "bag": "/absolute/path/to/solid.bag",
+      "config": "../config/solid.yaml",
+      "lidar_type": "solid",
+      "lidar_topic": "/lidar/data",
+      "imu_type": "sensor_msgs/Imu",
+      "imu_topic": "/s316_imu",
+      "duration": 60
+    }
+  ]
+}
