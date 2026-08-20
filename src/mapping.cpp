@@ -500,7 +500,7 @@ void observation_model_share_plus(state_ikfom& s, esekfom::dyn_share_datastruct<
 }
 
 /**
- * @brief Builds EKF residuals from ikd-tree, iVox, or C3P matches.
+ * @brief Builds EKF residuals from ikd-tree or iVox matches.
  * @param s Current iterated filter state.
  * @param ekfom_data EKF measurement Jacobian, residual, and weight outputs.
  */
@@ -578,6 +578,90 @@ void observation_model_share_point_backend(state_ikfom& s, esekfom::dyn_share_da
 }
 
 /**
+ * @brief Builds EKF residuals from native C3P-VoxelMap matches.
+ * @param s Current iterated filter state.
+ * @param ekfom_data EKF measurement Jacobian, residual, and weight outputs.
+ */
+void observation_model_share_c3p(state_ikfom& s, esekfom::dyn_share_datastruct<double>& ekfom_data) {
+    total_residual = 0.0;
+
+    PointCloudXYZI::Ptr feats_world(new PointCloudXYZI);
+    transformLidar2World(s, feats_undistort_down, feats_world);
+
+    const std::size_t point_count = std::min(feats_undistort_down->size(), feats_world->size());
+    pv_lio_plus::MapPointList map_points;
+    map_points.reserve(point_count);
+    for (std::size_t i = 0; i < point_count; ++i) {
+        pv_lio_plus::MapPoint point;
+        point.point_lidar << feats_undistort_down->points[i].x, feats_undistort_down->points[i].y,
+            feats_undistort_down->points[i].z;
+        point.point_world << feats_world->points[i].x, feats_world->points[i].y, feats_world->points[i].z;
+        if (i < var_down_lidar.size()) {
+            point.cov_lidar = var_down_lidar[i];
+            point.cov_world = transformLidarCovToWorld(point.point_lidar, kf, point.cov_lidar);
+        }
+        map_points.emplace_back(point);
+    }
+
+    ros::WallTime t0 = ros::WallTime::now();
+    pv_lio_plus::PlaneMatchList matches;
+    std::vector<V3D> non_match_list;
+    map_manager.search(map_points, matches, non_match_list);
+    search_time += (ros::WallTime::now() - t0).toSec() * 1000;
+
+    effct_feat_num = static_cast<int>(matches.size());
+    if (effct_feat_num < 1) {
+        ekfom_data.valid = false;
+        ROS_WARN("No Effective Points!");
+        return;
+    }
+
+    ekfom_data.h_x = MatrixXd::Zero(effct_feat_num, 12);
+    ekfom_data.h.resize(effct_feat_num);
+    ekfom_data.R.resize(effct_feat_num, 1);
+
+#ifdef MP_EN
+    omp_set_num_threads(MP_PROC_NUM);
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < effct_feat_num; ++i) {
+        const pv_lio_plus::PlaneMatch& match = matches[static_cast<std::size_t>(i)];
+        const V3D point_this_be = match.point;
+        M3D point_be_crossmat;
+        point_be_crossmat << SKEW_SYM_MATRX(point_this_be);
+
+        const V3D point_this = s.offset_R_L_I * point_this_be + s.offset_T_L_I;
+        M3D point_crossmat;
+        point_crossmat << SKEW_SYM_MATRX(point_this);
+
+        const V3D& norm_vec = match.normal;
+        const V3D C = s.rot.conjugate() * norm_vec;
+        const V3D A = point_crossmat * C;
+        if (extrinsic_est_en) {
+            const V3D B = point_be_crossmat * s.offset_R_L_I.conjugate() * C;
+            ekfom_data.h_x.block<1, 12>(i, 0) << norm_vec.x(), norm_vec.y(), norm_vec.z(), VEC_FROM_ARRAY(A),
+                VEC_FROM_ARRAY(B), VEC_FROM_ARRAY(C);
+        } else {
+            ekfom_data.h_x.block<1, 12>(i, 0) << norm_vec.x(), norm_vec.y(), norm_vec.z(), VEC_FROM_ARRAY(A), 0.0, 0.0,
+                0.0, 0.0, 0.0, 0.0;
+        }
+
+        const double signed_point_plane_residual = norm_vec.dot(match.point_world) + match.d;
+        ekfom_data.h(i) = -signed_point_plane_residual;
+
+        Eigen::Matrix<double, 1, 6> J_nq;
+        J_nq.block<1, 3>(0, 0) = match.point_world - match.center;
+        J_nq.block<1, 3>(0, 3) = -norm_vec;
+        const double sigma_plane = (J_nq * match.plane_cov * J_nq.transpose())(0, 0);
+        const double sigma_point = (norm_vec.transpose() * match.point_cov * norm_vec)(0, 0);
+        ekfom_data.R(i) = 1.0 / (sigma_plane + sigma_point);
+        total_residual += std::abs(signed_point_plane_residual);
+    }
+
+    res_mean_last = total_residual / effct_feat_num;
+}
+
+/**
  * @brief Dispatches the EKF observation model to the selected map backend.
  * @param s Current iterated filter state.
  * @param ekfom_data EKF measurement Jacobian, residual, and weight outputs.
@@ -587,6 +671,8 @@ void observation_model_share_manager(state_ikfom& s, esekfom::dyn_share_datastru
         observation_model_share(s, ekfom_data);
     } else if (map_manager_config.type == pv_lio_plus::MapType::VoxelMapPlus) {
         observation_model_share_plus(s, ekfom_data);
+    } else if (map_manager_config.type == pv_lio_plus::MapType::C3PVoxelMap) {
+        observation_model_share_c3p(s, ekfom_data);
     } else {
         observation_model_share_point_backend(s, ekfom_data);
     }
