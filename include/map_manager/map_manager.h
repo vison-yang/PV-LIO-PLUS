@@ -39,7 +39,6 @@ class ImuProcess;
 
 namespace pv_lio_plus
 {
-
 /** @brief Local-map backends selectable by PV-LIO-PLUS. */
 enum class MapType
 {
@@ -69,9 +68,9 @@ struct MapPoint
     /// Point coordinates in the world frame.
     V3D point_world = V3D::Zero();
     /// Point covariance in the LiDAR frame.
-    M3D cov_lidar    = M3D::Zero();
+    M3D cov_lidar = M3D::Zero();
     /// Point covariance in the world frame.
-    M3D cov_world    = M3D::Zero();
+    M3D cov_world = M3D::Zero();
 };
 
 /** @brief Eigen-aligned collection of map points. */
@@ -90,27 +89,27 @@ struct PlaneMatch
     /// Backend that produced the match.
     MapType map_type = MapType::VoxelMap;
     /// Query point in the LiDAR frame.
-    V3D point         = V3D::Zero();
+    V3D point = V3D::Zero();
     /// Query point in the world frame.
-    V3D point_world   = V3D::Zero();
+    V3D point_world = V3D::Zero();
     /// Unit normal of the matched plane.
-    V3D normal        = V3D::Zero();
+    V3D normal = V3D::Zero();
     /// Representative center of the matched plane.
-    V3D center        = V3D::Zero();
+    V3D center = V3D::Zero();
     /// Native residual direction used by VoxelMap++.
-    V3D omega         = V3D::Zero();
+    V3D omega = V3D::Zero();
     /// Query-point covariance in the world frame.
-    M3D point_cov     = M3D::Zero();
+    M3D point_cov = M3D::Zero();
     /// Six-dimensional plane covariance, when provided by the backend.
     Eigen::Matrix<double, 6, 6> plane_cov = Eigen::Matrix<double, 6, 6>::Zero();
     /// Plane equation offset or native equivalent.
-    double d          = 0.0;
+    double d = 0.0;
     /// Signed point-to-plane residual.
-    double distance   = 0.0;
+    double distance = 0.0;
     /// Norm of @ref omega.
     double omega_norm = 0.0;
     /// Native voxel-map layer containing the match.
-    int layer          = 0;
+    int layer = 0;
     /// Native VoxelMap++ principal direction.
     int main_direction = 0;
 };
@@ -125,19 +124,19 @@ struct MapManagerConfig
     MapType type = MapType::VoxelMap;
 
     /// Base voxel size used by voxel-map backends.
-    double voxel_size       = 1.0;
+    double voxel_size = 1.0;
     /// Maximum voxel hierarchy layer used during search.
-    int max_layer           = 2;
+    int max_layer = 2;
     /// Point limits for each voxel hierarchy layer.
     std::vector<int> layer_point_size;
     /// Maximum number of points retained in a voxel.
-    int max_points_size     = 100;
+    int max_points_size = 100;
     /// Maximum number of covariance points retained in a voxel.
     int max_cov_points_size = 100;
     /// Plane-fit threshold used by voxel backends.
-    double plane_threshold  = 0.01;
+    double plane_threshold = 0.01;
     /// Sigma multiplier used by probabilistic voxel matching.
-    double sigma_num        = 3.0;
+    double sigma_num = 3.0;
     /// VoxelMap++ update threshold.
     int plus_update_size_threshold = 5;
 
@@ -189,9 +188,9 @@ struct MapWindow
     /// Whether the bounds have been initialized.
     bool initialized = false;
     /// Minimum x/y/z coordinates of the window.
-    V3D min_bound    = V3D::Zero();
+    V3D min_bound = V3D::Zero();
     /// Maximum x/y/z coordinates of the window.
-    V3D max_bound    = V3D::Zero();
+    V3D max_bound = V3D::Zero();
 };
 
 /**
@@ -204,7 +203,7 @@ struct MapWindow
  */
 class MapManager
 {
-public:
+   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     MapManager();
@@ -226,28 +225,15 @@ public:
 
     void initialize(const MapPointList &points);
 
-    void initialize(const std::vector<voxel_map_ns::pointWithCov> &points);
-
-    void initialize(const std::vector<voxel_map_plus_ns::pointWithCov> &points);
-
     void update(const MapPointList &points, std::uint32_t frame_number = 0);
 
-    void update(const std::vector<voxel_map_ns::pointWithCov> &points,
-                std::uint32_t frame_number = 0);
+    void search(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
 
-    void update(const std::vector<voxel_map_plus_ns::pointWithCov> &points,
-                std::uint32_t frame_number = 0);
-
-    void search(const MapPointList &points, PlaneMatchList &matches,
-                std::vector<V3D> &non_match);
-
-    void search(const std::vector<voxel_map_ns::pointWithCov> &points,
-                std::vector<voxel_map_ns::ptpl> &matches,
+    void search(const std::vector<voxel_map_ns::pointWithCov> &points, std::vector<voxel_map_ns::ptpl> &matches,
                 std::vector<V3D> &non_match);
 
     void search(const std::vector<voxel_map_plus_ns::pointWithCov> &points,
-                std::vector<voxel_map_plus_ns::ptpl> &matches,
-                std::vector<V3D> &non_match);
+                std::vector<voxel_map_plus_ns::ptpl> &matches, std::vector<V3D> &non_match);
 
     void move_window(const V3D &center, const V3D &half_extent);
 
@@ -259,10 +245,9 @@ public:
     size_t point_count() const;
     PointCloudXYZI::Ptr snapshot() const;
 
-    void publish_planes(const ros::Publisher &publisher,
-                        int max_voxel_layer) const;
+    void publish_planes(const ros::Publisher &publisher, int max_voxel_layer) const;
 
-private:
+   private:
     static voxel_map_ns::pointWithCov ToVoxelPoint(const MapPoint &point);
 
     static voxel_map_plus_ns::pointWithCov ToVoxelPlusPoint(const MapPoint &point);
@@ -283,6 +268,14 @@ private:
 
     void configure_point_backends();
 
+    void initialize_voxel_map(const std::vector<voxel_map_ns::pointWithCov> &points);
+
+    void initialize_voxel_map_plus(const std::vector<voxel_map_plus_ns::pointWithCov> &points);
+
+    void update_voxel_map(const std::vector<voxel_map_ns::pointWithCov> &points, std::uint32_t frame_number);
+
+    void update_voxel_map_plus(const std::vector<voxel_map_plus_ns::pointWithCov> &points, std::uint32_t frame_number);
+
     void initialize_point_backend(const MapPointList &points);
 
     void update_ikd_tree(const MapPointList &points);
@@ -293,20 +286,15 @@ private:
 
     void update_c3p(const MapPointList &points, std::uint32_t frame_number);
 
-    void search_point_backend(const MapPointList &points, PlaneMatchList &matches,
-                              std::vector<V3D> &non_match);
+    void search_point_backend(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
 
-    void search_ikd_tree(const MapPointList &points, PlaneMatchList &matches,
-                         std::vector<V3D> &non_match);
+    void search_ikd_tree(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
 
-    void search_ivox(const MapPointList &points, PlaneMatchList &matches,
-                     std::vector<V3D> &non_match);
+    void search_ivox(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
 
-    void search_c3p(const MapPointList &points, PlaneMatchList &matches,
-                    std::vector<V3D> &non_match);
+    void search_c3p(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
 
-    bool fit_point_plane(const MapPoint &query, const PointVector &neighbors,
-                         PlaneMatch &match, MapType backend) const;
+    bool fit_point_plane(const MapPoint &query, const PointVector &neighbors, PlaneMatch &match, MapType backend) const;
 
     void erase_outside_ikd_window(const MapWindow &window);
 

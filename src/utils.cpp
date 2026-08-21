@@ -188,78 +188,84 @@ bool sync_packages(MeasureGroup& measures, std::deque<PointCloudXYZI::Ptr>& lida
     return true;
 }
 
-/** @brief Publishes a world-frame scan and optionally accumulates PCD output. */
-void publish_frame_world(const ros::Publisher& publisher, bool scan_pub_en, bool scan_dense_pub_en, bool pcd_save_en,
-                         const PointCloudXYZI::Ptr& feats_undistort, const PointCloudXYZI::Ptr& feats_undistort_down,
-                         const state_ikfom& state, double lidar_end_time, const std::string& root_dir,
-                         int pcd_save_interval, int& pcd_index, int& scan_wait_num, PointCloudXYZI& pcl_wait_save)
+/** @brief Selects the dense or downsampled representation for one frame. */
+static const PointCloudXYZI& select_frame_cloud(const FramePublishContext& context)
 {
-    const PointCloudXYZI::Ptr cloud(scan_dense_pub_en ? feats_undistort : feats_undistort_down);
-    if (scan_pub_en)
-    {
-        PointCloudXYZI world_cloud;
-        for (const auto& point : cloud->points)
-        {
-            if (point.intensity < 5) continue;
-            PointType world_point;
-            RGBpointBodyToWorld(state, &point, &world_point);
-            world_cloud.push_back(world_point);
-        }
-        sensor_msgs::PointCloud2 message;
-        pcl::toROSMsg(world_cloud, message);
-        message.header.stamp    = ros::Time().fromSec(lidar_end_time);
-        message.header.frame_id = "camera_init";
-        publisher.publish(message);
-    }
-    if (!pcd_save_en) return;
+    return context.dense ? *context.undistorted : *context.downsampled;
+}
+
+/** @brief Converts a LiDAR-frame cloud into the world frame for publication. */
+static PointCloudXYZI make_world_cloud(const PointCloudXYZI& lidar_cloud, const state_ikfom& state,
+                                       bool filter_intensity)
+{
     PointCloudXYZI world_cloud;
-    world_cloud.reserve(feats_undistort->size());
-    for (const auto& point : feats_undistort->points)
+    world_cloud.reserve(lidar_cloud.size());
+    for (const auto& point : lidar_cloud.points)
     {
+        if (filter_intensity && point.intensity < 5) continue;
         PointType world_point;
         RGBpointBodyToWorld(state, &point, &world_point);
         world_cloud.push_back(world_point);
     }
-    pcl_wait_save += world_cloud;
-    ++scan_wait_num;
-    if (pcd_save_interval > 0 && scan_wait_num >= pcd_save_interval && !pcl_wait_save.empty())
-    {
-        const std::string pcd_dir = root_dir + "PCD";
-        std::filesystem::create_directories(pcd_dir);
-        const std::string path = pcd_dir + "/scans_" + std::to_string(++pcd_index) + ".pcd";
-        pcl::PCDWriter writer;
-        writer.writeBinary(path, pcl_wait_save);
-        pcl_wait_save.clear();
-        scan_wait_num = 0;
-    }
+    return world_cloud;
+}
+
+/** @brief Converts and publishes one PointCloud2 message with a stable frame id. */
+static void publish_cloud(const ros::Publisher& publisher, const PointCloudXYZI& cloud, double stamp,
+                          const std::string& frame_id)
+{
+    sensor_msgs::PointCloud2 message;
+    pcl::toROSMsg(cloud, message);
+    message.header.stamp    = ros::Time().fromSec(stamp);
+    message.header.frame_id = frame_id;
+    publisher.publish(message);
+}
+
+/** @brief Publishes a world-frame scan selected by the frame context. */
+void publish_frame_world(const ros::Publisher& publisher, const FramePublishContext& context)
+{
+    const PointCloudXYZI world_cloud = make_world_cloud(select_frame_cloud(context), context.state, true);
+    publish_cloud(publisher, world_cloud, context.stamp, "camera_init");
+}
+
+/** @brief Writes one completed PCD batch and resets its counters. */
+static void flush_pcd_batch(PcdOutputContext& output)
+{
+    if (output.interval <= 0 || output.wait_count < output.interval || output.cloud.empty()) return;
+
+    const std::string pcd_dir = output.root_dir + "PCD";
+    std::filesystem::create_directories(pcd_dir);
+    const std::string path = pcd_dir + "/scans_" + std::to_string(++output.index) + ".pcd";
+    pcl::PCDWriter writer;
+    writer.writeBinary(path, output.cloud);
+    output.cloud.clear();
+    output.wait_count = 0;
+}
+
+/** @brief Accumulates the unfiltered world scan and flushes completed PCD batches. */
+void accumulate_frame_pcd(const FramePublishContext& context, PcdOutputContext& output)
+{
+    output.cloud += make_world_cloud(*context.undistorted, context.state, false);
+    ++output.wait_count;
+    flush_pcd_batch(output);
 }
 
 /** @brief Publishes the current scan in the IMU body frame. */
-void publish_frame_body(const ros::Publisher& publisher, bool scan_dense_pub_en,
-                        const PointCloudXYZI::Ptr& feats_undistort, const PointCloudXYZI::Ptr& feats_undistort_down,
-                        const state_ikfom& state, double lidar_end_time)
+void publish_frame_body(const ros::Publisher& publisher, const FramePublishContext& context)
 {
-    const PointCloudXYZI::Ptr cloud(scan_dense_pub_en ? feats_undistort : feats_undistort_down);
-    PointCloudXYZI body_cloud(cloud->size(), 1);
-    for (std::size_t i = 0; i < cloud->size(); ++i) pointLidarToIMU(state, &cloud->points[i], &body_cloud.points[i]);
-    sensor_msgs::PointCloud2 message;
-    pcl::toROSMsg(body_cloud, message);
-    message.header.stamp    = ros::Time().fromSec(lidar_end_time);
-    message.header.frame_id = "body";
-    publisher.publish(message);
+    const PointCloudXYZI& lidar_cloud = select_frame_cloud(context);
+    PointCloudXYZI body_cloud(lidar_cloud.size(), 1);
+    for (std::size_t i = 0; i < lidar_cloud.size(); ++i)
+    {
+        pointLidarToIMU(context.state, &lidar_cloud.points[i], &body_cloud.points[i]);
+    }
+    publish_cloud(publisher, body_cloud, context.stamp, "body");
 }
 
 /** @brief Publishes the current scan in the native LiDAR frame. */
-void publish_frame_lidar(const ros::Publisher& publisher, bool scan_dense_pub_en,
-                         const PointCloudXYZI::Ptr& feats_undistort, const PointCloudXYZI::Ptr& feats_undistort_down,
-                         double lidar_end_time)
+void publish_frame_lidar(const ros::Publisher& publisher, const FramePublishContext& context)
 {
-    const PointCloudXYZI::Ptr cloud(scan_dense_pub_en ? feats_undistort : feats_undistort_down);
-    sensor_msgs::PointCloud2 message;
-    pcl::toROSMsg(*cloud, message);
-    message.header.stamp    = ros::Time().fromSec(lidar_end_time);
-    message.header.frame_id = "lidar";
-    publisher.publish(message);
+    publish_cloud(publisher, select_frame_cloud(context), context.stamp, "lidar");
 }
 
 /** @brief Publishes a local-map snapshot. */
@@ -273,15 +279,14 @@ void publish_map_snapshot(const ros::Publisher& publisher, const PointCloudXYZI&
 }
 
 /** @brief Publishes odometry and the world/body transforms. */
-void publish_odometry(const ros::Publisher& publisher, nav_msgs::Odometry& odometry, const state_ikfom& state,
-                      const esekfom::esekf<state_ikfom, 12, input_ikfom>& kf, const ImuProcess& imu_process,
-                      double lidar_end_time, const geometry_msgs::Quaternion& quaternion)
+void publish_odometry(const ros::Publisher& publisher, const OdometryPublishContext& context)
 {
-    odometry.header.frame_id = "camera_init";
-    odometry.child_frame_id  = "body";
-    odometry.header.stamp    = ros::Time().fromSec(lidar_end_time);
-    set_posestamp(odometry.pose, state, quaternion);
-    const auto covariance = kf.get_P();
+    nav_msgs::Odometry& odometry = context.odometry;
+    odometry.header.frame_id     = "camera_init";
+    odometry.child_frame_id      = "body";
+    odometry.header.stamp        = ros::Time().fromSec(context.stamp);
+    set_posestamp(odometry.pose, context.state, context.quaternion);
+    const auto covariance = context.kf.get_P();
     for (int i = 0; i < 6; ++i)
     {
         const int k = i < 3 ? i + 3 : i - 3;
@@ -291,17 +296,17 @@ void publish_odometry(const ros::Publisher& publisher, nav_msgs::Odometry& odome
     static tf::TransformBroadcaster body_broadcaster;
     tf::Transform transform;
     tf::Quaternion q;
-    transform.setOrigin(tf::Vector3(state.pos(0), state.pos(1), state.pos(2)));
-    q.setX(quaternion.x);
-    q.setY(quaternion.y);
-    q.setZ(quaternion.z);
-    q.setW(quaternion.w);
+    transform.setOrigin(tf::Vector3(context.state.pos(0), context.state.pos(1), context.state.pos(2)));
+    q.setX(context.quaternion.x);
+    q.setY(context.quaternion.y);
+    q.setZ(context.quaternion.z);
+    q.setW(context.quaternion.w);
     transform.setRotation(q);
     body_broadcaster.sendTransform(tf::StampedTransform(transform, odometry.header.stamp, "camera_init", "body"));
     static tf::TransformBroadcaster world_broadcaster;
     transform.setOrigin(tf::Vector3(0, 0, 0));
-    q.setValue(imu_process.Initial_R_wrt_G.x(), imu_process.Initial_R_wrt_G.y(), imu_process.Initial_R_wrt_G.z(),
-               imu_process.Initial_R_wrt_G.w());
+    q.setValue(context.imu_process.Initial_R_wrt_G.x(), context.imu_process.Initial_R_wrt_G.y(),
+               context.imu_process.Initial_R_wrt_G.z(), context.imu_process.Initial_R_wrt_G.w());
     transform.setRotation(q);
     world_broadcaster.sendTransform(tf::StampedTransform(transform, odometry.header.stamp, "world", "camera_init"));
 }
@@ -315,17 +320,15 @@ void record_pose(std::vector<std::vector<double>>& poses, double lidar_end_time,
 }
 
 /** @brief Publishes the accumulated path and records the current pose. */
-void publish_path(const ros::Publisher& publisher, nav_msgs::Path& path, geometry_msgs::PoseStamped& body_pose,
-                  std::vector<std::vector<double>>& poses, double lidar_end_time, const state_ikfom& state,
-                  const geometry_msgs::Quaternion& quaternion)
+void publish_path(const ros::Publisher& publisher, const PathPublishContext& context)
 {
-    set_posestamp(body_pose, state, quaternion);
-    body_pose.header.stamp    = ros::Time().fromSec(lidar_end_time);
-    body_pose.header.frame_id = "camera_init";
-    path.header.stamp         = body_pose.header.stamp;
-    path.poses.push_back(body_pose);
-    publisher.publish(path);
-    record_pose(poses, lidar_end_time, state, quaternion);
+    set_posestamp(context.body_pose, context.state, context.quaternion);
+    context.body_pose.header.stamp    = ros::Time().fromSec(context.stamp);
+    context.body_pose.header.frame_id = "camera_init";
+    context.path.header.stamp         = context.body_pose.header.stamp;
+    context.path.poses.push_back(context.body_pose);
+    publisher.publish(context.path);
+    record_pose(context.poses, context.stamp, context.state, context.quaternion);
 }
 
 /** @brief Returns the output filename prefix for a selected map backend. */

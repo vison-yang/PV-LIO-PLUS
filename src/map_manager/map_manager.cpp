@@ -15,17 +15,16 @@
 
 // ikd-tree is a header/template implementation.  Keep the native source in
 // the PV translation unit so the imported backend is self-contained.
-#include "map_manager/native/ikdtree/ikd_tree.cpp"
-
 #include <algorithm>
 #include <cmath>
 #include <limits>
-#include <stdexcept>
 #include <numeric>
+#include <stdexcept>
+
+#include "map_manager/native/ikdtree/ikd_tree.cpp"
 
 namespace pv_lio_plus
 {
-
 /**
  * @brief Parses a configured local-map backend name.
  * @param name Backend name; an empty name selects the original VoxelMap.
@@ -72,16 +71,16 @@ const char *MapTypeName(const MapType type)
 {
     switch (type)
     {
-    case MapType::VoxelMap:
-        return "voxelmap";
-    case MapType::VoxelMapPlus:
-        return "voxelmap_plus";
-    case MapType::IKDTree:
-        return "ikdtree";
-    case MapType::IVox:
-        return "ivox";
-    case MapType::C3PVoxelMap:
-        return "c3p_voxelmap";
+        case MapType::VoxelMap:
+            return "voxelmap";
+        case MapType::VoxelMapPlus:
+            return "voxelmap_plus";
+        case MapType::IKDTree:
+            return "ikdtree";
+        case MapType::IVox:
+            return "ivox";
+        case MapType::C3PVoxelMap:
+            return "c3p_voxelmap";
     }
     return "unknown";
 }
@@ -115,7 +114,7 @@ void MapManager::configure(const MapManagerConfig &config)
         clear();
     }
 
-    config_ = config;
+    config_                                  = config;
     voxel_map_plus_ns::update_size_threshold = config_.plus_update_size_threshold;
     voxel_map_plus_ns::max_points_size       = config_.max_points_size;
     voxel_map_plus_ns::voxel_size            = config_.voxel_size;
@@ -159,8 +158,7 @@ bool MapManager::initialized() const
 bool MapManager::supports_selected_backend() const
 {
     return config_.type == MapType::VoxelMap || config_.type == MapType::VoxelMapPlus ||
-           config_.type == MapType::IKDTree || config_.type == MapType::IVox ||
-           config_.type == MapType::C3PVoxelMap;
+           config_.type == MapType::IKDTree || config_.type == MapType::IVox || config_.type == MapType::C3PVoxelMap;
 }
 
 /**
@@ -195,19 +193,19 @@ void MapManager::configure_point_backends()
         options.capacity_   = std::max<std::size_t>(config_.ivox_capacity, 1);
         switch (config_.ivox_nearby_type)
         {
-        case 0:
-            options.nearby_type_ = IVoxBackend::NearbyType::CENTER;
-            break;
-        case 6:
-            options.nearby_type_ = IVoxBackend::NearbyType::NEARBY6;
-            break;
-        case 26:
-            options.nearby_type_ = IVoxBackend::NearbyType::NEARBY26;
-            break;
-        case 18:
-        default:
-            options.nearby_type_ = IVoxBackend::NearbyType::NEARBY18;
-            break;
+            case 0:
+                options.nearby_type_ = IVoxBackend::NearbyType::CENTER;
+                break;
+            case 6:
+                options.nearby_type_ = IVoxBackend::NearbyType::NEARBY6;
+                break;
+            case 26:
+                options.nearby_type_ = IVoxBackend::NearbyType::NEARBY26;
+                break;
+            case 18:
+            default:
+                options.nearby_type_ = IVoxBackend::NearbyType::NEARBY18;
+                break;
         }
         ivox_ = std::make_unique<IVoxBackend>(options);
     }
@@ -241,7 +239,7 @@ void MapManager::clear()
 
     map_points_.clear();
     initialized_ = false;
-    window_       = MapWindow();
+    window_      = MapWindow();
 }
 
 /**
@@ -346,12 +344,12 @@ PlaneMatch MapManager::FromC3PMatch(const c3p_map_ns::ptpl &match)
     result.normal      = match.normal;
     result.center      = match.center;
     result.plane_cov   = match.plane_cov;
-    result.point_cov     = match.point_cov;
-    result.omega         = match.normal;
-    result.omega_norm    = match.normal.norm();
-    result.d             = match.d;
-    result.distance      = match.normal.dot(match.point_world) + match.d;
-    result.layer         = match.layer;
+    result.point_cov   = match.point_cov;
+    result.omega       = match.normal;
+    result.omega_norm  = match.normal.norm();
+    result.d           = match.d;
+    result.distance    = match.normal.dot(match.point_world) + match.d;
+    result.layer       = match.layer;
     return result;
 }
 
@@ -363,9 +361,7 @@ PlaneMatch MapManager::FromC3PMatch(const c3p_map_ns::ptpl &match)
  * @param backend Point-map backend applying its native residual gate.
  * @return True when a valid plane and backend-specific gate are obtained.
  */
-bool MapManager::fit_point_plane(const MapPoint &query,
-                                 const PointVector &neighbors,
-                                 PlaneMatch &match,
+bool MapManager::fit_point_plane(const MapPoint &query, const PointVector &neighbors, PlaneMatch &match,
                                  const MapType backend) const
 {
     if (neighbors.size() < NUM_MATCH_POINTS)
@@ -436,7 +432,7 @@ void MapManager::initialize(const MapPointList &points)
         {
             native_points.emplace_back(ToVoxelPoint(point));
         }
-        initialize(native_points);
+        initialize_voxel_map(native_points);
     }
     else if (config_.type == MapType::VoxelMapPlus)
     {
@@ -446,7 +442,7 @@ void MapManager::initialize(const MapPointList &points)
         {
             native_points.emplace_back(ToVoxelPlusPoint(point));
         }
-        initialize(native_points);
+        initialize_voxel_map_plus(native_points);
     }
     else if (config_.type == MapType::C3PVoxelMap)
     {
@@ -492,7 +488,7 @@ void MapManager::initialize_point_backend(const MapPointList &points)
         ivox_->AddPoints(native_points);
     }
 
-    map_points_ = points;
+    map_points_  = points;
     initialized_ = true;
 }
 
@@ -532,22 +528,13 @@ void MapManager::initialize_c3p(const MapPointList &points)
         layer_point_size.resize(required_layers, layer_point_size.back());
     }
 
-    c3p_map_ns::buildVoxelMap(config_.c3p_enable_voxel_merging,
-                              native_points,
-                              static_cast<float>(config_.voxel_size),
-                              config_.max_layer,
-                              layer_point_size,
-                              static_cast<float>(config_.plane_threshold),
-                              c3p_voxel_map_,
-                              c3p_plane_map_,
-                              c3p_merged_table_,
-                              config_.c3p_merge_theta_thresh,
-                              config_.c3p_merge_dist_thresh,
-                              config_.c3p_merge_cov_min_eigen_val_thresh,
-                              config_.c3p_merge_x_coord_diff_thresh,
-                              config_.c3p_merge_y_coord_diff_thresh);
+    c3p_map_ns::buildVoxelMap(config_.c3p_enable_voxel_merging, native_points, static_cast<float>(config_.voxel_size),
+                              config_.max_layer, layer_point_size, static_cast<float>(config_.plane_threshold),
+                              c3p_voxel_map_, c3p_plane_map_, c3p_merged_table_, config_.c3p_merge_theta_thresh,
+                              config_.c3p_merge_dist_thresh, config_.c3p_merge_cov_min_eigen_val_thresh,
+                              config_.c3p_merge_x_coord_diff_thresh, config_.c3p_merge_y_coord_diff_thresh);
 
-    map_points_ = points;
+    map_points_  = points;
     initialized_ = true;
 }
 
@@ -556,7 +543,7 @@ void MapManager::initialize_c3p(const MapPointList &points)
  * @param points Native VoxelMap points.
  * @throws std::logic_error If VoxelMap is not selected.
  */
-void MapManager::initialize(const std::vector<voxel_map_ns::pointWithCov> &points)
+void MapManager::initialize_voxel_map(const std::vector<voxel_map_ns::pointWithCov> &points)
 {
     require_supported_backend();
     if (config_.type != MapType::VoxelMap)
@@ -564,13 +551,8 @@ void MapManager::initialize(const std::vector<voxel_map_ns::pointWithCov> &point
         throw std::logic_error("VoxelMap points passed to a non-VoxelMap backend");
     }
     clear();
-    voxel_map_ns::buildVoxelMap(points,
-                                config_.voxel_size,
-                                config_.max_layer,
-                                config_.layer_point_size,
-                                config_.max_points_size,
-                                config_.max_cov_points_size,
-                                config_.plane_threshold,
+    voxel_map_ns::buildVoxelMap(points, config_.voxel_size, config_.max_layer, config_.layer_point_size,
+                                config_.max_points_size, config_.max_cov_points_size, config_.plane_threshold,
                                 voxel_map_);
     map_points_.reserve(points.size());
     for (const auto &point : points)
@@ -585,7 +567,7 @@ void MapManager::initialize(const std::vector<voxel_map_ns::pointWithCov> &point
  * @param points Native VoxelMap++ points.
  * @throws std::logic_error If VoxelMap++ is not selected.
  */
-void MapManager::initialize(const std::vector<voxel_map_plus_ns::pointWithCov> &points)
+void MapManager::initialize_voxel_map_plus(const std::vector<voxel_map_plus_ns::pointWithCov> &points)
 {
     require_supported_backend();
     if (config_.type != MapType::VoxelMapPlus)
@@ -619,7 +601,7 @@ void MapManager::update(const MapPointList &points, const std::uint32_t frame_nu
         {
             native_points.emplace_back(ToVoxelPoint(point));
         }
-        update(native_points, frame_number);
+        update_voxel_map(native_points, frame_number);
     }
     else if (config_.type == MapType::VoxelMapPlus)
     {
@@ -629,7 +611,7 @@ void MapManager::update(const MapPointList &points, const std::uint32_t frame_nu
         {
             native_points.emplace_back(ToVoxelPlusPoint(point));
         }
-        update(native_points, frame_number);
+        update_voxel_map_plus(native_points, frame_number);
     }
     else if (config_.type == MapType::C3PVoxelMap)
     {
@@ -676,8 +658,8 @@ void MapManager::update_ikd_tree(const MapPointList &points)
     point_no_need_downsample.reserve(points.size());
 
     const double downsample_size = std::max(config_.point_map_downsample_size, 1e-6);
-    const int nearest_count = std::max(config_.nearest_point_count, NUM_MATCH_POINTS);
-    const auto squared_distance = [](const PointType &lhs, const PointType &rhs) {
+    const int nearest_count      = std::max(config_.nearest_point_count, NUM_MATCH_POINTS);
+    const auto squared_distance  = [](const PointType &lhs, const PointType &rhs) {
         const double dx = static_cast<double>(lhs.x) - rhs.x;
         const double dy = static_cast<double>(lhs.y) - rhs.y;
         const double dz = static_cast<double>(lhs.z) - rhs.z;
@@ -701,12 +683,12 @@ void MapManager::update_ikd_tree(const MapPointList &points)
         }
 
         PointType mid_point;
-        mid_point.x = static_cast<float>(std::floor(point_world.x / downsample_size) * downsample_size +
-                                         0.5 * downsample_size);
-        mid_point.y = static_cast<float>(std::floor(point_world.y / downsample_size) * downsample_size +
-                                         0.5 * downsample_size);
-        mid_point.z = static_cast<float>(std::floor(point_world.z / downsample_size) * downsample_size +
-                                         0.5 * downsample_size);
+        mid_point.x =
+            static_cast<float>(std::floor(point_world.x / downsample_size) * downsample_size + 0.5 * downsample_size);
+        mid_point.y =
+            static_cast<float>(std::floor(point_world.y / downsample_size) * downsample_size + 0.5 * downsample_size);
+        mid_point.z =
+            static_cast<float>(std::floor(point_world.z / downsample_size) * downsample_size + 0.5 * downsample_size);
 
         const double point_to_center = squared_distance(point_world, mid_point);
         if (std::abs(points_near.front().x - mid_point.x) > 0.5 * downsample_size &&
@@ -717,7 +699,7 @@ void MapManager::update_ikd_tree(const MapPointList &points)
             continue;
         }
 
-        bool need_add = true;
+        bool need_add                   = true;
         const std::size_t compare_count = std::min<std::size_t>(NUM_MATCH_POINTS, points_near.size());
         for (std::size_t i = 0; i < compare_count; ++i)
         {
@@ -766,8 +748,8 @@ void MapManager::update_ivox(const MapPointList &points)
     point_no_need_downsample.reserve(points.size());
 
     const double downsample_size = std::max(config_.point_map_downsample_size, 1e-6);
-    const int nearest_count = std::max(config_.nearest_point_count, NUM_MATCH_POINTS);
-    const auto squared_distance = [](const PointType &lhs, const PointType &rhs) {
+    const int nearest_count      = std::max(config_.nearest_point_count, NUM_MATCH_POINTS);
+    const auto squared_distance  = [](const PointType &lhs, const PointType &rhs) {
         const double dx = static_cast<double>(lhs.x) - rhs.x;
         const double dy = static_cast<double>(lhs.y) - rhs.y;
         const double dz = static_cast<double>(lhs.z) - rhs.z;
@@ -778,10 +760,8 @@ void MapManager::update_ivox(const MapPointList &points)
     {
         const PointType point_world = ToPointType(point.point_world);
         PointVector points_near;
-        const bool has_near = ivox_ && ivox_->GetClosestPoint(point_world,
-                                                               points_near,
-                                                               nearest_count,
-                                                               config_.nearest_max_range);
+        const bool has_near =
+            ivox_ && ivox_->GetClosestPoint(point_world, points_near, nearest_count, config_.nearest_max_range);
         if (!has_near || points_near.empty())
         {
             points_to_add.emplace_back(point_world);
@@ -789,12 +769,12 @@ void MapManager::update_ivox(const MapPointList &points)
         }
 
         PointType mid_point;
-        mid_point.x = static_cast<float>(std::floor(point_world.x / downsample_size) * downsample_size +
-                                         0.5 * downsample_size);
-        mid_point.y = static_cast<float>(std::floor(point_world.y / downsample_size) * downsample_size +
-                                         0.5 * downsample_size);
-        mid_point.z = static_cast<float>(std::floor(point_world.z / downsample_size) * downsample_size +
-                                         0.5 * downsample_size);
+        mid_point.x =
+            static_cast<float>(std::floor(point_world.x / downsample_size) * downsample_size + 0.5 * downsample_size);
+        mid_point.y =
+            static_cast<float>(std::floor(point_world.y / downsample_size) * downsample_size + 0.5 * downsample_size);
+        mid_point.z =
+            static_cast<float>(std::floor(point_world.z / downsample_size) * downsample_size + 0.5 * downsample_size);
 
         const double point_to_center = squared_distance(point_world, mid_point);
         if (std::abs(points_near.front().x - mid_point.x) > 0.5 * downsample_size &&
@@ -805,7 +785,7 @@ void MapManager::update_ivox(const MapPointList &points)
             continue;
         }
 
-        bool need_add = true;
+        bool need_add                   = true;
         const std::size_t compare_count = std::min<std::size_t>(NUM_MATCH_POINTS, points_near.size());
         for (std::size_t i = 0; i < compare_count; ++i)
         {
@@ -872,20 +852,11 @@ void MapManager::update_c3p(const MapPointList &points, const std::uint32_t fram
         layer_point_size.resize(required_layers, layer_point_size.back());
     }
 
-    c3p_map_ns::updateVoxelMap(config_.c3p_enable_voxel_merging,
-                               native_points,
-                               static_cast<float>(config_.voxel_size),
-                               config_.max_layer,
-                               layer_point_size,
-                               static_cast<float>(config_.plane_threshold),
-                               c3p_voxel_map_,
-                               c3p_plane_map_,
-                               c3p_merged_table_,
-                               frame_number,
-                               config_.c3p_merge_theta_thresh,
-                               config_.c3p_merge_dist_thresh,
-                               config_.c3p_merge_cov_min_eigen_val_thresh,
-                               config_.c3p_merge_x_coord_diff_thresh,
+    c3p_map_ns::updateVoxelMap(config_.c3p_enable_voxel_merging, native_points, static_cast<float>(config_.voxel_size),
+                               config_.max_layer, layer_point_size, static_cast<float>(config_.plane_threshold),
+                               c3p_voxel_map_, c3p_plane_map_, c3p_merged_table_, frame_number,
+                               config_.c3p_merge_theta_thresh, config_.c3p_merge_dist_thresh,
+                               config_.c3p_merge_cov_min_eigen_val_thresh, config_.c3p_merge_x_coord_diff_thresh,
                                config_.c3p_merge_y_coord_diff_thresh);
 
     map_points_.insert(map_points_.end(), points.begin(), points.end());
@@ -896,8 +867,8 @@ void MapManager::update_c3p(const MapPointList &points, const std::uint32_t fram
  * @param points New native VoxelMap points.
  * @param frame_number Unused by VoxelMap; retained for API uniformity.
  */
-void MapManager::update(const std::vector<voxel_map_ns::pointWithCov> &points,
-                        const std::uint32_t /*frame_number*/)
+void MapManager::update_voxel_map(const std::vector<voxel_map_ns::pointWithCov> &points,
+                                  const std::uint32_t /*frame_number*/)
 {
     require_supported_backend();
     if (config_.type != MapType::VoxelMap)
@@ -906,17 +877,12 @@ void MapManager::update(const std::vector<voxel_map_ns::pointWithCov> &points,
     }
     if (!initialized_)
     {
-        initialize(points);
+        initialize_voxel_map(points);
         return;
     }
 
-    voxel_map_ns::updateVoxelMapOMP(points,
-                                    config_.voxel_size,
-                                    config_.max_layer,
-                                    config_.layer_point_size,
-                                    config_.max_points_size,
-                                    config_.max_cov_points_size,
-                                    config_.plane_threshold,
+    voxel_map_ns::updateVoxelMapOMP(points, config_.voxel_size, config_.max_layer, config_.layer_point_size,
+                                    config_.max_points_size, config_.max_cov_points_size, config_.plane_threshold,
                                     voxel_map_);
     for (const auto &point : points)
     {
@@ -929,8 +895,8 @@ void MapManager::update(const std::vector<voxel_map_ns::pointWithCov> &points,
  * @param points New native VoxelMap++ points.
  * @param frame_number Unused by VoxelMap++; retained for API uniformity.
  */
-void MapManager::update(const std::vector<voxel_map_plus_ns::pointWithCov> &points,
-                        const std::uint32_t /*frame_number*/)
+void MapManager::update_voxel_map_plus(const std::vector<voxel_map_plus_ns::pointWithCov> &points,
+                                       const std::uint32_t /*frame_number*/)
 {
     require_supported_backend();
     if (config_.type != MapType::VoxelMapPlus)
@@ -939,7 +905,7 @@ void MapManager::update(const std::vector<voxel_map_plus_ns::pointWithCov> &poin
     }
     if (!initialized_)
     {
-        initialize(points);
+        initialize_voxel_map_plus(points);
         return;
     }
 
@@ -958,18 +924,18 @@ void MapManager::update(const std::vector<voxel_map_plus_ns::pointWithCov> &poin
 PlaneMatch MapManager::FromVoxelMatch(const voxel_map_ns::ptpl &match)
 {
     PlaneMatch result;
-    result.map_type   = MapType::VoxelMap;
-    result.point      = match.point;
+    result.map_type    = MapType::VoxelMap;
+    result.point       = match.point;
     result.point_world = match.point_world;
-    result.normal     = match.normal;
-    result.center     = match.center;
-    result.plane_cov  = match.plane_cov;
-    result.point_cov  = match.cov_world;
-    result.d          = match.d;
-    result.layer      = match.layer;
-    result.omega      = match.normal;
-    result.omega_norm = match.normal.norm();
-    result.distance   = match.normal.dot(match.point_world) + match.d;
+    result.normal      = match.normal;
+    result.center      = match.center;
+    result.plane_cov   = match.plane_cov;
+    result.point_cov   = match.cov_world;
+    result.d           = match.d;
+    result.layer       = match.layer;
+    result.omega       = match.normal;
+    result.omega_norm  = match.normal.norm();
+    result.distance    = match.normal.dot(match.point_world) + match.d;
     return result;
 }
 
@@ -981,16 +947,16 @@ PlaneMatch MapManager::FromVoxelMatch(const voxel_map_ns::ptpl &match)
 PlaneMatch MapManager::FromVoxelPlusMatch(const voxel_map_plus_ns::ptpl &match)
 {
     PlaneMatch result;
-    result.map_type       = MapType::VoxelMapPlus;
-    result.point          = match.point;
-    result.point_world    = match.point_world;
-    result.omega          = match.omega;
-    result.omega_norm     = match.omega_norm;
-    result.distance       = match.dist;
+    result.map_type    = MapType::VoxelMapPlus;
+    result.point       = match.point;
+    result.point_world = match.point_world;
+    result.omega       = match.omega;
+    result.omega_norm  = match.omega_norm;
+    result.distance    = match.dist;
     result.plane_cov.setZero();
     result.plane_cov.block<3, 3>(0, 0) = match.plane_cov;
-    result.point_cov      = match.point_cov;
-    result.main_direction = match.main_direction;
+    result.point_cov                   = match.point_cov;
+    result.main_direction              = match.main_direction;
     if (result.omega_norm > std::numeric_limits<double>::epsilon())
     {
         result.normal = result.omega / result.omega_norm;
@@ -1004,8 +970,7 @@ PlaneMatch MapManager::FromVoxelPlusMatch(const voxel_map_plus_ns::ptpl &match)
  * @param matches Accepted matches; cleared before filling.
  * @param non_match World-frame queries without a valid match.
  */
-void MapManager::search(const MapPointList &points, PlaneMatchList &matches,
-                        std::vector<V3D> &non_match)
+void MapManager::search(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match)
 {
     require_supported_backend();
     matches.clear();
@@ -1058,9 +1023,7 @@ void MapManager::search(const MapPointList &points, PlaneMatchList &matches,
  * @param matches Output common point-to-plane matches.
  * @param non_match Output world-frame queries without a match.
  */
-void MapManager::search_point_backend(const MapPointList &points,
-                                      PlaneMatchList &matches,
-                                      std::vector<V3D> &non_match)
+void MapManager::search_point_backend(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match)
 {
     if (config_.type == MapType::IKDTree)
     {
@@ -1086,9 +1049,7 @@ void MapManager::search_point_backend(const MapPointList &points,
  * @param matches Output accepted matches.
  * @param non_match Output world-frame queries without a valid match.
  */
-void MapManager::search_ikd_tree(const MapPointList &points,
-                                 PlaneMatchList &matches,
-                                 std::vector<V3D> &non_match)
+void MapManager::search_ikd_tree(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match)
 {
     matches.clear();
     non_match.clear();
@@ -1102,10 +1063,7 @@ void MapManager::search_ikd_tree(const MapPointList &points,
         std::vector<float> point_search_sq_dist;
         if (ikd_tree_ && ikd_tree_->validnum() > 0)
         {
-            ikd_tree_->Nearest_Search(ToPointType(point.point_world),
-                                      nearest_count,
-                                      neighbors,
-                                      point_search_sq_dist);
+            ikd_tree_->Nearest_Search(ToPointType(point.point_world), nearest_count, neighbors, point_search_sq_dist);
         }
 
         if (neighbors.size() < NUM_MATCH_POINTS ||
@@ -1134,9 +1092,7 @@ void MapManager::search_ikd_tree(const MapPointList &points,
  * @param matches Output accepted matches.
  * @param non_match Output world-frame queries without a valid match.
  */
-void MapManager::search_ivox(const MapPointList &points,
-                             PlaneMatchList &matches,
-                             std::vector<V3D> &non_match)
+void MapManager::search_ivox(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match)
 {
     matches.clear();
     non_match.clear();
@@ -1147,9 +1103,7 @@ void MapManager::search_ivox(const MapPointList &points,
     for (const auto &point : points)
     {
         PointVector neighbors;
-        const bool found = ivox_ && ivox_->GetClosestPoint(ToPointType(point.point_world),
-                                                           neighbors,
-                                                           nearest_count,
+        const bool found = ivox_ && ivox_->GetClosestPoint(ToPointType(point.point_world), neighbors, nearest_count,
                                                            config_.nearest_max_range);
         PlaneMatch match;
         if (found && fit_point_plane(point, neighbors, match, MapType::IVox))
@@ -1169,9 +1123,7 @@ void MapManager::search_ivox(const MapPointList &points,
  * @param matches Output common point-to-plane matches.
  * @param non_match Output world-frame queries without a valid match.
  */
-void MapManager::search_c3p(const MapPointList &points,
-                            PlaneMatchList &matches,
-                            std::vector<V3D> &non_match)
+void MapManager::search_c3p(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match)
 {
     std::vector<c3p_map_ns::pointWithCov> native_points;
     std::vector<c3p_map_ns::ptpl> native_matches;
@@ -1187,13 +1139,8 @@ void MapManager::search_c3p(const MapPointList &points,
         native_points.emplace_back(native_point);
     }
 
-    c3p_map_ns::BuildResidualListOMP(c3p_voxel_map_,
-                                     config_.voxel_size,
-                                     config_.sigma_num,
-                                     config_.max_layer,
-                                     native_points,
-                                     native_matches,
-                                     non_match);
+    c3p_map_ns::BuildResidualListOMP(c3p_voxel_map_, config_.voxel_size, config_.sigma_num, config_.max_layer,
+                                     native_points, native_matches, non_match);
     matches.reserve(native_matches.size());
     for (const auto &match : native_matches)
     {
@@ -1207,8 +1154,7 @@ void MapManager::search_c3p(const MapPointList &points,
  * @param matches Output native matches.
  * @param non_match Output world-frame queries without a match.
  */
-void MapManager::search(const std::vector<voxel_map_ns::pointWithCov> &points,
-                        std::vector<voxel_map_ns::ptpl> &matches,
+void MapManager::search(const std::vector<voxel_map_ns::pointWithCov> &points, std::vector<voxel_map_ns::ptpl> &matches,
                         std::vector<V3D> &non_match)
 {
     require_supported_backend();
@@ -1216,13 +1162,8 @@ void MapManager::search(const std::vector<voxel_map_ns::pointWithCov> &points,
     {
         throw std::logic_error("VoxelMap points passed to a non-VoxelMap backend");
     }
-    voxel_map_ns::BuildResidualListOMP(voxel_map_,
-                                       config_.voxel_size,
-                                       config_.sigma_num,
-                                       config_.max_layer,
-                                       points,
-                                       matches,
-                                       non_match);
+    voxel_map_ns::BuildResidualListOMP(voxel_map_, config_.voxel_size, config_.sigma_num, config_.max_layer, points,
+                                       matches, non_match);
 }
 
 /**
@@ -1232,8 +1173,7 @@ void MapManager::search(const std::vector<voxel_map_ns::pointWithCov> &points,
  * @param non_match Output world-frame queries without a match.
  */
 void MapManager::search(const std::vector<voxel_map_plus_ns::pointWithCov> &points,
-                        std::vector<voxel_map_plus_ns::ptpl> &matches,
-                        std::vector<V3D> &non_match)
+                        std::vector<voxel_map_plus_ns::ptpl> &matches, std::vector<V3D> &non_match)
 {
     require_supported_backend();
     if (config_.type != MapType::VoxelMapPlus)
@@ -1251,8 +1191,7 @@ void MapManager::search(const std::vector<voxel_map_plus_ns::pointWithCov> &poin
  */
 bool MapManager::Inside(const V3D &point, const MapWindow &window)
 {
-    return window.initialized &&
-           (point.array() >= window.min_bound.array()).all() &&
+    return window.initialized && (point.array() >= window.min_bound.array()).all() &&
            (point.array() <= window.max_bound.array()).all();
 }
 

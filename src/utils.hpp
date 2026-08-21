@@ -61,32 +61,61 @@ bool sync_packages(MeasureGroup& measures, std::deque<PointCloudXYZI::Ptr>& lida
                    bool& lidar_pushed, double& lidar_end_time, double last_timestamp_imu, double& lidar_mean_scantime,
                    int& scan_num);
 
-/** @brief Publishes a world-frame scan and optionally accumulates PCD output. */
-void publish_frame_world(const ros::Publisher& publisher, bool scan_pub_en, bool scan_dense_pub_en, bool pcd_save_en,
-                         const PointCloudXYZI::Ptr& feats_undistort, const PointCloudXYZI::Ptr& feats_undistort_down,
-                         const state_ikfom& state, double lidar_end_time, const std::string& root_dir,
-                         int pcd_save_interval, int& pcd_index, int& scan_wait_num, PointCloudXYZI& pcl_wait_save);
+struct FramePublishContext
+{
+    const PointCloudXYZI::Ptr& undistorted;
+    const PointCloudXYZI::Ptr& downsampled;
+    const state_ikfom& state;
+    double stamp;
+    bool dense;
+};
+
+struct PcdOutputContext
+{
+    const std::string& root_dir;
+    int interval;
+    int& index;
+    int& wait_count;
+    PointCloudXYZI& cloud;
+};
+
+struct OdometryPublishContext
+{
+    nav_msgs::Odometry& odometry;
+    const state_ikfom& state;
+    const esekfom::esekf<state_ikfom, 12, input_ikfom>& kf;
+    const ImuProcess& imu_process;
+    double stamp;
+    const geometry_msgs::Quaternion& quaternion;
+};
+
+struct PathPublishContext
+{
+    nav_msgs::Path& path;
+    geometry_msgs::PoseStamped& body_pose;
+    std::vector<std::vector<double>>& poses;
+    double stamp;
+    const state_ikfom& state;
+    const geometry_msgs::Quaternion& quaternion;
+};
+
+/** @brief Publishes a world-frame scan selected by the frame context. */
+void publish_frame_world(const ros::Publisher& publisher, const FramePublishContext& context);
+/** @brief Accumulates the unfiltered world scan and flushes completed PCD batches. */
+void accumulate_frame_pcd(const FramePublishContext& context, PcdOutputContext& output);
 /** @brief Publishes the current scan in the IMU body frame. */
-void publish_frame_body(const ros::Publisher& publisher, bool scan_dense_pub_en,
-                        const PointCloudXYZI::Ptr& feats_undistort, const PointCloudXYZI::Ptr& feats_undistort_down,
-                        const state_ikfom& state, double lidar_end_time);
+void publish_frame_body(const ros::Publisher& publisher, const FramePublishContext& context);
 /** @brief Publishes the current scan in the native LiDAR frame. */
-void publish_frame_lidar(const ros::Publisher& publisher, bool scan_dense_pub_en,
-                         const PointCloudXYZI::Ptr& feats_undistort, const PointCloudXYZI::Ptr& feats_undistort_down,
-                         double lidar_end_time);
+void publish_frame_lidar(const ros::Publisher& publisher, const FramePublishContext& context);
 /** @brief Publishes a local-map snapshot. */
 void publish_map_snapshot(const ros::Publisher& publisher, const PointCloudXYZI& map_cloud, double stamp);
 /** @brief Publishes odometry and the world/body transforms. */
-void publish_odometry(const ros::Publisher& publisher, nav_msgs::Odometry& odometry, const state_ikfom& state,
-                      const esekfom::esekf<state_ikfom, 12, input_ikfom>& kf, const ImuProcess& imu_process,
-                      double lidar_end_time, const geometry_msgs::Quaternion& quaternion);
+void publish_odometry(const ros::Publisher& publisher, const OdometryPublishContext& context);
 /** @brief Appends the current pose to a trajectory vector. */
 void record_pose(std::vector<std::vector<double>>& poses, double lidar_end_time, const state_ikfom& state,
                  const geometry_msgs::Quaternion& quaternion);
 /** @brief Publishes the accumulated path and records the current pose. */
-void publish_path(const ros::Publisher& publisher, nav_msgs::Path& path, geometry_msgs::PoseStamped& body_pose,
-                  std::vector<std::vector<double>>& poses, double lidar_end_time, const state_ikfom& state,
-                  const geometry_msgs::Quaternion& quaternion);
+void publish_path(const ros::Publisher& publisher, const PathPublishContext& context);
 /** @brief Returns the output filename prefix for a selected map backend. */
 std::string result_file_stem(const std::string& backend_name);
 

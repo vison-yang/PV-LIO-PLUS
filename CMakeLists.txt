@@ -76,7 +76,8 @@ add_executable(pv_lio_plus_node
   src/mapping.cpp
   src/utils.cpp
   src/preprocess.cpp
-  src/imu_processing.cpp)
+  src/imu_processing.cpp
+  src/publish_subscribe.cpp)
 add_dependencies(pv_lio_plus_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(pv_lio_plus_node ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES})
 target_include_directories(pv_lio_plus_node PRIVATE ${PYTHON_INCLUDE_DIRS})

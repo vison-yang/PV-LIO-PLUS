@@ -5,40 +5,24 @@
 
 #pragma once
 
-#include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Quaternion.h>
-#include <livox_ros_driver/CustomMsg.h>
-#include <nav_msgs/Odometry.h>
-#include <nav_msgs/Path.h>
 #include <pcl/filters/voxel_grid.h>
 #include <ros/ros.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/PointCloud2.h>
 
 #include <Eigen/StdVector>
-#include <condition_variable>
 #include <cstddef>
-#include <deque>
 #include <memory>
-#include <mutex>
-#include <string>
 #include <vector>
 
+#include "config.hpp"
 #include "imu_processing.hpp"
-#include "preprocess.h"
+#include "publish_subscribe.hpp"
 
 namespace pv_lio_plus
 {
 class MapManager;
 struct MapManagerConfig;
 struct MapPoint;
-
-#if defined(ROOT_DIR)
-static constexpr const char* kDefaultRootDir = ROOT_DIR;
-#else
-// Keep IntelliSense usable when the catkin-only ROOT_DIR definition is absent.
-static constexpr const char* kDefaultRootDir = ".";
-#endif
 
 /**
  * @brief Owns one PV-LIO-PLUS mapping node and all mutable runtime state.
@@ -68,8 +52,7 @@ class Mapping
 
    private:
     // ------------------------------ Configuration -----------------------------
-    /** @brief Loads ROS parameters into this Mapping instance. */
-    bool load_parameters(ros::NodeHandle& nh);
+    Config config_;
 
     // ----------------------------- Observation -------------------------------
     static void ObservationModelTrampoline(state_ikfom& state, esekfom::dyn_share_datastruct<double>& ekfom_data);
@@ -93,65 +76,12 @@ class Mapping
     void InitializeMap();
     void UpdateMap();
 
-    // ------------------------------ Configuration state ------------------------
-    float det_range_        = 300.0f;
-    bool time_sync_en_      = false;
-    bool extrinsic_est_en_  = true;
-    bool path_pub_en_       = true;
-    bool pcd_save_en_       = false;
-    bool scan_pub_en_       = false;
-    bool scan_dense_pub_en_ = false;
-    bool scan_body_pub_en_  = false;
-    bool scan_lidar_pub_en_ = false;
-    bool publish_voxel_map_ = false;
-    bool map_publish_en_    = true;
-
-    std::string root_dir_ = kDefaultRootDir;
-    std::string lidar_topic_;
-    std::string imu_topic_;
-    double lidar_time_offset_    = 0.0;
-    double ranging_cov_          = 0.0;
-    double angle_cov_            = 0.0;
-    double gyr_cov_              = 0.1;
-    double acc_cov_              = 0.1;
-    double b_gyr_cov_            = 0.0001;
-    double b_acc_cov_            = 0.0001;
-    double filter_size_surf_min_ = 0.0;
-    double plannar_threshold_    = 0.003;
-    double sigma_num_            = 2.0;
-    double voxel_size_           = 1.0;
-    int max_layer_               = 0;
-    int max_points_size_         = 50;
-    int max_cov_points_size_     = 50;
-    int num_max_iterations_      = 0;
-    int publish_max_voxel_layer_ = 0;
-    std::vector<double> extrin_t_{3, 0.0};
-    std::vector<double> extrin_r_{9, 0.0};
-    std::vector<double> layer_point_size_;
-    std::vector<int> layer_size_;
-    std::unique_ptr<pv_lio_plus::MapManagerConfig> map_manager_config_;
-
-    // ---------------------------- Sensor buffering ----------------------------
-    std::mutex buffer_mutex_;
-    std::condition_variable buffer_condition_;
-    std::deque<double> time_buffer_;
-    std::deque<PointCloudXYZI::Ptr> lidar_buffer_;
-    std::deque<sensor_msgs::Imu::ConstPtr> imu_buffer_;
-    bool lidar_pushed_             = false;
-    bool first_scan_               = true;
-    bool ekf_initialized_          = false;
-    double last_timestamp_lidar_   = 0.0;
-    double last_timestamp_imu_     = -1.0;
-    double lidar_end_time_         = 0.0;
-    double first_lidar_time_       = 0.0;
-    double timediff_lidar_wrt_imu_ = 0.0;
-    bool timediff_set_             = false;
-    double lidar_mean_scantime_    = 0.0;
-    int scan_num_                  = 0;
-    int scan_count_                = 0;
+    // ---------------------------- Sensor lifecycle ----------------------------
+    bool first_scan_         = true;
+    bool ekf_initialized_    = false;
+    double first_lidar_time_ = 0.0;
 
     // ---------------------------- Current-frame data --------------------------
-    MeasureGroup measures_;
     PointCloudXYZI::Ptr feats_undistort_{new PointCloudXYZI()};
     PointCloudXYZI::Ptr feats_undistort_down_{new PointCloudXYZI()};
     std::vector<M3D> var_down_lidar_;
@@ -160,8 +90,8 @@ class Mapping
     // ------------------------------ Estimator ---------------------------------
     esekfom::esekf<state_ikfom, 12, input_ikfom> kf_;
     state_ikfom state_point_;
-    std::shared_ptr<Preprocess> preprocess_{new Preprocess()};
     std::shared_ptr<ImuProcess> imu_process_{new ImuProcess()};
+    geometry_msgs::Quaternion geo_quat_;
     M3D lidar_r_wrt_imu_{Eye3d};
     V3D lidar_t_wrt_imu_{Zero3d};
 
@@ -169,18 +99,8 @@ class Mapping
     std::unique_ptr<pv_lio_plus::MapManager> map_manager_;
     bool map_initialized_ = false;
 
-    // -------------------------- ROS message state -----------------------------
-    nav_msgs::Path path_;
-    nav_msgs::Odometry odom_after_mapped_;
-    geometry_msgs::Quaternion geo_quat_;
-    geometry_msgs::PoseStamped body_pose_;
-
-    // ---------------------------- Output state ---------------------------------
-    std::vector<std::vector<double>> poses_;
-    PointCloudXYZI::Ptr pcl_wait_save_{new PointCloudXYZI()};
-    int pcd_save_interval_ = -1;
-    int pcd_index_         = 0;
-    int scan_wait_num_     = 0;
+    // -------------------------- ROS transport state ---------------------------
+    PublishSubscribe publish_subscribe_;
 
     // -------------------------- Diagnostics/timing ----------------------------
     double res_mean_last_         = 0.05;
