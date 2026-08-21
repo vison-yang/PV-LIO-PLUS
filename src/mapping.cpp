@@ -77,12 +77,17 @@
 
 #include "imu_processing.hpp"
 #include "map_manager/map_manager.h"
+#include "preprocess.h"
 #include "utils.hpp"
 // The native PV map headers define non-inline functions.  Keep the manager
 // implementation in this translation unit to avoid changing those headers.
 #include "map_manager/map_manager.cpp"
 #include "map_manager/native/voxelmap/voxel_map_util.hpp"
 #include "map_manager/native/voxelmap_plus/voxelmapplus_util.hpp"
+
+// Keep backend implementation and configuration in the same translation unit.
+// The native map headers contain non-inline definitions by design.
+#include "config.cpp"
 
 constexpr double kInitTime = 0.1;
 
@@ -91,7 +96,7 @@ namespace pv_lio_plus
 Mapping* Mapping::active_instance_ = nullptr;
 
 /** @brief Creates the node-owned mapping state. */
-Mapping::Mapping() : map_manager_config_(new pv_lio_plus::MapManagerConfig), map_manager_(new pv_lio_plus::MapManager)
+Mapping::Mapping() : map_manager_(new pv_lio_plus::MapManager)
 {
     active_instance_ = this;
 }
@@ -103,106 +108,6 @@ Mapping::~Mapping()
     {
         active_instance_ = nullptr;
     }
-}
-
-/** @brief Loads ROS parameters directly into this Mapping instance. */
-bool Mapping::load_parameters(ros::NodeHandle& nh)
-{
-    nh.param<double>("time_offset", lidar_time_offset_, 0.0);
-    nh.param<bool>("publish/path_en", path_pub_en_, true);
-    nh.param<bool>("publish/scan_publish_en", scan_pub_en_, true);
-    nh.param<bool>("publish/dense_publish_en", scan_dense_pub_en_, true);
-    nh.param<bool>("publish/scan_bodyframe_pub_en", scan_body_pub_en_, true);
-    nh.param<bool>("publish/scan_lidarframe_pub_en", scan_lidar_pub_en_, true);
-    nh.param<std::string>("common/lid_topic", lidar_topic_, "/livox/lidar");
-    nh.param<std::string>("common/imu_topic", imu_topic_, "/livox/imu");
-    nh.param<bool>("common/time_sync_en", time_sync_en_, false);
-
-    nh.param<float>("mapping/det_range", det_range_, 300.0f);
-    nh.param<int>("mapping/max_iteration", num_max_iterations_, 4);
-    nh.param<int>("mapping/max_points_size", max_points_size_, 100);
-    nh.param<int>("mapping/max_cov_points_size", max_cov_points_size_, 100);
-    nh.param<std::vector<double>>("mapping/layer_point_size", layer_point_size_, std::vector<double>());
-    nh.param<int>("mapping/max_layer", max_layer_, 2);
-    nh.param<double>("mapping/voxel_size", voxel_size_, 1.0);
-    nh.param<double>("mapping/down_sample_size", filter_size_surf_min_, 0.5);
-    nh.param<double>("mapping/plannar_threshold", plannar_threshold_, 0.01);
-    nh.param<bool>("mapping/extrinsic_est_en", extrinsic_est_en_, true);
-    nh.param<std::vector<double>>("mapping/extrinsic_T", extrin_t_, std::vector<double>());
-    nh.param<std::vector<double>>("mapping/extrinsic_R", extrin_r_, std::vector<double>());
-    nh.param<int>("mapping/update_size_threshold", map_manager_config_->plus_update_size_threshold, 5);
-    nh.param<double>("mapping/sigma_num", sigma_num_, 3.0);
-
-    std::string map_type_name;
-    nh.param<std::string>("mapping/map_type", map_type_name, "voxelmap");
-    try
-    {
-        map_manager_config_->type = pv_lio_plus::ParseMapType(map_type_name);
-    } catch (const std::exception& exception)
-    {
-        ROS_FATAL("Invalid mapping/map_type: %s", exception.what());
-        return false;
-    }
-    nh.param<bool>("mapping/local_window_en", map_manager_config_->local_window_enabled, false);
-    nh.param<int>("mapping/nearest_point_count", map_manager_config_->nearest_point_count, NUM_MATCH_POINTS);
-    nh.param<double>("mapping/nearest_max_range", map_manager_config_->nearest_max_range, 5.0);
-    nh.param<double>("mapping/plane_fit_threshold", map_manager_config_->plane_fit_threshold, 0.1);
-    nh.param<double>("mapping/point_map_downsample_size", map_manager_config_->point_map_downsample_size,
-                     filter_size_surf_min_);
-    nh.param<double>("mapping/ikd_delete_param", map_manager_config_->ikd_delete_param, 0.5);
-    nh.param<double>("mapping/ikd_balance_param", map_manager_config_->ikd_balance_param, 0.7);
-    nh.param<double>("mapping/ikd_box_length", map_manager_config_->ikd_box_length, 0.2);
-    nh.param<double>("mapping/ivox_resolution", map_manager_config_->ivox_resolution, 0.2);
-    nh.param<int>("mapping/ivox_nearby_type", map_manager_config_->ivox_nearby_type, 18);
-    int ivox_capacity = static_cast<int>(map_manager_config_->ivox_capacity);
-    nh.param<int>("mapping/ivox_capacity", ivox_capacity, 1000000);
-    map_manager_config_->ivox_capacity = static_cast<std::size_t>(std::max(ivox_capacity, 1));
-    nh.param<bool>("mapping/c3p_enable_voxel_merging", map_manager_config_->c3p_enable_voxel_merging, false);
-    nh.param<double>("mapping/c3p_merge_theta_thresh", map_manager_config_->c3p_merge_theta_thresh, 0.05);
-    nh.param<double>("mapping/c3p_merge_dist_thresh", map_manager_config_->c3p_merge_dist_thresh, 0.05);
-    nh.param<double>("mapping/c3p_merge_cov_min_eigen_val_thresh",
-                     map_manager_config_->c3p_merge_cov_min_eigen_val_thresh, 0.002);
-    nh.param<double>("mapping/c3p_merge_x_coord_diff_thresh", map_manager_config_->c3p_merge_x_coord_diff_thresh, 5.0);
-    nh.param<double>("mapping/c3p_merge_y_coord_diff_thresh", map_manager_config_->c3p_merge_y_coord_diff_thresh, 5.0);
-
-    nh.param<double>("noise_model/ranging_cov", ranging_cov_, 0.02);
-    nh.param<double>("noise_model/angle_cov", angle_cov_, 0.05);
-    nh.param<double>("noise_model/gyr_cov", gyr_cov_, 0.1);
-    nh.param<double>("noise_model/acc_cov", acc_cov_, 0.1);
-    nh.param<double>("noise_model/b_gyr_cov", b_gyr_cov_, 0.0001);
-    nh.param<double>("noise_model/b_acc_cov", b_acc_cov_, 0.0001);
-    nh.param<bool>("publish/pub_voxel_map", publish_voxel_map_, false);
-    nh.param<int>("publish/publish_max_voxel_layer", publish_max_voxel_layer_, 0);
-    nh.param<bool>("publish/map_en", map_publish_en_, true);
-    nh.param<bool>("pcd_save/pcd_save_en", pcd_save_en_, false);
-    nh.param<int>("pcd_save/interval", pcd_save_interval_, -1);
-
-    nh.param<double>("preprocess/blind", preprocess_->blind, 0.01);
-    nh.param<double>("preprocess/maximum_range", preprocess_->maximum_range, 70.0);
-    nh.param<double>("preprocess/vertical_angle_min", preprocess_->vertical_angle_min, -45.0);
-    nh.param<double>("preprocess/vertical_angle_max", preprocess_->vertical_angle_max, 45.0);
-    nh.param<double>("preprocess/horizontal_angle_min", preprocess_->horizontal_angle_min, -60.0);
-    nh.param<double>("preprocess/horizontal_angle_max", preprocess_->horizontal_angle_max, 60.0);
-    nh.param<int>("preprocess/lidar_type", preprocess_->lidar_type, AVIA);
-    nh.param<int>("preprocess/scan_line", preprocess_->N_SCANS, 16);
-    nh.param<int>("preprocess/scan_rate", preprocess_->SCAN_RATE, 10);
-    nh.param<int>("preprocess/point_filter_num", preprocess_->point_filter_num, 1);
-    nh.param<bool>("preprocess/feature_extract_enable", preprocess_->feature_enabled, false);
-
-    layer_size_.clear();
-    layer_size_.reserve(layer_point_size_.size());
-    for (const double point_size : layer_point_size_)
-    {
-        layer_size_.push_back(static_cast<int>(point_size));
-    }
-    map_manager_config_->voxel_size          = voxel_size_;
-    map_manager_config_->max_layer           = max_layer_;
-    map_manager_config_->layer_point_size    = layer_size_;
-    map_manager_config_->max_points_size     = max_points_size_;
-    map_manager_config_->max_cov_points_size = max_cov_points_size_;
-    map_manager_config_->plane_threshold     = plannar_threshold_;
-    map_manager_config_->sigma_num           = sigma_num_;
-    return true;
 }
 
 /** @brief Bridges IKFoM's raw callback to the active Mapping instance. */
@@ -218,17 +123,6 @@ void Mapping::ObservationModelTrampoline(state_ikfom& state, esekfom::dyn_share_
     }
 }
 
-// Backend-specific observation model helpers.
-/** @brief Orders VoxelMap points by propagated covariance magnitude. */
-const bool var_contrast(voxel_map_ns::pointWithCov& x, voxel_map_ns::pointWithCov& y)
-{
-    return (x.cov_world.diagonal().norm() < y.cov_world.diagonal().norm());
-};
-/** @brief Orders VoxelMapPlus points by propagated covariance magnitude. */
-const bool var_contrast_plus(voxel_map_plus_ns::pointWithCov& x, voxel_map_plus_ns::pointWithCov& y)
-{
-    return (x.cov_world.diagonal().norm() < y.cov_world.diagonal().norm());
-};
 /** @brief Transforms a LiDAR-frame cloud into the world frame. */
 void Mapping::transformLidar2World(const state_ikfom& state_point_, const PointCloudXYZI::Ptr& input_cloud,
                                    PointCloudXYZI::Ptr& trans_cloud) const
@@ -296,7 +190,7 @@ M3D Mapping::transformLidarCovToWorld(Eigen::Vector3d& p_lidar, const esekfom::e
  * @param cov_lidar LiDAR-frame covariance for each point, when available.
  * @return Eigen-aligned points accepted by @ref pv_lio_plus::MapManager.
  */
-std::vector<pv_lio_plus::MapPoint, Eigen::aligned_allocator<pv_lio_plus::MapPoint>> Mapping::make_manager_points(
+std::vector<MapPoint, Eigen::aligned_allocator<MapPoint>> Mapping::make_manager_points(
     const PointCloudXYZI::Ptr& points_lidar, const PointCloudXYZI::Ptr& points_world,
     const std::vector<M3D>& cov_lidar) const
 {
@@ -332,11 +226,11 @@ M3D Mapping::calc_lidar_cov_for_backend(const V3D& point) const
     {
         safe_point.z() = 0.001;
     }
-    if (map_manager_config_->type == pv_lio_plus::MapType::VoxelMapPlus)
+    if (config_.map_manager_config().type == pv_lio_plus::MapType::VoxelMapPlus)
     {
-        return voxel_map_plus_ns::calcLidarCov(safe_point, ranging_cov_, angle_cov_);
+        return voxel_map_plus_ns::calcLidarCov(safe_point, config_.ranging_cov_, config_.angle_cov_);
     }
-    return voxel_map_ns::calcLidarCov(safe_point, ranging_cov_, angle_cov_);
+    return voxel_map_ns::calcLidarCov(safe_point, config_.ranging_cov_, config_.angle_cov_);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -411,7 +305,7 @@ void Mapping::ObservationModelVoxelMap(state_ikfom& s, esekfom::dyn_share_datast
         /*** calculate the Measuremnt Jacobian matrix H ***/
         V3D C(s.rot.conjugate() * norm_vec);
         V3D A(point_crossmat * C);
-        if (extrinsic_est_en_)
+        if (config_.extrinsic_est_en_)
         {
             V3D B(point_be_crossmat * s.offset_R_L_I.conjugate() * C);
             ekfom_data.h_x.block<1, 12>(i, 0) << norm_vec.x(), norm_vec.y(), norm_vec.z(), VEC_FROM_ARRAY(A),
@@ -597,7 +491,7 @@ void Mapping::ObservationModelPointBackend(state_ikfom& s, esekfom::dyn_share_da
 
         const V3D C = s.rot.conjugate() * norm_vec;
         const V3D A = point_crossmat * C;
-        if (extrinsic_est_en_)
+        if (config_.extrinsic_est_en_)
         {
             const V3D B = point_be_crossmat * s.offset_R_L_I.conjugate() * C;
             ekfom_data.h_x.block<1, 12>(i, 0) << norm_vec.x(), norm_vec.y(), norm_vec.z(), VEC_FROM_ARRAY(A),
@@ -693,7 +587,7 @@ void Mapping::ObservationModelC3P(state_ikfom& s, esekfom::dyn_share_datastruct<
         const V3D& norm_vec = match.normal;
         const V3D C         = s.rot.conjugate() * norm_vec;
         const V3D A         = point_crossmat * C;
-        if (extrinsic_est_en_)
+        if (config_.extrinsic_est_en_)
         {
             const V3D B = point_be_crossmat * s.offset_R_L_I.conjugate() * C;
             ekfom_data.h_x.block<1, 12>(i, 0) << norm_vec.x(), norm_vec.y(), norm_vec.z(), VEC_FROM_ARRAY(A),
@@ -727,15 +621,15 @@ void Mapping::ObservationModelC3P(state_ikfom& s, esekfom::dyn_share_datastruct<
  */
 void Mapping::ObservationModel(state_ikfom& s, esekfom::dyn_share_datastruct<double>& ekfom_data)
 {
-    if (map_manager_config_->type == pv_lio_plus::MapType::VoxelMap)
+    if (config_.map_manager_config().type == pv_lio_plus::MapType::VoxelMap)
     {
         ObservationModelVoxelMap(s, ekfom_data);
     }
-    else if (map_manager_config_->type == pv_lio_plus::MapType::VoxelMapPlus)
+    else if (config_.map_manager_config().type == pv_lio_plus::MapType::VoxelMapPlus)
     {
         ObservationModelVoxelMapPlus(s, ekfom_data);
     }
-    else if (map_manager_config_->type == pv_lio_plus::MapType::C3PVoxelMap)
+    else if (config_.map_manager_config().type == pv_lio_plus::MapType::C3PVoxelMap)
     {
         ObservationModelC3P(s, ekfom_data);
     }
@@ -750,58 +644,20 @@ void Mapping::InitializeMap()
 {
     ros::WallTime t1 = ros::WallTime::now();
 
-    // Transform the first scan before handing it to the selected backend.
+    // Transform the first scan and build the backend-independent point list.
     PointCloudXYZI::Ptr feats_world(new PointCloudXYZI);
     transformLidar2World(state_point_, feats_undistort_, feats_world);
-    if (map_manager_config_->type == pv_lio_plus::MapType::VoxelMapPlus)
+    std::vector<M3D> cov_lidar;
+    cov_lidar.reserve(feats_undistort_->size());
+    for (const auto& point : feats_undistort_->points)
     {
-        std::vector<voxel_map_plus_ns::pointWithCov> pv_list(feats_undistort_->size());
-        for (std::size_t i = 0; i < feats_world->size(); ++i)
-        {
-            voxel_map_plus_ns::pointWithCov& pv = pv_list[i];
-            pv.point_lidar << feats_undistort_->points[i].x, feats_undistort_->points[i].y,
-                feats_undistort_->points[i].z;
-            pv.point_world << feats_world->points[i].x, feats_world->points[i].y, feats_world->points[i].z;
-
-            pv.cov_lidar = voxel_map_plus_ns::calcLidarCov(pv.point_lidar, ranging_cov_, angle_cov_);
-            pv.cov_world = transformLidarCovToWorld(pv.point_lidar, kf_, pv.cov_lidar);
-        }
-        map_manager_->initialize(pv_list);
+        cov_lidar.emplace_back(calc_lidar_cov_for_backend(V3D(point.x, point.y, point.z)));
     }
-    else if (map_manager_config_->type == pv_lio_plus::MapType::VoxelMap)
-    {
-        std::vector<voxel_map_ns::pointWithCov> pv_list(feats_undistort_->size());
-        for (std::size_t i = 0; i < feats_world->size(); ++i)
-        {
-            voxel_map_ns::pointWithCov& pv = pv_list[i];
-            pv.point_lidar << feats_undistort_->points[i].x, feats_undistort_->points[i].y,
-                feats_undistort_->points[i].z;
-            pv.point_world << feats_world->points[i].x, feats_world->points[i].y, feats_world->points[i].z;
-
-            // if z=0, error will occur in calcBodyCov. To be solved
-            if (pv.point_lidar[2] == 0)
-            {
-                pv.point_lidar[2] = 0.001;
-            }
-            pv.cov_lidar = voxel_map_ns::calcLidarCov(pv.point_lidar, ranging_cov_, angle_cov_);
-            pv.cov_world = transformLidarCovToWorld(pv.point_lidar, kf_, pv.cov_lidar);
-        }
-        map_manager_->initialize(pv_list);
-    }
-    else
-    {
-        std::vector<M3D> cov_lidar;
-        cov_lidar.reserve(feats_undistort_->size());
-        for (const auto& point : feats_undistort_->points)
-        {
-            cov_lidar.emplace_back(calc_lidar_cov_for_backend(V3D(point.x, point.y, point.z)));
-        }
-        map_manager_->initialize(make_manager_points(feats_undistort_, feats_world, cov_lidar));
-    }
+    map_manager_->initialize(make_manager_points(feats_undistort_, feats_world, cov_lidar));
 
     double map_build_time = (ros::WallTime::now() - t1).toSec();
-    std::cout << std::fixed << "[Init Map] Build " << pv_lio_plus::MapTypeName(map_manager_config_->type) << ": "
-              << map_build_time * 1000 << " ms\n";
+    std::cout << std::fixed << "[Init Map] Build " << pv_lio_plus::MapTypeName(config_.map_manager_config().type)
+              << ": " << map_build_time * 1000 << " ms\n";
 
     map_initialized_ = true;
 }
@@ -809,53 +665,19 @@ void Mapping::InitializeMap()
 /** @brief Inserts the current scan into the selected local-map backend. */
 void Mapping::UpdateMap()
 {
-    // Transform the filtered scan once; all backends consume world-frame points.
+    // Transform the filtered scan once and pass one common point type to MapManager.
     PointCloudXYZI::Ptr feats_world(new PointCloudXYZI);
     transformLidar2World(state_point_, feats_undistort_down_, feats_world);
 
-    // Propagate covariance and dispatch the backend-specific point container.
-    if (map_manager_config_->type == pv_lio_plus::MapType::VoxelMapPlus)
+    MapPointList map_points = make_manager_points(feats_undistort_down_, feats_world, var_down_lidar_);
+    std::sort(map_points.begin(), map_points.end(),
+              [](const pv_lio_plus::MapPoint& lhs, const pv_lio_plus::MapPoint& rhs) {
+                  return lhs.cov_world.diagonal().norm() < rhs.cov_world.diagonal().norm();
+              });
+    map_manager_->update(map_points, static_cast<std::uint32_t>(scan_total_count_));
+    if (config_.map_manager_config().local_window_enabled)
     {
-        std::vector<voxel_map_plus_ns::pointWithCov> pv_list(feats_undistort_down_->size());
-        for (std::size_t i = 0; i < feats_undistort_down_->size(); ++i)
-        {
-            voxel_map_plus_ns::pointWithCov& pv = pv_list[i];
-            pv.point_lidar << feats_undistort_down_->points[i].x, feats_undistort_down_->points[i].y,
-                feats_undistort_down_->points[i].z;
-            pv.point_world << feats_world->points[i].x, feats_world->points[i].y, feats_world->points[i].z;
-            pv.cov_lidar = var_down_lidar_[i];
-            pv.cov_world = transformLidarCovToWorld(pv.point_lidar, kf_, pv.cov_lidar);
-        }
-        std::sort(pv_list.begin(), pv_list.end(), var_contrast_plus);
-        map_manager_->update(pv_list, static_cast<std::uint32_t>(scan_total_count_));
-    }
-    else if (map_manager_config_->type == pv_lio_plus::MapType::VoxelMap)
-    {
-        std::vector<voxel_map_ns::pointWithCov> pv_list(feats_undistort_down_->size());
-        for (std::size_t i = 0; i < feats_undistort_down_->size(); ++i)
-        {
-            voxel_map_ns::pointWithCov& pv = pv_list[i];
-            pv.point_lidar << feats_undistort_down_->points[i].x, feats_undistort_down_->points[i].y,
-                feats_undistort_down_->points[i].z;
-            pv.point_world << feats_world->points[i].x, feats_world->points[i].y, feats_world->points[i].z;
-            pv.cov_lidar = var_down_lidar_[i];
-            pv.cov_world = transformLidarCovToWorld(pv.point_lidar, kf_, pv.cov_lidar);
-        }
-        std::sort(pv_list.begin(), pv_list.end(), var_contrast);
-        map_manager_->update(pv_list, static_cast<std::uint32_t>(scan_total_count_));
-    }
-    else
-    {
-        MapPointList map_points = make_manager_points(feats_undistort_down_, feats_world, var_down_lidar_);
-        std::sort(map_points.begin(), map_points.end(),
-                  [](const pv_lio_plus::MapPoint& lhs, const pv_lio_plus::MapPoint& rhs) {
-                      return lhs.cov_world.diagonal().norm() < rhs.cov_world.diagonal().norm();
-                  });
-        map_manager_->update(map_points, static_cast<std::uint32_t>(scan_total_count_));
-    }
-    if (map_manager_config_->local_window_enabled)
-    {
-        map_manager_->move_window(state_point_.pos, V3D(det_range_, det_range_, det_range_));
+        map_manager_->move_window(state_point_.pos, V3D(config_.det_range_, config_.det_range_, config_.det_range_));
     }
 }
 
@@ -865,70 +687,37 @@ int Mapping::Run()
     ros::NodeHandle nh;
 
     // 1. Load ROS parameters into the Mapping-owned state.
-    if (!load_parameters(nh))
+    if (!config_.Load(nh))
     {
         return 1;
     }
 
     // 2. Apply backend configuration and initialize the estimator.
-    map_manager_->configure(*map_manager_config_);
+    map_manager_->configure(config_.map_manager_config());
     if (!map_manager_->supports_selected_backend())
     {
-        ROS_FATAL("Selected map backend is not supported: %s", pv_lio_plus::MapTypeName(map_manager_config_->type));
+        ROS_FATAL("Selected map backend is not supported: %s",
+                  pv_lio_plus::MapTypeName(config_.map_manager_config().type));
         return 1;
     }
 
-    path_.header.stamp    = ros::Time::now();
-    path_.header.frame_id = "camera_init";
+    down_size_filter_surf_.setLeafSize(config_.filter_size_surf_min_, config_.filter_size_surf_min_,
+                                       config_.filter_size_surf_min_);
 
-    down_size_filter_surf_.setLeafSize(filter_size_surf_min_, filter_size_surf_min_, filter_size_surf_min_);
-
-    lidar_t_wrt_imu_ << VEC_FROM_ARRAY(extrin_t_);
-    lidar_r_wrt_imu_ << MAT_FROM_ARRAY(extrin_r_);
+    lidar_t_wrt_imu_ << VEC_FROM_ARRAY(config_.extrin_t_);
+    lidar_r_wrt_imu_ << MAT_FROM_ARRAY(config_.extrin_r_);
     imu_process_->set_extrinsic(lidar_t_wrt_imu_, lidar_r_wrt_imu_);
-    imu_process_->set_gyr_cov(V3D(gyr_cov_, gyr_cov_, gyr_cov_));
-    imu_process_->set_acc_cov(V3D(acc_cov_, acc_cov_, acc_cov_));
-    imu_process_->set_gyr_bias_cov(V3D(b_gyr_cov_, b_gyr_cov_, b_gyr_cov_));
-    imu_process_->set_acc_bias_cov(V3D(b_acc_cov_, b_acc_cov_, b_acc_cov_));
+    imu_process_->set_gyr_cov(V3D(config_.gyr_cov_, config_.gyr_cov_, config_.gyr_cov_));
+    imu_process_->set_acc_cov(V3D(config_.acc_cov_, config_.acc_cov_, config_.acc_cov_));
+    imu_process_->set_gyr_bias_cov(V3D(config_.b_gyr_cov_, config_.b_gyr_cov_, config_.b_gyr_cov_));
+    imu_process_->set_acc_bias_cov(V3D(config_.b_acc_cov_, config_.b_acc_cov_, config_.b_acc_cov_));
 
     double epsi[23] = {0.001};
     std::fill(epsi, epsi + 23, 0.001);
-    kf_.init_dyn_share(get_f, df_dx, df_dw, ObservationModelTrampoline, num_max_iterations_, epsi);
+    kf_.init_dyn_share(get_f, df_dx, df_dw, ObservationModelTrampoline, config_.num_max_iterations_, epsi);
 
     // 3. Register sensor subscribers and output publishers.
-    ros::Subscriber sub_pcl;
-    if (preprocess_->lidar_type == AVIA)
-    {
-        sub_pcl = nh.subscribe<livox_ros_driver::CustomMsg>(
-            lidar_topic_, 200000, [this](const livox_ros_driver::CustomMsg::ConstPtr& msg) {
-                livox_pcl_cbk(msg, time_sync_en_, buffer_mutex_, buffer_condition_, lidar_buffer_, time_buffer_,
-                              imu_buffer_, last_timestamp_lidar_, last_timestamp_imu_, timediff_set_,
-                              timediff_lidar_wrt_imu_, scan_count_, *preprocess_);
-            });
-    }
-    else
-    {
-        sub_pcl = nh.subscribe<sensor_msgs::PointCloud2>(
-            lidar_topic_, 200000, [this](const sensor_msgs::PointCloud2::ConstPtr& msg) {
-                standard_pcl_cbk(msg, lidar_time_offset_, buffer_mutex_, buffer_condition_, lidar_buffer_, time_buffer_,
-                                 last_timestamp_lidar_, scan_count_, *preprocess_);
-            });
-    }
-    ros::Subscriber sub_imu =
-        nh.subscribe<sensor_msgs::Imu>(imu_topic_, 200000, [this](const sensor_msgs::Imu::ConstPtr& msg) {
-            imu_cbk(msg, time_sync_en_, timediff_lidar_wrt_imu_, buffer_mutex_, buffer_condition_, imu_buffer_,
-                    last_timestamp_imu_);
-        });
-    ros::Publisher pubLaserCloudFull       = nh.advertise<sensor_msgs::PointCloud2>("/cloud_registered", 100000);
-    ros::Publisher pubLaserCloudFull_body  = nh.advertise<sensor_msgs::PointCloud2>("/cloud_registered_body", 100000);
-    ros::Publisher pubLaserCloudFull_lidar = nh.advertise<sensor_msgs::PointCloud2>("/cloud_registered_lidar", 100000);
-    ros::Publisher pubLaserCloudMap        = nh.advertise<sensor_msgs::PointCloud2>("/Laser_map", 100000);
-    ros::Publisher pubOdomAftMapped        = nh.advertise<nav_msgs::Odometry>("/Odometry", 100000);
-    ros::Publisher pubPath                 = nh.advertise<nav_msgs::Path>("/path", 100000);
-    ros::Publisher voxel_map_pub           = nh.advertise<visualization_msgs::MarkerArray>("/planes", 10000);
-
-    std::size_t n_converged     = 0;
-    std::size_t n_not_converged = 0;
+    publish_subscribe_.Initialize(nh, config_, config_.preprocess());
 
     // 4. Process synchronized LiDAR/IMU groups until ROS shuts down.
     signal(SIGINT, SigHandle);
@@ -939,19 +728,20 @@ int Mapping::Run()
 
         ros::WallTime t0 = ros::WallTime::now();
 
-        if (sync_packages(measures_, lidar_buffer_, time_buffer_, imu_buffer_, lidar_pushed_, lidar_end_time_,
-                          last_timestamp_imu_, lidar_mean_scantime_, scan_num_))
+        if (publish_subscribe_.SyncPackages())
         {
+            const MeasureGroup& measures = publish_subscribe_.measures();
+            const double lidar_end_time  = publish_subscribe_.lidar_end_time();
             if (first_scan_)
             {
-                first_lidar_time_              = measures_.lidar_beg_time;
+                first_lidar_time_              = measures.lidar_beg_time;
                 imu_process_->first_lidar_time = first_lidar_time_;
                 first_scan_                    = false;
                 continue;
             }
 
             // Undistort the scan using the IMU propagation step.
-            imu_process_->Process(measures_, kf_, feats_undistort_);
+            imu_process_->Process(measures, kf_, feats_undistort_);
             state_point_ = kf_.get_x();
 
             if (feats_undistort_ == nullptr || feats_undistort_->empty())
@@ -960,7 +750,7 @@ int Mapping::Run()
                 continue;
             }
 
-            ekf_initialized_ = (measures_.lidar_beg_time - first_lidar_time_) < kInitTime ? false : true;
+            ekf_initialized_ = (measures.lidar_beg_time - first_lidar_time_) < kInitTime ? false : true;
 
             if (ekf_initialized_ && !map_initialized_)
             {
@@ -1021,34 +811,19 @@ int Mapping::Run()
             scan_total_count_++;
 
             // Publish the current state and optionally persist scan output.
-            publish_odometry(pubOdomAftMapped, odom_after_mapped_, state_point_, kf_, *imu_process_, lidar_end_time_,
-                             geo_quat_);
-            if (path_pub_en_)
-                publish_path(pubPath, path_, body_pose_, poses_, lidar_end_time_, state_point_, geo_quat_);
-            else
-                record_pose(poses_, lidar_end_time_, state_point_, geo_quat_);
-            if (scan_pub_en_ || pcd_save_en_)
-                publish_frame_world(pubLaserCloudFull, scan_pub_en_, scan_dense_pub_en_, pcd_save_en_, feats_undistort_,
-                                    feats_undistort_down_, state_point_, lidar_end_time_, root_dir_, pcd_save_interval_,
-                                    pcd_index_, scan_wait_num_, *pcl_wait_save_);
-            if (scan_pub_en_ && scan_body_pub_en_)
-                publish_frame_body(pubLaserCloudFull_body, scan_dense_pub_en_, feats_undistort_, feats_undistort_down_,
-                                   state_point_, lidar_end_time_);
-            if (scan_pub_en_ && scan_lidar_pub_en_)
-                publish_frame_lidar(pubLaserCloudFull_lidar, scan_dense_pub_en_, feats_undistort_,
-                                    feats_undistort_down_, lidar_end_time_);
-            if (publish_voxel_map_) map_manager_->publish_planes(voxel_map_pub, publish_max_voxel_layer_);
-            if (map_publish_en_) publish_map_snapshot(pubLaserCloudMap, *map_manager_->snapshot(), lidar_end_time_);
+            const auto map_cloud = config_.map_publish_en_ ? map_manager_->snapshot() : PointCloudXYZI::Ptr();
+            publish_subscribe_.PublishFrame(feats_undistort_, feats_undistort_down_, state_point_, kf_, *imu_process_,
+                                            geo_quat_, bConverged);
+            if (config_.publish_voxel_map_)
+                map_manager_->publish_planes(publish_subscribe_.voxel_map_publisher(),
+                                             config_.publish_max_voxel_layer_);
+            if (map_cloud) publish_subscribe_.PublishMapSnapshot(*map_cloud, lidar_end_time);
 
             total_time_ = (ros::WallTime::now() - t0).toSec() * 1000;
 
             // verbose
-            std::printf("[%4.4f] Pos: %3.3f %3.3f %3.3f %u\n", lidar_end_time_ - first_lidar_time_, state_point_.pos(0),
+            std::printf("[%4.4f] Pos: %3.3f %3.3f %3.3f %u\n", lidar_end_time - first_lidar_time_, state_point_.pos(0),
                         state_point_.pos(1), state_point_.pos(2), bConverged);
-            if (bConverged)
-                ++n_converged;
-            else
-                ++n_not_converged;
             // printf("Time(ms): eseikf %3.3lf, search %3.3lf, update %3.3lf, total %3.3lf \n",
             //        eseikf_time_, search_time_, update_time_, total_time_);
         }
@@ -1057,8 +832,7 @@ int Mapping::Run()
     }
 
     // 5. Persist trajectory and point-cloud results after shutdown.
-    save_results(n_converged, n_not_converged, poses_, root_dir_, map_manager_config_->type, pcd_save_en_,
-                 *pcl_wait_save_);
+    publish_subscribe_.SaveResults(config_, config_.map_manager_config().type);
     return 0;
 }
 /** @brief Initializes ROS and runs one node-owned Mapping instance. */
