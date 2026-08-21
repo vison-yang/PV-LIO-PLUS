@@ -5,29 +5,30 @@
 
 #pragma once
 
-#include "imu_processing.hpp"
-#include "preprocess.h"
-
-#include <Eigen/StdVector>
-#include <condition_variable>
-#include <cstddef>
-#include <deque>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Quaternion.h>
 #include <livox_ros_driver/CustomMsg.h>
-#include <memory>
-#include <mutex>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
 #include <pcl/filters/voxel_grid.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/PointCloud2.h>
+
+#include <Eigen/StdVector>
+#include <condition_variable>
+#include <cstddef>
+#include <deque>
+#include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
-namespace pv_lio_plus {
+#include "imu_processing.hpp"
+#include "preprocess.h"
 
+namespace pv_lio_plus
+{
 class MapManager;
 struct MapManagerConfig;
 struct MapPoint;
@@ -46,8 +47,9 @@ static constexpr const char* kDefaultRootDir = ".";
  * callbacks, buffering, publication, and result persistence are defined in
  * utils.cpp.  The class remains internal to this ROS node.
  */
-class Mapping {
-  public:
+class Mapping
+{
+   public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     /** @brief Constructs an unstarted mapping instance. */
@@ -58,13 +60,13 @@ class Mapping {
 
     Mapping(const Mapping&) = delete;
     Mapping& operator=(const Mapping&) = delete;
-    Mapping(Mapping&&) = delete;
+    Mapping(Mapping&&)                 = delete;
     Mapping& operator=(Mapping&&) = delete;
 
     /** @brief Runs the ROS node after parameters and interfaces are ready. */
     int Run();
 
-  private:
+   private:
     // ------------------------------ Configuration -----------------------------
     /** @brief Loads ROS parameters into this Mapping instance. */
     bool load_parameters(ros::NodeHandle& nh);
@@ -82,9 +84,9 @@ class Mapping {
                               PointCloudXYZI::Ptr& trans_cloud) const;
     M3D transformLidarCovToWorld(Eigen::Vector3d& point_lidar, const esekfom::esekf<state_ikfom, 12, input_ikfom>& kf,
                                  const Eigen::Matrix3d& cov_lidar) const;
-    std::vector<MapPoint, Eigen::aligned_allocator<MapPoint>>
-    make_manager_points(const PointCloudXYZI::Ptr& points_lidar, const PointCloudXYZI::Ptr& points_world,
-                        const std::vector<M3D>& cov_lidar) const;
+    std::vector<MapPoint, Eigen::aligned_allocator<MapPoint>> make_manager_points(
+        const PointCloudXYZI::Ptr& points_lidar, const PointCloudXYZI::Ptr& points_world,
+        const std::vector<M3D>& cov_lidar) const;
     M3D calc_lidar_cov_for_backend(const V3D& point) const;
 
     // ------------------------------ Map lifecycle ----------------------------
@@ -92,36 +94,36 @@ class Mapping {
     void UpdateMap();
 
     // ------------------------------ Configuration state ------------------------
-    float det_range_ = 300.0f;
-    bool time_sync_en_ = false;
-    bool extrinsic_est_en_ = true;
-    bool path_pub_en_ = true;
-    bool pcd_save_en_ = false;
-    bool scan_pub_en_ = false;
+    float det_range_        = 300.0f;
+    bool time_sync_en_      = false;
+    bool extrinsic_est_en_  = true;
+    bool path_pub_en_       = true;
+    bool pcd_save_en_       = false;
+    bool scan_pub_en_       = false;
     bool scan_dense_pub_en_ = false;
-    bool scan_body_pub_en_ = false;
+    bool scan_body_pub_en_  = false;
     bool scan_lidar_pub_en_ = false;
     bool publish_voxel_map_ = false;
-    bool map_publish_en_ = true;
+    bool map_publish_en_    = true;
 
     std::string root_dir_ = kDefaultRootDir;
     std::string lidar_topic_;
     std::string imu_topic_;
-    double lidar_time_offset_ = 0.0;
-    double ranging_cov_ = 0.0;
-    double angle_cov_ = 0.0;
-    double gyr_cov_ = 0.1;
-    double acc_cov_ = 0.1;
-    double b_gyr_cov_ = 0.0001;
-    double b_acc_cov_ = 0.0001;
+    double lidar_time_offset_    = 0.0;
+    double ranging_cov_          = 0.0;
+    double angle_cov_            = 0.0;
+    double gyr_cov_              = 0.1;
+    double acc_cov_              = 0.1;
+    double b_gyr_cov_            = 0.0001;
+    double b_acc_cov_            = 0.0001;
     double filter_size_surf_min_ = 0.0;
-    double plannar_threshold_ = 0.003;
-    double sigma_num_ = 2.0;
-    double voxel_size_ = 1.0;
-    int max_layer_ = 0;
-    int max_points_size_ = 50;
-    int max_cov_points_size_ = 50;
-    int num_max_iterations_ = 0;
+    double plannar_threshold_    = 0.003;
+    double sigma_num_            = 2.0;
+    double voxel_size_           = 1.0;
+    int max_layer_               = 0;
+    int max_points_size_         = 50;
+    int max_cov_points_size_     = 50;
+    int num_max_iterations_      = 0;
     int publish_max_voxel_layer_ = 0;
     std::vector<double> extrin_t_{3, 0.0};
     std::vector<double> extrin_r_{9, 0.0};
@@ -135,18 +137,18 @@ class Mapping {
     std::deque<double> time_buffer_;
     std::deque<PointCloudXYZI::Ptr> lidar_buffer_;
     std::deque<sensor_msgs::Imu::ConstPtr> imu_buffer_;
-    bool lidar_pushed_ = false;
-    bool first_scan_ = true;
-    bool ekf_initialized_ = false;
-    double last_timestamp_lidar_ = 0.0;
-    double last_timestamp_imu_ = -1.0;
-    double lidar_end_time_ = 0.0;
-    double first_lidar_time_ = 0.0;
+    bool lidar_pushed_             = false;
+    bool first_scan_               = true;
+    bool ekf_initialized_          = false;
+    double last_timestamp_lidar_   = 0.0;
+    double last_timestamp_imu_     = -1.0;
+    double lidar_end_time_         = 0.0;
+    double first_lidar_time_       = 0.0;
     double timediff_lidar_wrt_imu_ = 0.0;
-    bool timediff_set_ = false;
-    double lidar_mean_scantime_ = 0.0;
-    int scan_num_ = 0;
-    int scan_count_ = 0;
+    bool timediff_set_             = false;
+    double lidar_mean_scantime_    = 0.0;
+    int scan_num_                  = 0;
+    int scan_count_                = 0;
 
     // ---------------------------- Current-frame data --------------------------
     MeasureGroup measures_;
@@ -177,23 +179,23 @@ class Mapping {
     std::vector<std::vector<double>> poses_;
     PointCloudXYZI::Ptr pcl_wait_save_{new PointCloudXYZI()};
     int pcd_save_interval_ = -1;
-    int pcd_index_ = 0;
-    int scan_wait_num_ = 0;
+    int pcd_index_         = 0;
+    int scan_wait_num_     = 0;
 
     // -------------------------- Diagnostics/timing ----------------------------
-    double res_mean_last_ = 0.05;
-    double total_residual_ = 0.0;
-    int effective_feature_num_ = 0;
-    int feats_down_size_ = 0;
+    double res_mean_last_         = 0.05;
+    double total_residual_        = 0.0;
+    int effective_feature_num_    = 0;
+    int feats_down_size_          = 0;
     std::size_t scan_total_count_ = 0;
-    double search_time_ = 0.0;
-    double eseikf_time_ = 0.0;
-    double update_time_ = 0.0;
-    double total_time_ = 0.0;
-    double avg_search_time_ = 0.0;
-    double avg_eseikf_time_ = 0.0;
-    double avg_update_time_ = 0.0;
-    double avg_total_time_ = 0.0;
+    double search_time_           = 0.0;
+    double eseikf_time_           = 0.0;
+    double update_time_           = 0.0;
+    double total_time_            = 0.0;
+    double avg_search_time_       = 0.0;
+    double avg_eseikf_time_       = 0.0;
+    double avg_update_time_       = 0.0;
+    double avg_total_time_        = 0.0;
     PointCloudXYZI::Ptr feats_with_correspondence_{new PointCloudXYZI()};
 
     static Mapping* active_instance_;
@@ -207,4 +209,4 @@ class Mapping {
  */
 int RunMappingNode(int argc, char** argv);
 
-} // namespace pv_lio_plus
+}  // namespace pv_lio_plus

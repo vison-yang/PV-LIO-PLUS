@@ -5,31 +5,33 @@
 
 #pragma once
 
-#include "imu_processing.hpp"
-
-#include <condition_variable>
-#include <cstddef>
-#include <deque>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Quaternion.h>
 #include <livox_ros_driver/CustomMsg.h>
-#include <memory>
-#include <mutex>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
 #include <pcl/point_cloud.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/PointCloud2.h>
+
+#include <condition_variable>
+#include <cstddef>
+#include <deque>
+#include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
+#include "imu_processing.hpp"
+
 class Preprocess;
 
-namespace pv_lio_plus {
+namespace pv_lio_plus
+{
 enum class MapType;
 const char* MapTypeName(MapType type);
-} // namespace pv_lio_plus
+}  // namespace pv_lio_plus
 
 /** @brief Forwards a process signal to the ROS shutdown flag. */
 void SigHandle(int sig);
