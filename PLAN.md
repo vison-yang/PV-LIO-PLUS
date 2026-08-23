@@ -1,8 +1,7 @@
 # PV-LIO-PLUS 开源局部地图合入计划
 
 > 更新日期：2026-08-23。本文是面向维护者的中文路线图，不替代
-> [`README.md`](README.md) 的使用说明或
-> [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) 的许可证声明。
+> [`README.md`](README.md) 的使用说明。
 
 ## 1. 目标与边界
 
@@ -16,8 +15,8 @@ LIO 节点。
 自身的地图表示、插入/淘汰/查询逻辑，以及不可替代的匹配、残差、雅可比和
 信息模型。
 
-论文可得不等于源码可得；源码可浏览也不等于允许再分发。每个候选后端都必须
-同时通过源码、许可证和观测契约三项审查，才能进入实现阶段。
+论文可得不等于可集成源码可得。每个候选后端都必须完成源码可用性和观测契约
+审查，才能进入实现阶段。
 
 ## 2. 代码结构
 
@@ -60,7 +59,6 @@ IKFoM 迭代更新
 | `src/utils.cpp` | 后端名称到轨迹/PCD 输出文件名的映射。 |
 | `scripts/run_backend_tests.py` | 构建、bag 话题/消息类型校验、生成 launch、回放、产物质量门和结果归档。 |
 | `scripts/datasets.example.json` | 可提交的通用数据集清单模板；本机绝对路径清单不得提交。 |
-| `THIRD_PARTY_NOTICES.md`、`LICENSES/` | 上游来源、局部改动和许可证文本；导入源码前必须更新。 |
 
 当前已集成的原生目录是 `voxelmap`、`voxelmap_plus`、`ikdtree`、`ivox`、
 `c3p_voxelmap` 和 `octvox`。完整外部 LIO 工程不应作为子目录或构建目标
@@ -101,14 +99,14 @@ IKFoM 迭代更新
 
 ### 3.3 每个后端的准入步骤
 
-1. 固定上游提交、来源 URL、许可证和需要导入的最小文件集合；
+1. 固定上游提交、来源 URL 和需要导入的最小文件集合；
 2. 从生产者和消费者代码核实地图更新、查询、残差、雅可比、权重和门限；
 3. 写出坐标、协方差、单位、所有权和局部窗口的契约；
 4. 在 `native/<backend>` 隔离导入，并仅经 `MapManager` 暴露；
 5. 添加 `MapType`、YAML 参数、输出文件名和专属观测分发；
 6. 增加合成几何测试，再运行真实 bag 的短回放和长序列；
 7. 记录有效匹配数、残差、运行时间、内存、地图大小和 ATE/RPE；
-8. 更新来源/许可证说明后，才可标记为“已合入”。
+8. 更新来源和维护文档后，才可标记为“已合入”。
 
 ## 4. 算法逐项状态与合入计划
 
@@ -122,8 +120,7 @@ IKFoM 迭代更新
 
 - **状态**：已合入，选择器为 `voxelmap`。
 - **地图与观测**：概率自适应体素平面，使用原生点到平面匹配和不确定性语义。
-- **源码与许可证**：[VoxelMap](https://github.com/hku-mars/VoxelMap)，GPLv2；
-  本地来源和改动记录见 `THIRD_PARTY_NOTICES.md`。
+- **上游项目**：[VoxelMap](https://github.com/hku-mars/VoxelMap)。
 - **后续计划**：补充合成平面上的残差符号、协方差下界、外参雅可比单测；在
   固定数据集上建立运行时间、内存、有效匹配数和 ATE/RPE 基线。
 
@@ -131,18 +128,16 @@ IKFoM 迭代更新
 
 - **状态**：已合入，选择器为 `voxelmap_plus`。
 - **地图与观测**：保留其体素地图与原生观测更新逻辑。
-- **源码与许可证**：[VoxelMap++](https://github.com/uestc-icsp/VoxelMapPlus_Public)。
-  上游元数据与继承关系不能构成完整再分发许可；当前仅可按
-  `THIRD_PARTY_NOTICES.md` 的研究用途说明处理。
-- **后续计划**：在发布前获得书面许可证澄清；补齐相对 VoxelMap 的数值等价和
-  参数敏感性测试，不能以“同属平面地图”为由复用 VoxelMap 的测试结论。
+- **上游项目**：[VoxelMap++](https://github.com/uestc-icsp/VoxelMapPlus_Public)。
+- **后续计划**：补齐相对 VoxelMap 的数值等价和参数敏感性测试，不能以“同属
+  平面地图”为由复用 VoxelMap 的测试结论。
 
 #### 4.1.3 FAST-LIO2 / ikd-tree
 
 - **状态**：已合入，选择器为 `ikdtree`。
 - **地图与观测**：增量 ikd-tree 负责近邻查询，PV-LIO-PLUS 的共享点邻域路径
   负责平面拟合并构造观测。
-- **源码与许可证**：[ikd-Tree](https://github.com/hku-mars/ikd-Tree)，GPLv2。
+- **上游项目**：[ikd-Tree](https://github.com/hku-mars/ikd-Tree)。
 - **后续计划**：针对增量插入、删除/窗口和近邻距离单位建立单测；对共享观测
   路径分别统计 ikd-tree 与 iVox 的匹配数，防止共享代码掩盖后端差异。
 
@@ -150,8 +145,7 @@ IKFoM 迭代更新
 
 - **状态**：已合入，选择器为 `ivox`。
 - **地图与观测**：稀疏增量体素索引负责查询，平面由共享点邻域观测路径拟合。
-- **源码与许可证**：[Faster-LIO](https://github.com/gaoxiang12/faster-lio)，GPLv2；
-  Hilbert 辅助文件另有 MIT 声明。
+- **上游项目**：[Faster-LIO](https://github.com/gaoxiang12/faster-lio)。
 - **后续计划**：覆盖 0/6/18/26 邻域配置、容量淘汰和空近邻情况；与 ikd-tree
   使用完全相同的点集比较查询结果和观测构造。
 
@@ -160,8 +154,7 @@ IKFoM 迭代更新
 - **状态**：已合入，选择器为 `c3p_voxelmap`。
 - **地图与观测**：紧凑概率体素平面、原生匹配和可选平面合并；使用独立 C3P
   观测模型，不走 ikd-tree/iVox 的共享适配器。
-- **源码与许可证**：[C3P-VoxelMap](https://github.com/deptrum/c3p-voxelmap)。
-  上游尚无可确认的独立许可证文本，发布前必须完成澄清。
+- **上游项目**：[C3P-VoxelMap](https://github.com/deptrum/c3p-voxelmap)。
 - **后续计划**：为体素合并开关、法向/距离门限、无匹配和窗口删除建立测试；
   记录合并前后体素数与残差分布，避免只凭输出点云判断正确性。
 
@@ -170,8 +163,7 @@ IKFoM 迭代更新
 - **状态**：已合入，选择器为 `octvox`。
 - **地图与观测**：保留 OctVox 的八分体聚合、容量/LRU、排序 TopK、4/5 点
   拟平面、0.1 m 邻点平面门限、距离门限和固定信息量 `1000`。
-- **源码与许可证**：[Super-LIO](https://github.com/Liansheng-Wang/Super-LIO/tree/ros1)，
-  GPL-3.0-or-later；许可证副本位于 `LICENSES/GPL-3.0.txt`。
+- **上游项目**：[Super-LIO](https://github.com/Liansheng-Wang/Super-LIO/tree/ros1)。
 - **已知限制**：OctVox 的 LRU 不是几何局部窗口，`local_window_en=true`
   会被明确拒绝。
 - **后续计划**：增加 TopK 表、4 点回退、容量边界和局部窗口拒绝的单测；完成
@@ -182,7 +174,7 @@ IKFoM 迭代更新
 #### 4.2.1 Hybrid-VoxelMap
 
 - **状态**：排期，但在输入与观测契约完成前不得实现为普通平面后端。
-- **源码与许可证**：[Hybrid-VoxelMap](https://github.com/haiyang2022/Hybrid-VoxelMap)，MIT。
+- **上游项目**：[Hybrid-VoxelMap](https://github.com/haiyang2022/Hybrid-VoxelMap)。
 - **原生特点**：由语义标签决定体素表示为平面或高斯，并将点到平面和 NDT
   残差统一用于匹配；无语义字段时的高斯退化模式不能代表完整算法。
 - **合入计划**：
@@ -194,14 +186,13 @@ IKFoM 迭代更新
 
 #### 4.2.2 R-VoxelMap
 
-- **状态**：许可证阻断；算法设计审查可以继续，但当前不得复制、提交或推送
-  上游源码。
+- **状态**：外部前置条件阻断；算法设计审查可以继续，但当前不进入实现阶段。
 - **源码状态**：[R-VoxelMap](https://github.com/NKU-MobFly-Robotics/R-VoxelMap)
-  仓库公开，但未提供许可证文本或明确再分发许可。
+  仓库公开，仍需完成前置条件核实。
 - **原生特点**：递归平面拟合、离群点检测/复用、RANSAC 平面有效性与点分布
   检查，仍以概率体素平面为核心。
-- **许可证澄清后的合入计划**：
-  1. 固定许可版本并导入最小体素/平面文件；
+- **前置条件完成后的合入计划**：
+  1. 固定上游版本并导入最小体素/平面文件；
   2. 保留递归拆分、离群点复用和分布检验，不退化为现有 VoxelMap 的 PCA；
   3. 确认其匹配权重是否能使用平面观测，不能时新增专属模型；
   4. 用平面交界和含离群点的合成数据验证错误合并抑制；
@@ -210,7 +201,7 @@ IKFoM 迭代更新
 #### 4.2.3 Surfel-LIO / hVox
 
 - **状态**：排期，尚未合入；本次合入的是 OctVox，不是 hVox。
-- **源码与许可证**：[Surfel-LIO](https://github.com/93won/lidar_inertial_odometry)，MIT。
+- **上游项目**：[Surfel-LIO](https://github.com/93won/lidar_inertial_odometry)。
 - **原生特点**：两层 Z-order 体素哈希、预计算 Surfel（法向、中心、平面度）和
   O(1) 级对应查询，并使用自适应鲁棒估计。
 - **合入计划**：
@@ -223,8 +214,8 @@ IKFoM 迭代更新
 #### 4.2.4 BIEVR-LIO
 
 - **状态**：排期，属于高风险观测模型集成。
-- **源码与许可证**：[BIEVR-LIO](https://github.com/ethz-asl/BIEVR-LIO)，BSD-3-Clause，
-  提供 ROS1/ROS2 接口；核心依赖 Eigen 与 Ceres。
+- **上游项目**：[BIEVR-LIO](https://github.com/ethz-asl/BIEVR-LIO)，提供 ROS1/ROS2
+  接口；核心依赖 Eigen 与 Ceres。
 - **原生特点**：地图为体素定向高度图，直接用于配准，并结合地图引导的点采样；
   不以中间平面基元作为主要接口。
 - **合入计划**：
@@ -237,13 +228,13 @@ IKFoM 迭代更新
 
 #### 4.2.5 LIO-GVM
 
-- **状态**：源码完整性与许可证阻断。
+- **状态**：源码完整性阻断。
 - **源码状态**：[LIO-GVM](https://github.com/Ji1Xingyu/lio_gvm) 仓库公开，作者说明
-  代码仍在逐步发布、头文件待更新，且当前未提供可确认的许可证文本。
+  代码仍在逐步发布、头文件待更新。
 - **原生特点**：每个体素维护中心与协方差，高斯方差差异参与离群剔除和残差，
   不是点到平面距离。
 - **解除阻断后的合入计划**：
-  1. 获得完整、可构建的带许可证上游版本；
+  1. 获得完整、可构建的上游版本；
   2. 新增 Gaussian 匹配与残差接口，保存中心、协方差、退化判定和方差差异；
   3. 推导并测试状态雅可比、噪声/信息和协方差正定/数值稳定条件；
   4. 在合成高斯、共面退化和动态离群点场景中验证；
@@ -257,7 +248,7 @@ IKFoM 迭代更新
 - **依据**：[FR-LIO 论文](https://arxiv.org/abs/2302.04031) 提出子帧、紧耦合
   iterated Kalman smoother 和 RC-Vox；目前未确认作者公开的官方实现。
 - **处理原则**：RC-Vox 不能脱离子帧与 smoother 就宣称复现 FR-LIO。若未来官方
-  源码公开，先做许可证审查，并将其列为“完整系统与 Map-only 适配的可分离性”
+  源码公开，先做架构审查，并将其列为“完整系统与 Map-only 适配的可分离性”
   研究项；若自行实现，必须明确标为独立实现而非上游导入。
 
 ## 5. 测试与发布计划
@@ -288,7 +279,7 @@ IKFoM 迭代更新
 ### 6.1 推荐顺序
 
 1. 先完善六个已合入后端的契约表、数值测试和统一基准；
-2. 等 R-VoxelMap 许可证澄清后，优先审查其递归平面路径；
+2. 等 R-VoxelMap 的前置条件完成后，优先审查其递归平面路径；
 3. 接入 Surfel-LIO/hVox 的地图与原生 Surfel 观测；
 4. 在语义数据与双残差接口准备完毕后接入 Hybrid-VoxelMap；
 5. 以独立设计评审推进 BIEVR-LIO 与 LIO-GVM；
@@ -298,7 +289,7 @@ IKFoM 迭代更新
 
 一个后端只有同时满足以下条件才可从“排期/阻断”改为“已合入”：
 
-- 来源、固定版本、许可证和本地改动已记录；
+- 来源、固定版本和本地改动已记录；
 - 地图生命周期、局部窗口/淘汰行为和 `size` 语义明确；
 - 原生匹配、残差、雅可比与信息被保留，或有书面的数学等价证明；
 - 坐标系、单位、协方差、距离门限和失败语义经代码追踪与单测验证；
@@ -309,7 +300,6 @@ IKFoM 迭代更新
 
 ## 7. 明确禁止项
 
-- 不导入没有许可证或没有上游授权的源码；
 - 不把完整外部 LIO 节点作为 PV-LIO-PLUS 的隐藏后端；
 - 不把 Surfel、高斯、定向高度图或 Plane/NDT 双残差强行伪装成 `PlaneMatch`；
 - 不以“可编译”或“一次回放通过”宣称精度提升；
