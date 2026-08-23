@@ -1,344 +1,317 @@
-# PV-LIO-PLUS Project Plan
+# PV-LIO-PLUS 开源局部地图合入计划
 
-## 0. Current status (2026-08-23)
+> 更新日期：2026-08-23。本文是面向维护者的中文路线图，不替代
+> [`README.md`](README.md) 的使用说明或
+> [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) 的许可证声明。
 
-Legend: `[x]` verified completed, `[ ]` not completed, and `[-]` planned
-but only partially evidenced. A checked item means that the stated scope was
-actually inspected, built, or replayed; it does not imply that all deeper
-accuracy or deployment validation is complete.
+## 1. 目标与边界
 
-### Completed
+PV-LIO-PLUS 的目标是在同一套 LiDAR/IMU 预处理、状态传播、IKFoM
+迭代更新和评测流程中，对不同的局部地图进行可复现比较。这里的“合入”是
+把上游项目中必要的局部地图和观测模型接入本项目，并不是嵌入另一个完整的
+LIO 节点。
 
-- [x] Six selectable backends are integrated: VoxelMap, VoxelMap++, ikd-tree,
-  iVox, C3P-VoxelMap, and Super-LIO's OctVox.
-- [x] `MapManager` provides common backend lifecycle and configuration entry
-  points.
-- [x] C3P has an independent observation-model path; ikd-tree and iVox share
-  the point-neighborhood plane-fitting path.
-- [x] OctVox retains its native octant aggregation, capacity/LRU, ordered TopK,
-  4/5-point plane gate, range gate, and fixed information observation; its
-  geometric local-window mode is explicitly unsupported.
-- [x] The automated runner builds first with the `.vscode/tasks.json` command,
-  validates bag topic/message types, runs combinations, and archives logs and
-  outputs.
-- [x] Avia and S3/SOLID bags completed all five backend replays: 10/10 process
-  runs passed. This proves compile/startup/replay/output execution, not
-  accuracy superiority.
-- [x] The test runner preserves generated launch files, configurations,
-  commands, logs, status, trajectories, and PCD results in per-run folders.
-- [x] The runner builds only `pv_lio_plus`, supports a side-effect-free dry run,
-  records a run ID and source commit, and rejects stale, empty, non-finite, or
-  missing trajectory/PCD artifacts.
+因此，下列能力始终由 PV-LIO-PLUS 统一拥有：消息同步、去畸变、IMU
+传播、状态定义、滤波迭代、点云发布、轨迹/地图输出和测试编排。后端只拥有
+自身的地图表示、插入/淘汰/查询逻辑，以及不可替代的匹配、残差、雅可比和
+信息模型。
 
-### Not completed yet
+论文可得不等于源码可得；源码可浏览也不等于允许再分发。每个候选后端都必须
+同时通过源码、许可证和观测契约三项审查，才能进入实现阶段。
 
-- [ ] A formal per-backend contract for frames, units, covariance layout,
-  residual sign, distance semantics, and ownership has not been published.
-- [ ] Native residual/Jacobian/weight equivalence checks against every source
-  backend have not been automated.
-- [ ] Numerical synthetic-plane tests, resource metrics, ATE/RPE, and
-  regression tolerances are not implemented. Runtime NaN/Inf and non-empty
-  output gates are implemented in the runner.
-- [ ] R-VoxelMap cannot be copied or pushed until its upstream license is
-  supplied. Hybrid-VoxelMap needs semantic input and a tagged Plane/NDT
-  observation contract; it must not be represented as a plane-only adapter.
-- [ ] Map-only versus Native-stack experiment profiles have not yet been
-  separated in the runner and result schema.
+## 2. 代码结构
 
-Evidence for the completed replay is stored outside the source tree under
-`results/backend_tests_20260820/` and the repaired Avia/`voxelmap` run under
-`results/backend_tests_20260820_repair/`; generated data manifests are local
-and intentionally ignored by Git.
-
-## 1. Project objective
-
-PV-LIO-PLUS is a common tightly coupled LiDAR-inertial estimation framework
-for comparing local-map backends under the same sensor preprocessing, IMU
-propagation, IKFoM state update, and experiment protocol.
-
-The long-term objective is:
-
-> Integrate representative open-source local-map methods into PV-LIO-PLUS
-> while preserving each method's native map representation, matching logic,
-> residual model, uncertainty model, and update semantics wherever they are
-> part of the published method.
-
-The project is a local-map integration framework, not a collection of complete
-external LIO nodes. External projects contribute map layers and their required
-adapters; PV-LIO-PLUS remains the owner of sensor synchronization, deskewing,
-state propagation, iterated filtering, output, and experiment orchestration.
-
-## 2. Non-negotiable design principles
-
-### 2.1 Keep the estimator loop common
-
-The following path remains shared by all backends:
+### 2.1 运行链路
 
 ```text
-LiDAR / IMU messages
+ROS LiDAR / IMU
         |
         v
-preprocess and deskew
+预处理、时间同步、去畸变
         |
         v
-predicted PV-LIO state
+IMU 传播得到预测状态
         |
         v
-backend-specific map search and observation construction
+Mapping 将下采样点转换到世界坐标
+        |
+        +--> MapManager::search()
+        |        |
+        |        +--> 后端原生查询、匹配和门限
         |
         v
-IKFoM iterated update
+后端观测模型（残差 / 雅可比 / 信息）
         |
         v
-world-frame insertion and publication
+IKFoM 迭代更新
+        |
+        +--> MapManager::update() 插入世界坐标点
+        +--> 发布轨迹、局部地图和点云
 ```
 
-A backend must not introduce a second pose estimator, synchronization policy,
-or hidden state machine into this path.
+### 2.2 目录与职责
 
-### 2.2 Unify lifecycle, not necessarily observation mathematics
+| 路径 | 职责 |
+| --- | --- |
+| `src/mapping.cpp`、`src/mapping.hpp` | 共同的 Mapping 循环；按 `MapType` 分发观测模型。 |
+| `include/map_manager/map_manager.h`、`src/map_manager/map_manager.cpp` | 后端选择、配置、初始化、查询、更新、快照和窗口行为的统一边界。 |
+| `include/map_manager/native/<backend>/` | 隔离的上游局部地图源码；不得在此目录外扩散上游类型。 |
+| `src/config.cpp`、`config/*.yaml` | `mapping/map_type` 与后端专属参数；默认配置不应隐式启用某个候选后端。 |
+| `src/utils.cpp` | 后端名称到轨迹/PCD 输出文件名的映射。 |
+| `scripts/run_backend_tests.py` | 构建、bag 话题/消息类型校验、生成 launch、回放、产物质量门和结果归档。 |
+| `scripts/datasets.example.json` | 可提交的通用数据集清单模板；本机绝对路径清单不得提交。 |
+| `THIRD_PARTY_NOTICES.md`、`LICENSES/` | 上游来源、局部改动和许可证文本；导入源码前必须更新。 |
 
-`MapManager` owns the common backend lifecycle:
+当前已集成的原生目录是 `voxelmap`、`voxelmap_plus`、`ikdtree`、`ivox`、
+`c3p_voxelmap` 和 `octvox`。完整外部 LIO 工程不应作为子目录或构建目标
+引入工作区。
 
-- configure and select a backend;
-- initialize, update, clear, and snapshot the map;
-- search or dispatch native matches;
-- maintain optional local-window state;
-- expose configuration and result metadata.
+## 3. 统一合入契约
 
-The observation model remains backend-specific when the native method requires
-it. The intended grouping is:
+### 3.1 地图生命周期
 
-```text
-VoxelMap       -> native VoxelMap observation model
-VoxelMap++     -> native VoxelMap++ observation model
-C3P-VoxelMap   -> native C3P observation model
-ikd-tree/iVox  -> shared point-neighborhood-to-plane observation model
-OctVox         -> native ordered-TopK point-to-plane observation model
-```
+每个后端必须明确实现或显式拒绝以下操作：
 
-Future Gaussian, surfel, or statistical-voxel methods must not be forced into a
-point-to-plane `PlaneMatch` if their published residual is different. They may
-need a separate observation type or a backend-provided residual/Jacobian/
-information interface.
+1. `configure`：解析类型与专属参数，检查不兼容组合；
+2. `initialize`：由第一批世界坐标点建立地图；
+3. `search`：返回足以构造原生观测的信息，或明确返回无匹配；
+4. `update`：按上游定义插入、融合、下采样或淘汰新点；
+5. `clear`、`snapshot`、`size`：说明“大小”是点、体素、栅格还是 Surfel；
+6. `erase_outside_window`：实现几何窗口，或像 OctVox 一样在配置阶段拒绝。
 
-### 2.3 Treat data and uncertainty as contracts
+合入说明必须列出点的坐标系、长度/距离单位、协方差所在坐标系、邻域距离是
+距离还是平方距离、当前帧自匹配规则、插入时机以及地图导出语义。
 
-Every backend adapter must explicitly define:
+### 3.2 观测模型边界
 
-- LiDAR-frame and world-frame point semantics;
-- transform direction and units;
-- point covariance frame and units;
-- map-plane, surfel, or Gaussian uncertainty;
-- residual sign and normalization;
-- neighbor distance convention (metres versus squared metres);
-- insertion/downsampling/deletion behavior;
-- self-match and current-frame visibility rules;
-- snapshot and map-size semantics.
+`PlaneMatch` 只适用于能诚实表达为点到平面观测的后端。高斯、Surfel、定向
+高度图等方法不得为了复用类型而退化为临时 KNN 平面拟合；应新增带类型标签的
+匹配结构，或由后端直接提供残差、雅可比和信息矩阵。
 
-Variable names are not sufficient evidence for any of these contracts.
+当前路径为：
 
-### 2.4 Make comparisons reproducible
+| 观测模型 | 适用后端 | 状态 |
+| --- | --- | --- |
+| 原生 VoxelMap 点到概率平面 | `voxelmap` | 已合入 |
+| 原生 VoxelMap++ 观测 | `voxelmap_plus` | 已合入 |
+| 点邻域拟平面 | `ikdtree`、`ivox` | 已合入的共享适配路径 |
+| 原生 C3P 概率体素平面 | `c3p_voxelmap` | 已合入 |
+| 原生 OctVox TopK 点到平面 | `octvox` | 已合入 |
+| Plane/NDT、Surfel、高斯、定向高度图 | Hybrid、Surfel、LIO-GVM、BIEVR | 待新增的专属路径 |
 
-Backend comparisons must use the same:
+### 3.3 每个后端的准入步骤
 
-- bag segment and playback policy;
-- sensor topics and message-type validation;
-- preprocessing and extrinsic parameters;
-- initialisation period;
-- filter iteration settings;
-- output collection rules;
-- evaluation metrics and reporting format.
+1. 固定上游提交、来源 URL、许可证和需要导入的最小文件集合；
+2. 从生产者和消费者代码核实地图更新、查询、残差、雅可比、权重和门限；
+3. 写出坐标、协方差、单位、所有权和局部窗口的契约；
+4. 在 `native/<backend>` 隔离导入，并仅经 `MapManager` 暴露；
+5. 添加 `MapType`、YAML 参数、输出文件名和专属观测分发；
+6. 增加合成几何测试，再运行真实 bag 的短回放和长序列；
+7. 记录有效匹配数、残差、运行时间、内存、地图大小和 ATE/RPE；
+8. 更新来源/许可证说明后，才可标记为“已合入”。
 
-Changing a backend-specific parameter is an experiment variable and must be
-recorded with the result.
+## 4. 算法逐项状态与合入计划
 
-## 3. Current baseline
+状态说明：`已合入` 代表代码、目标包构建和至少一次真实回放已验证；不代表
+已证明精度优于其他方法。`阻断` 代表当前不得导入或发布上游源码；`排期` 代表
+可开始设计但尚未实现。
 
-### 3.1 Integrated backends
+### 4.1 已合入算法
 
-The current selectable backends are:
+#### 4.1.1 PV-LIO / VoxelMap
 
-- `voxelmap`: PV-LIO/VoxelMap probabilistic adaptive voxel planes;
-- `voxelmap_plus`: VoxelMap++ native residual and update logic;
-- `ikdtree`: FAST-LIO2 incremental ikd-tree with manager-side plane fitting;
-- `ivox`: Faster-LIO sparse incremental voxel map with manager-side plane fitting;
-- `c3p_voxelmap`: C3P-VoxelMap native probabilistic voxel-plane matching.
-- `octvox`: Super-LIO OctVox with native octant aggregation, ordered TopK, and
-  fixed information point-to-plane observations.
+- **状态**：已合入，选择器为 `voxelmap`。
+- **地图与观测**：概率自适应体素平面，使用原生点到平面匹配和不确定性语义。
+- **源码与许可证**：[VoxelMap](https://github.com/hku-mars/VoxelMap)，GPLv2；
+  本地来源和改动记录见 `THIRD_PARTY_NOTICES.md`。
+- **后续计划**：补充合成平面上的残差符号、协方差下界、外参雅可比单测；在
+  固定数据集上建立运行时间、内存、有效匹配数和 ATE/RPE 基线。
 
-### 3.2 Current integration infrastructure
+#### 4.1.2 VoxelMap++
 
-- `MapManager` provides runtime backend selection and common map lifecycle;
-- `PlaneMatch` is used only where a backend can truthfully expose a plane
-  observation contract;
-- C3P has an independent observation-model path;
-- ikd-tree and iVox share the point-neighbor plane-fitting path;
-- `scripts/run_backend_tests.py` builds first using the command from
-  `.vscode/tasks.json`, validates bag topics/types, runs dataset/backend
-  combinations, and archives logs and outputs;
-- `scripts/datasets.example.json` is the committed manifest template.
+- **状态**：已合入，选择器为 `voxelmap_plus`。
+- **地图与观测**：保留其体素地图与原生观测更新逻辑。
+- **源码与许可证**：[VoxelMap++](https://github.com/uestc-icsp/VoxelMapPlus_Public)。
+  上游元数据与继承关系不能构成完整再分发许可；当前仅可按
+  `THIRD_PARTY_NOTICES.md` 的研究用途说明处理。
+- **后续计划**：在发布前获得书面许可证澄清；补齐相对 VoxelMap 的数值等价和
+  参数敏感性测试，不能以“同属平面地图”为由复用 VoxelMap 的测试结论。
 
-## 4. Roadmap
+#### 4.1.3 FAST-LIO2 / ikd-tree
 
-### Phase 0 - Freeze the baseline contract
+- **状态**：已合入，选择器为 `ikdtree`。
+- **地图与观测**：增量 ikd-tree 负责近邻查询，PV-LIO-PLUS 的共享点邻域路径
+  负责平面拟合并构造观测。
+- **源码与许可证**：[ikd-Tree](https://github.com/hku-mars/ikd-Tree)，GPLv2。
+- **后续计划**：针对增量插入、删除/窗口和近邻距离单位建立单测；对共享观测
+  路径分别统计 ikd-tree 与 iVox 的匹配数，防止共享代码掩盖后端差异。
 
-- [x] Record the six current backend names and output-file stems.
-- [x] Record LiDAR/IMU topic and message-type requirements in the test
-  manifest format.
-- [x] Separate C3P observation construction from ikd-tree/iVox observation
-  construction.
-- [ ] Add a concise backend contract table to the developer documentation,
-  including coordinate frames, residuals, covariance, and distance units.
-- [ ] Define a versioned experiment metadata schema for configuration,
-  commit, bag identity, playback rate, and output paths.
+#### 4.1.4 Faster-LIO / iVox
 
-### Phase 1 - Harden the five-backend baseline
+- **状态**：已合入，选择器为 `ivox`。
+- **地图与观测**：稀疏增量体素索引负责查询，平面由共享点邻域观测路径拟合。
+- **源码与许可证**：[Faster-LIO](https://github.com/gaoxiang12/faster-lio)，GPLv2；
+  Hilbert 辅助文件另有 MIT 声明。
+- **后续计划**：覆盖 0/6/18/26 邻域配置、容量淘汰和空近邻情况；与 ikd-tree
+  使用完全相同的点集比较查询结果和观测构造。
 
-- [x] Compile with the repository's standard VS Code task.
-- [x] Run Avia and SOLID/S3 data through all five backends.
-- [x] Archive per-combination logs, generated launch files, configurations,
-  trajectories, and PCD outputs.
-- [x] Add automated checks that every successful run produced a new, non-empty,
-  finite trajectory and a new PCD artifact with positive `POINTS`.
-- [ ] Add numerical residual/Jacobian checks for VoxelMap, VoxelMap++, C3P,
-  ikd-tree, and iVox using synthetic planes.
-- [ ] Audit backend-specific numerical assumptions before changing them,
-  especially covariance floors, normal normalization, distance units, and
-  external-calibration Jacobians.
-- [ ] Establish baseline runtime, memory, map-size, valid-match count, and
-  convergence statistics for every dataset/backend pair.
+#### 4.1.5 C3P-VoxelMap
 
-### Phase 2 - Stabilize the backend adapter boundary
+- **状态**：已合入，选择器为 `c3p_voxelmap`。
+- **地图与观测**：紧凑概率体素平面、原生匹配和可选平面合并；使用独立 C3P
+  观测模型，不走 ikd-tree/iVox 的共享适配器。
+- **源码与许可证**：[C3P-VoxelMap](https://github.com/deptrum/c3p-voxelmap)。
+  上游尚无可确认的独立许可证文本，发布前必须完成澄清。
+- **后续计划**：为体素合并开关、法向/距离门限、无匹配和窗口删除建立测试；
+  记录合并前后体素数与残差分布，避免只凭输出点云判断正确性。
 
-- [x] Keep native backend data structures isolated under
-  `include/map_manager/native/`.
-- [ ] Make initialization, update, search, clear, snapshot, and local-window
-  behavior explicit for every backend.
-- [ ] Distinguish `map_size`, retained point count, valid grid count, and
-  published point count in diagnostics.
-- [ ] Add backend-specific result metadata rather than inferring semantics
-  from a generic point-cloud snapshot.
-- [ ] Define how empty maps, insufficient matches, failed plane fitting, and
-  unsupported local-window operations are reported.
-- [ ] Prevent stale output files from being mistaken for a successful run.
+#### 4.1.6 Super-LIO / OctVox
 
-### Phase 3 - Integrate open-source candidate local maps
+- **状态**：已合入，选择器为 `octvox`。
+- **地图与观测**：保留 OctVox 的八分体聚合、容量/LRU、排序 TopK、4/5 点
+  拟平面、0.1 m 邻点平面门限、距离门限和固定信息量 `1000`。
+- **源码与许可证**：[Super-LIO](https://github.com/Liansheng-Wang/Super-LIO/tree/ros1)，
+  GPL-3.0-or-later；许可证副本位于 `LICENSES/GPL-3.0.txt`。
+- **已知限制**：OctVox 的 LRU 不是几何局部窗口，`local_window_en=true`
+  会被明确拒绝。
+- **后续计划**：增加 TopK 表、4 点回退、容量边界和局部窗口拒绝的单测；完成
+  原生残差/雅可比/固定权重与上游实现的逐项数值对照，并补充长序列验证。
 
-Candidates should be integrated one at a time, in this order of increasing
-observation-model risk:
+### 4.2 可公开获取但尚未合入的算法
 
-OctVox was integrated on 2026-08-23 because its source is GPL-3.0-or-later and
-its native TopK-to-plane observation can be retained exactly. R-VoxelMap is
-blocked by an absent upstream license; Hybrid-VoxelMap is blocked on semantic
-input and its Plane/NDT dual-residual contract.
+#### 4.2.1 Hybrid-VoxelMap
 
-1. **Hybrid-VoxelMap and R-VoxelMap**
-   - first assess whether their native output is still a probabilistic plane;
-   - preserve robust/recursive plane estimation and rejection rules;
-   - add a dedicated observation path if their weighting differs from
-     VoxelMap/C3P.
+- **状态**：排期，但在输入与观测契约完成前不得实现为普通平面后端。
+- **源码与许可证**：[Hybrid-VoxelMap](https://github.com/haiyang2022/Hybrid-VoxelMap)，MIT。
+- **原生特点**：由语义标签决定体素表示为平面或高斯，并将点到平面和 NDT
+  残差统一用于匹配；无语义字段时的高斯退化模式不能代表完整算法。
+- **合入计划**：
+  1. 在预处理层定义逐点语义标签来源、时间对齐、丢失标签和动态类过滤语义；
+  2. 新增带 `Plane`/`NDT` 标签的匹配类型及两套残差、雅可比、信息计算；
+  3. 隔离平面/高斯节点更新、类别转换和语义冲突策略；
+  4. 新增带语义字段的 PointCloud2 与无语义退化两类 manifest；
+  5. 分别报告两类残差的数量、权重、收敛和耗时，禁止混为单一平面指标。
 
-2. **Super-LIO / OctVox, BIEVR-LIO, and Surfel-LIO / hVox**
-   - identify whether the native representation is a point neighborhood,
-     plane, surfel, or hierarchical statistical element;
-   - preserve map-informed sampling and hierarchy rules;
-   - do not replace a surfel/statistical query with arbitrary KNN plane fitting
-     merely to satisfy an adapter shape.
+#### 4.2.2 R-VoxelMap
 
-3. **LIO-GVM and other Gaussian/statistical maps**
-   - derive the native residual and information model first;
-   - define a separate observation interface when the residual is not a
-     signed point-to-plane distance;
-   - keep Gaussian covariance, likelihood, and degeneracy semantics intact.
+- **状态**：许可证阻断；算法设计审查可以继续，但当前不得复制、提交或推送
+  上游源码。
+- **源码状态**：[R-VoxelMap](https://github.com/NKU-MobFly-Robotics/R-VoxelMap)
+  仓库公开，但未提供许可证文本或明确再分发许可。
+- **原生特点**：递归平面拟合、离群点检测/复用、RANSAC 平面有效性与点分布
+  检查，仍以概率体素平面为核心。
+- **许可证澄清后的合入计划**：
+  1. 固定许可版本并导入最小体素/平面文件；
+  2. 保留递归拆分、离群点复用和分布检验，不退化为现有 VoxelMap 的 PCA；
+  3. 确认其匹配权重是否能使用平面观测，不能时新增专属模型；
+  4. 用平面交界和含离群点的合成数据验证错误合并抑制；
+  5. 再执行真实回放与长期基准。
 
-For each candidate, the required workflow is:
+#### 4.2.3 Surfel-LIO / hVox
 
-1. verify public source availability, version, and license;
-2. identify the smallest local-map source subset, excluding the full LIO node;
-3. trace map creation, insertion, query, deletion, export, and statistics;
-4. write the native-to-PV-LIO data and coordinate-frame contract;
-5. implement the adapter and native observation path in a disjoint backend
-   directory;
-6. add configuration and one manifest entry;
-7. compile the complete workspace;
-8. run a short synthetic/smoke bag before long datasets;
-9. compare residual counts, weights, trajectory, map, runtime, and memory;
-10. only then classify the backend as integrated.
+- **状态**：排期，尚未合入；本次合入的是 OctVox，不是 hVox。
+- **源码与许可证**：[Surfel-LIO](https://github.com/93won/lidar_inertial_odometry)，MIT。
+- **原生特点**：两层 Z-order 体素哈希、预计算 Surfel（法向、中心、平面度）和
+  O(1) 级对应查询，并使用自适应鲁棒估计。
+- **合入计划**：
+  1. 提取 hVox 与 Surfel 更新/查询的最小独立部分，隔离其 Morton 编码；
+  2. 用 Surfel 的中心、法向、平面度构造专属观测，不能回退到运行时 KNN 拟平面；
+  3. 将鲁棒核作为明确、可配置且可记录的观测权重，而非隐式全局参数；
+  4. 添加跨层查询、边界体素、Surfel 失效和地图淘汰测试；
+  5. 将查询延迟、Surfel 数和有效对应比例与 iVox/OctVox 对照。
 
-Methods with papers but no released source remain documented candidates and
-must not be represented as implemented backends.
+#### 4.2.4 BIEVR-LIO
 
-### Phase 4 - Make the experiment runner an evaluation tool
+- **状态**：排期，属于高风险观测模型集成。
+- **源码与许可证**：[BIEVR-LIO](https://github.com/ethz-asl/BIEVR-LIO)，BSD-3-Clause，
+  提供 ROS1/ROS2 接口；核心依赖 Eigen 与 Ceres。
+- **原生特点**：地图为体素定向高度图，直接用于配准，并结合地图引导的点采样；
+  不以中间平面基元作为主要接口。
+- **合入计划**：
+  1. 先写出定向高度图残差对 PV-LIO 状态的解析雅可比与信息模型；
+  2. 决定“Map-only 适配”与“完整原生估计器”两种实验档案，默认前者，避免
+     在共同 IKFoM 循环中偷偷调用第二个优化器；
+  3. 单独导入地图、采样和残差代码，保留地图引导采样；
+  4. 为无高度图、退化高度图和稀疏信息场景建立失败语义；
+  5. 在同一数据段比较采样率、有效约束、耗时和轨迹，而不仅比较最终 PCD。
 
-- [x] Support multiple datasets and multiple backends from one manifest.
-- [x] Validate required bag topics and ROS message types.
-- [x] Build before replay and record the build command/result.
-- [x] Isolate ROS home/log directories per run.
-- [x] Preserve generated launch, commands, logs, status, trajectory, and PCD.
-- [ ] Add a dry-run mode that prints the complete test matrix without starting
-  ROS or modifying output.
-- [ ] Add a run identifier and source commit to every result metadata file.
-- [ ] Add automatic trajectory/map sanity checks and a machine-readable
-  failure reason.
-- [ ] Add optional playback rate, segment selection, and resource limits to
-  the manifest while keeping the default comparison protocol explicit.
-- [ ] Add an evaluation stage for ATE/RPE, map completeness, effective-match
-  ratio, runtime, memory, and convergence behavior.
+#### 4.2.5 LIO-GVM
 
-### Phase 5 - Benchmark, document, and release
+- **状态**：源码完整性与许可证阻断。
+- **源码状态**：[LIO-GVM](https://github.com/Ji1Xingyu/lio_gvm) 仓库公开，作者说明
+  代码仍在逐步发布、头文件待更新，且当前未提供可确认的许可证文本。
+- **原生特点**：每个体素维护中心与协方差，高斯方差差异参与离群剔除和残差，
+  不是点到平面距离。
+- **解除阻断后的合入计划**：
+  1. 获得完整、可构建的带许可证上游版本；
+  2. 新增 Gaussian 匹配与残差接口，保存中心、协方差、退化判定和方差差异；
+  3. 推导并测试状态雅可比、噪声/信息和协方差正定/数值稳定条件；
+  4. 在合成高斯、共面退化和动态离群点场景中验证；
+  5. 最后再接入真实 bag，并独立记录高斯体素数和内存。
 
-- [ ] Freeze a small smoke-test dataset and a full benchmark dataset set.
-- [ ] Produce backend comparison tables with identical preprocessing and
-  clearly separated static, build, replay, and metric evidence.
-- [ ] Document known backend limitations and unsupported parameter combinations.
-- [ ] Complete third-party license and redistribution review before publishing
-  imported source, especially for VoxelMap++ and C3P-VoxelMap.
-- [ ] Update English and Chinese README sections from the verified baseline.
-- [ ] Publish only reproducible configurations and result metadata; do not
-  publish local data paths or machine-specific manifests.
+### 4.3 论文可得但官方源码尚未确认的算法
 
-## 5. Definition of done for a backend
+#### FR-LIO / RC-Vox
 
-A backend is considered integrated only when all of the following are true:
+- **状态**：不进入源码合入排期；持续跟踪官方发布。
+- **依据**：[FR-LIO 论文](https://arxiv.org/abs/2302.04031) 提出子帧、紧耦合
+  iterated Kalman smoother 和 RC-Vox；目前未确认作者公开的官方实现。
+- **处理原则**：RC-Vox 不能脱离子帧与 smoother 就宣称复现 FR-LIO。若未来官方
+  源码公开，先做许可证审查，并将其列为“完整系统与 Map-only 适配的可分离性”
+  研究项；若自行实现，必须明确标为独立实现而非上游导入。
 
-- its source provenance and license are recorded;
-- its map lifecycle is implemented and scoped to `MapManager`;
-- its native matching and observation model are preserved or mathematically
-  justified in the adapter documentation;
-- all coordinate frames, units, covariance semantics, and thresholds are
-  verified from producer/consumer code;
-- the complete workspace builds with the backend enabled;
-- a smoke bag starts, processes data, and shuts down cleanly;
-- non-empty trajectory and map artifacts are archived;
-- at least one long-sequence comparison is available against the five-backend
-  baseline;
-- failures are distinguishable from missing data, startup errors, runtime
-  crashes, empty matches, and poor estimation quality.
+## 5. 测试与发布计划
 
-## 6. Explicit non-goals
+### 5.1 已具备的自动化能力
 
-- Do not embed complete external LIO applications into this package.
-- Do not replace a native residual model only to obtain a common C++ type.
-- Do not claim accuracy improvement from compilation or successful replay
-  alone.
-- Do not treat `git diff --check` as runtime or numerical validation.
-- Do not use physical/device validation claims for bag-only experiments.
-- Do not commit machine-specific data manifests or generated result files.
+`scripts/run_backend_tests.py` 当前能够：只构建 `pv_lio_plus`、自动加载构建
+后的工作区覆盖环境、校验 bag 的 LiDAR/IMU 话题和消息类型、生成临时 launch、
+为每次运行记录 run ID 与源提交、并拒绝陈旧、空、非有限的轨迹或没有正 `POINTS`
+的 PCD。`--dry-run` 不构建、不启动 ROS、不写结果。
 
-## 7. Immediate next actions
+最近一次验证为同一份 Avia `CustomMsg` bag 的 30 秒真实回放：六个当前后端均
+通过目标包构建、启动、回放、有限轨迹和非空 PCD 检查。该证据只说明运行链路
+有效，不构成精度、鲁棒性或跨数据集结论。
 
-1. Add the backend contract and experiment metadata schema.
-2. Add output-existence and numerical smoke checks to the test runner.
-3. Establish the five-backend baseline metrics on Avia and S3.
-4. Audit and document current covariance/distance/Jacobian assumptions.
-5. Select Hybrid-VoxelMap or R-VoxelMap as the first new open-source
-   candidate, subject to source and license verification.
+### 5.2 尚需补齐的测试
 
-## 8. Engineering conventions
+1. 为六个已合入后端建立合成平面、边界、空匹配和 NaN/Inf 数值单测；
+2. 将每个后端的残差、雅可比和信息与上游实现逐项对照；
+3. 固定一个可公开的短 smoke 数据集和至少一个长序列基准；
+4. 在结果元数据中增加配置摘要、bag 身份、有效匹配数、地图语义、峰值内存、
+   运行时间、ATE/RPE 和失败分类；
+5. 维护 `Map-only` 与 `Native-stack` 两套实验档案，禁止混合比较；
+6. 对候选算法先做合成测试，再做短回放，最后才允许长序列与发布。
 
-- [x] Track this plan in Git and keep completed items marked with `[x]`.
-- [x] Use the project VS Code C/C++ clang-format style for modified C++ code:
-  Google base style, 120-column limit, four-space indentation, no tabs,
-  aligned assignments/operands, one maximum empty line, and custom braces
-  after functions, control statements, classes, structs, enums, and namespaces.
+## 6. 排期与完成定义
+
+### 6.1 推荐顺序
+
+1. 先完善六个已合入后端的契约表、数值测试和统一基准；
+2. 等 R-VoxelMap 许可证澄清后，优先审查其递归平面路径；
+3. 接入 Surfel-LIO/hVox 的地图与原生 Surfel 观测；
+4. 在语义数据与双残差接口准备完毕后接入 Hybrid-VoxelMap；
+5. 以独立设计评审推进 BIEVR-LIO 与 LIO-GVM；
+6. FR-LIO 仅在官方源码公开后重新评估。
+
+### 6.2 “已合入”的完成定义
+
+一个后端只有同时满足以下条件才可从“排期/阻断”改为“已合入”：
+
+- 来源、固定版本、许可证和本地改动已记录；
+- 地图生命周期、局部窗口/淘汰行为和 `size` 语义明确；
+- 原生匹配、残差、雅可比与信息被保留，或有书面的数学等价证明；
+- 坐标系、单位、协方差、距离门限和失败语义经代码追踪与单测验证；
+- 目标包构建、真实 bag 短回放、轨迹与地图质量门均通过；
+- 至少有一个长序列的可复现实验，含运行时间、内存、匹配和精度指标；
+- README、第三方声明、配置和通用 manifest 模板已同步，且没有提交机器路径或
+  生成结果。
+
+## 7. 明确禁止项
+
+- 不导入没有许可证或没有上游授权的源码；
+- 不把完整外部 LIO 节点作为 PV-LIO-PLUS 的隐藏后端；
+- 不把 Surfel、高斯、定向高度图或 Plane/NDT 双残差强行伪装成 `PlaneMatch`；
+- 不以“可编译”或“一次回放通过”宣称精度提升；
+- 不提交本机数据路径、私有 manifest、ROS 日志、点云或评测结果；
+- 不在未区分 Map-only 与 Native-stack 的情况下发布横向比较结论。
