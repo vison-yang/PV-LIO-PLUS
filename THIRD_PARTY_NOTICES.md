@@ -40,7 +40,7 @@ Each modified native source file carries a corresponding source-level notice.
 | Faster-LIO iVox | `include/map_manager/native/ivox/` except `hilbert.hpp` | <https://github.com/gaoxiang12/faster-lio> | GPLv2; authors credited upstream: Chunge Bai, Tao Xiang, Yajie Chen, Haoqian Wang, Fang Zhang, and Xiang Gao |
 | Hilbert curve helper | `include/map_manager/native/ivox/hilbert.hpp` | <https://github.com/spectral3d/hilbert_hpp> | MIT; the complete upstream notice is retained in the file |
 | IKFoM toolkit | `include/IKFoM_toolkit/` | <https://github.com/hku-mars/IKFoM> | BSD-3-Clause; the original notices are retained in the source files |
-| LOAM/Livox mapping base | `src/voxelMapping.cpp` | LOAM and Livox contributions | BSD-3-Clause; the complete notice is retained at the top of the source file |
+| LOAM/Livox mapping base | `src/mapping.cpp` | LOAM and Livox contributions | BSD-3-Clause; the complete notice is retained at the top of the source file |
 
 ## Components requiring upstream clarification
 
