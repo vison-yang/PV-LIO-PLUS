@@ -16,6 +16,7 @@
 // ikd-tree is a header/template implementation.  Keep the native source in
 // the PV translation unit so the imported backend is self-contained.
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <limits>
 #include <numeric>
@@ -58,6 +59,10 @@ MapType ParseMapType(const std::string &name)
     {
         return MapType::C3PVoxelMap;
     }
+    if (name == "octvox" || name == "oct_vox" || name == "oct-vox")
+    {
+        return MapType::OctVox;
+    }
 
     throw std::invalid_argument("unknown mapping/map_type: " + name);
 }
@@ -81,6 +86,8 @@ const char *MapTypeName(const MapType type)
             return "ivox";
         case MapType::C3PVoxelMap:
             return "c3p_voxelmap";
+        case MapType::OctVox:
+            return "octvox";
     }
     return "unknown";
 }
@@ -109,6 +116,12 @@ MapManager::~MapManager()
  */
 void MapManager::configure(const MapManagerConfig &config)
 {
+    if (config.type == MapType::OctVox && config.local_window_enabled)
+    {
+        throw std::invalid_argument(
+            "mapping/local_window_en is not supported by Super-LIO OctVox; it only owns capacity/LRU eviction");
+    }
+
     if (initialized_)
     {
         clear();
@@ -158,7 +171,8 @@ bool MapManager::initialized() const
 bool MapManager::supports_selected_backend() const
 {
     return config_.type == MapType::VoxelMap || config_.type == MapType::VoxelMapPlus ||
-           config_.type == MapType::IKDTree || config_.type == MapType::IVox || config_.type == MapType::C3PVoxelMap;
+           config_.type == MapType::IKDTree || config_.type == MapType::IVox || config_.type == MapType::C3PVoxelMap ||
+           config_.type == MapType::OctVox;
 }
 
 /**
@@ -178,6 +192,7 @@ void MapManager::configure_point_backends()
 {
     ikd_tree_.reset();
     ivox_.reset();
+    octvox_.reset();
 
     if (config_.type == MapType::IKDTree)
     {
@@ -209,6 +224,13 @@ void MapManager::configure_point_backends()
         }
         ivox_ = std::make_unique<IVoxBackend>(options);
     }
+    else if (config_.type == MapType::OctVox)
+    {
+        OctVoxBackend::Options options;
+        options.resolution = static_cast<float>(config_.octvox_resolution);
+        options.capacity   = std::max<std::size_t>(config_.octvox_capacity, 1);
+        octvox_            = std::make_unique<OctVoxBackend>(options);
+    }
 }
 
 /** @brief Clears all backend data, retained points, and window state. */
@@ -236,6 +258,7 @@ void MapManager::clear()
 
     ivox_.reset();
     ikd_tree_.reset();
+    octvox_.reset();
 
     map_points_.clear();
     initialized_ = false;
@@ -448,6 +471,10 @@ void MapManager::initialize(const MapPointList &points)
     {
         initialize_c3p(points);
     }
+    else if (config_.type == MapType::OctVox)
+    {
+        initialize_octvox(points);
+    }
     else
     {
         initialize_point_backend(points);
@@ -539,6 +566,57 @@ void MapManager::initialize_c3p(const MapPointList &points)
 }
 
 /**
+ * @brief Synchronizes the retained snapshot from OctVox's native sub-voxel map.
+ */
+void MapManager::refresh_octvox_snapshot()
+{
+    map_points_.clear();
+    if (!octvox_)
+    {
+        return;
+    }
+
+    const OctVoxBackend::Points native_points = octvox_->points();
+    map_points_.reserve(native_points.size());
+    for (const OctVoxPoint &point : native_points)
+    {
+        MapPoint map_point;
+        map_point.point_world = V3D(point.x(), point.y(), point.z());
+        map_points_.emplace_back(map_point);
+    }
+}
+
+/**
+ * @brief Initializes Super-LIO's native OctVox backend.
+ * @param points Initial world-frame points.
+ * @throws std::logic_error If OctVox is not selected.
+ */
+void MapManager::initialize_octvox(const MapPointList &points)
+{
+    if (config_.type != MapType::OctVox)
+    {
+        throw std::logic_error("OctVox initialization requested for a non-OctVox backend");
+    }
+
+    clear();
+    configure_point_backends();
+
+    OctVoxBackend::Points native_points;
+    native_points.reserve(points.size());
+    for (const MapPoint &point : points)
+    {
+        native_points.emplace_back(point.point_world.cast<float>());
+    }
+    if (octvox_ && !native_points.empty())
+    {
+        octvox_->insert(native_points);
+    }
+
+    refresh_octvox_snapshot();
+    initialized_ = true;
+}
+
+/**
  * @brief Initializes VoxelMap from native points.
  * @param points Native VoxelMap points.
  * @throws std::logic_error If VoxelMap is not selected.
@@ -622,6 +700,17 @@ void MapManager::update(const MapPointList &points, const std::uint32_t frame_nu
         else
         {
             update_c3p(points, frame_number);
+        }
+    }
+    else if (config_.type == MapType::OctVox)
+    {
+        if (!initialized_)
+        {
+            initialize_octvox(points);
+        }
+        else
+        {
+            update_octvox(points);
         }
     }
     else
@@ -863,6 +952,35 @@ void MapManager::update_c3p(const MapPointList &points, const std::uint32_t fram
 }
 
 /**
+ * @brief Inserts one frame using Super-LIO's native OctVox LRU aggregation.
+ * @param points New world-frame points.
+ */
+void MapManager::update_octvox(const MapPointList &points)
+{
+    if (!initialized_)
+    {
+        initialize_octvox(points);
+        return;
+    }
+    if (!octvox_)
+    {
+        configure_point_backends();
+    }
+
+    OctVoxBackend::Points native_points;
+    native_points.reserve(points.size());
+    for (const MapPoint &point : points)
+    {
+        native_points.emplace_back(point.point_world.cast<float>());
+    }
+    if (octvox_ && !native_points.empty())
+    {
+        octvox_->insert(native_points);
+    }
+    refresh_octvox_snapshot();
+}
+
+/**
  * @brief Updates VoxelMap from native points.
  * @param points New native VoxelMap points.
  * @param frame_number Unused by VoxelMap; retained for API uniformity.
@@ -1011,6 +1129,10 @@ void MapManager::search(const MapPointList &points, PlaneMatchList &matches, std
         }
         non_match = std::move(native_non_match);
     }
+    else if (config_.type == MapType::OctVox)
+    {
+        search_octvox(points, matches, non_match);
+    }
     else
     {
         search_point_backend(points, matches, non_match);
@@ -1149,6 +1271,116 @@ void MapManager::search_c3p(const MapPointList &points, PlaneMatchList &matches,
 }
 
 /**
+ * @brief Searches OctVox with its native TopK and local-plane acceptance rules.
+ *
+ * The plane builder intentionally matches Super-LIO: up to five TopK points,
+ * four-point fallback, 0.1 m neighbor-plane threshold, and the
+ * range-versus-residual gate.  No covariance-derived weight is produced here.
+ */
+void MapManager::search_octvox(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match)
+{
+    matches.clear();
+    non_match.clear();
+    matches.reserve(points.size());
+    non_match.reserve(points.size());
+
+    const auto build_plane = [](const int count, const std::array<OctVoxPoint, 5> &neighbors, V3D &normal,
+                                double &offset) {
+        Eigen::Vector3d normal_unnormalized;
+        if (count == 5)
+        {
+            Eigen::Matrix<double, 5, 3> system;
+            Eigen::Matrix<double, 5, 1> rhs;
+            for (int index = 0; index < 5; ++index)
+            {
+                system.row(index) = neighbors[static_cast<std::size_t>(index)].cast<double>();
+                rhs(index)        = -1.0;
+            }
+            normal_unnormalized = system.colPivHouseholderQr().solve(rhs);
+        }
+        else
+        {
+            Eigen::Matrix<double, 4, 3> system;
+            Eigen::Matrix<double, 4, 1> rhs;
+            for (int index = 0; index < 4; ++index)
+            {
+                system.row(index) = neighbors[static_cast<std::size_t>(index)].cast<double>();
+                rhs(index)        = -1.0;
+            }
+            normal_unnormalized = system.colPivHouseholderQr().solve(rhs);
+        }
+
+        const double norm = normal_unnormalized.norm();
+        if (norm < 1e-6)
+        {
+            return false;
+        }
+        offset = 1.0 / norm;
+        normal = normal_unnormalized * offset;
+        for (int index = 0; index < count; ++index)
+        {
+            const double distance = normal.dot(neighbors[static_cast<std::size_t>(index)].cast<double>()) + offset;
+            if (std::abs(distance) > 0.1)
+            {
+                return false;
+            }
+        }
+        return true;
+    };
+
+    for (const MapPoint &point : points)
+    {
+        if (!octvox_)
+        {
+            non_match.emplace_back(point.point_world);
+            continue;
+        }
+
+        OctVoxBackend::KNNHeapType top_k;
+        top_k.reset();
+        octvox_->getTopK(point.point_world.cast<float>(), top_k);
+        if (top_k.count < 4)
+        {
+            non_match.emplace_back(point.point_world);
+            continue;
+        }
+
+        V3D normal;
+        double offset = 0.0;
+        if (!build_plane(top_k.count, top_k.points_, normal, offset))
+        {
+            non_match.emplace_back(point.point_world);
+            continue;
+        }
+
+        const double residual = normal.dot(point.point_world) + offset;
+        const double range    = point.point_lidar.norm();
+        if (!(range > 81.0 * residual * residual))
+        {
+            non_match.emplace_back(point.point_world);
+            continue;
+        }
+
+        PlaneMatch match;
+        match.map_type    = MapType::OctVox;
+        match.point       = point.point_lidar;
+        match.point_world = point.point_world;
+        match.normal      = normal;
+        match.omega       = normal;
+        match.omega_norm  = 1.0;
+        match.d           = offset;
+        match.distance    = residual;
+        match.center.setZero();
+        for (int index = 0; index < top_k.count; ++index)
+        {
+            match.center += top_k.points_[static_cast<std::size_t>(index)].cast<double>();
+        }
+        match.center /= static_cast<double>(top_k.count);
+        matches.emplace_back(match);
+    }
+}
+
+/**
  * @brief Searches VoxelMap and returns native matches.
  * @param points Native VoxelMap query points.
  * @param matches Output native matches.
@@ -1246,6 +1478,10 @@ void MapManager::erase_outside_window(const MapWindow &window)
     else if (config_.type == MapType::C3PVoxelMap)
     {
         erase_outside_c3p_window(window);
+    }
+    else if (config_.type == MapType::OctVox)
+    {
+        throw std::logic_error("OctVox does not support geometric local-window deletion");
     }
     filter_snapshot_to_window(window);
 }
@@ -1422,6 +1658,10 @@ size_t MapManager::size() const
     if (config_.type == MapType::C3PVoxelMap)
     {
         return c3p_voxel_map_.size();
+    }
+    if (config_.type == MapType::OctVox)
+    {
+        return octvox_ ? octvox_->size() : 0;
     }
     return 0;
 }

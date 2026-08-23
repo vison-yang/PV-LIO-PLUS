@@ -61,6 +61,11 @@ bool Config::Load(ros::NodeHandle& nh)
         return false;
     }
     nh.param<bool>("mapping/local_window_en", map_manager_config_->local_window_enabled, false);
+    if (map_manager_config_->type == MapType::OctVox && map_manager_config_->local_window_enabled)
+    {
+        ROS_FATAL("mapping/local_window_en is not supported by Super-LIO OctVox; disable it or select another map_type");
+        return false;
+    }
     nh.param<int>("mapping/nearest_point_count", map_manager_config_->nearest_point_count, NUM_MATCH_POINTS);
     nh.param<double>("mapping/nearest_max_range", map_manager_config_->nearest_max_range, 5.0);
     nh.param<double>("mapping/plane_fit_threshold", map_manager_config_->plane_fit_threshold, 0.1);
@@ -75,6 +80,11 @@ bool Config::Load(ros::NodeHandle& nh)
     int ivox_capacity = static_cast<int>(map_manager_config_->ivox_capacity);
     nh.param<int>("mapping/ivox_capacity", ivox_capacity, 1000000);
     map_manager_config_->ivox_capacity = static_cast<std::size_t>(std::max(ivox_capacity, 1));
+
+    nh.param<double>("mapping/octvox_resolution", map_manager_config_->octvox_resolution, 0.5);
+    int octvox_capacity = static_cast<int>(map_manager_config_->octvox_capacity);
+    nh.param<int>("mapping/octvox_capacity", octvox_capacity, 1000000);
+    map_manager_config_->octvox_capacity = static_cast<std::size_t>(std::max(octvox_capacity, 1));
 
     nh.param<bool>("mapping/c3p_enable_voxel_merging", map_manager_config_->c3p_enable_voxel_merging, false);
     nh.param<double>("mapping/c3p_merge_theta_thresh", map_manager_config_->c3p_merge_theta_thresh, 0.05);

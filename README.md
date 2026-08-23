@@ -10,7 +10,7 @@ which follows the probabilistic voxel-map idea of
 iterated-filter structure of FAST-LIO.
 
 The project keeps the original PV-LIO, VoxelMap, and VoxelMap++ fixes and
-optimizations, and adds a `MapManager` for selecting and comparing five local
+optimizations, and adds a `MapManager` for selecting and comparing six local
 maps from one configuration file. All integrated map sources are kept inside
 this package; the full external LIO packages are not linked into PV-LIO-PLUS.
 
@@ -44,6 +44,7 @@ bundles the local-map layers under `include/map_manager/native/`.
 | FAST-LIO2 / ikd-tree | `include/map_manager/native/ikdtree` | `ikdtree` | FAST-LIO2's incremental KD-tree map. |
 | Faster-LIO / iVox | `include/map_manager/native/ivox` | `ivox` | Faster-LIO's sparse incremental voxel map. |
 | C3P-VoxelMap | `include/map_manager/native/c3p_voxelmap` | `c3p_voxelmap` | Compact probabilistic voxel map with native plane matching and merging. |
+| Super-LIO / OctVox | `include/map_manager/native/octvox` | `octvox` | LRU octant-aggregated point map with native ordered TopK, 4/5-point plane fitting, and fixed observation information. |
 
 FAST-LIO2 and Faster-LIO are therefore represented through ikd-tree and iVox.
 Their complete nodes are not included in this repository; obtain and build the
@@ -58,7 +59,6 @@ They are neither bundled with PV-LIO-PLUS nor required to build it.
 | --- | --- | --- |
 | Hybrid-VoxelMap | [Hybrid-VoxelMap](https://github.com/haiyang2022/Hybrid-VoxelMap) | Candidate; hybrid voxel/plane representation. |
 | R-VoxelMap | [R-VoxelMap](https://github.com/NKU-MobFly-Robotics/R-VoxelMap) | Candidate; robust recursive voxel-plane estimation. |
-| Super-LIO / OctVox | [Super-LIO](https://github.com/Liansheng-Wang/Super-LIO/tree/ros1) | Candidate; OctVox is an internal map structure of Super-LIO. |
 | BIEVR-LIO | [BIEVR-LIO](https://github.com/ethz-asl/BIEVR-LIO) | Candidate; voxelized map with map-informed sampling and geometric statistics. |
 | Surfel-LIO / hVox | [Surfel-LIO](https://github.com/93won/lidar_inertial_odometry) | Candidate; hierarchical voxel hash with precomputed surfels. |
 | LIO-GVM | [LIO-GVM](https://github.com/Ji1Xingyu/lio_gvm) | Candidate; Gaussian voxel map and Gaussian-based scan matching. |
@@ -83,13 +83,16 @@ MapManager
     |-- VoxelMap++
     |-- ikd-tree
     |-- iVox
-    `-- C3P-VoxelMap
+    |-- C3P-VoxelMap
+    `-- OctVox
 ```
 
 VoxelMap and VoxelMap++ keep native plane-map matching. ikd-tree and iVox keep
 their point-map search and use the manager's plane-fitting adapter. C3P-VoxelMap
-uses its native plane-map implementation. This separation makes map-level
-comparisons possible without changing the LIO state-estimation loop.
+uses its native plane-map implementation. OctVox keeps its native ordered TopK,
+plane gates, and fixed information observation rather than reusing the iVox
+weighting path. This separation makes map-level comparisons possible without
+changing the LIO state-estimation loop.
 
 ## Requirements and build
 
@@ -116,12 +119,13 @@ Set the backend in the PV-LIO-PLUS YAML configuration:
 
 ```yaml
 mapping:
-  map_type: ikdtree   # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap
+  map_type: octvox    # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap, octvox
 ```
 
 The local-window mode is selected with the existing `mapping` window
 parameters. Backend-specific parameters remain in the same configuration file
-and are ignored when another backend is selected.
+and are ignored when another backend is selected. `octvox` retains Super-LIO's
+capacity/LRU eviction and rejects geometric local-window mode.
 
 ## Run
 
@@ -148,6 +152,7 @@ files are written under the configured output directory:
 | `ikdtree` | `pv_lio_ikdtree_pos.txt` | `pv_lio_ikdtree.pcd` |
 | `ivox` | `pv_lio_ivox_pos.txt` | `pv_lio_ivox.pcd` |
 | `c3p_voxelmap` | `pv_lio_c3p_voxelmap_pos.txt` | `pv_lio_c3p_voxelmap.pcd` |
+| `octvox` | `pv_lio_octvox_pos.txt` | `pv_lio_octvox.pcd` |
 
 The trajectory is stored as timestamped pose records. Point-cloud chunks may
 also be written under `output/PCD/` according to the configured scan-saving
@@ -171,9 +176,9 @@ clarification before public redistribution of those local copies.
 - [FAST-LIO / ikd-tree](https://github.com/hku-mars/FAST_LIO)
 - [Faster-LIO / iVox](https://github.com/gaoxiang12/faster-lio)
 - [C3P-VoxelMap](https://github.com/deptrum/c3p-voxelmap)
+- [Super-LIO / OctVox](https://github.com/Liansheng-Wang/Super-LIO/tree/ros1)
 - [Hybrid-VoxelMap](https://github.com/haiyang2022/Hybrid-VoxelMap)
 - [R-VoxelMap](https://github.com/NKU-MobFly-Robotics/R-VoxelMap)
-- [Super-LIO](https://github.com/Liansheng-Wang/Super-LIO/tree/ros1)
 - [BIEVR-LIO](https://github.com/ethz-asl/BIEVR-LIO)
 - [Surfel-LIO](https://github.com/93won/lidar_inertial_odometry)
 - [LIO-GVM](https://github.com/Ji1Xingyu/lio_gvm)

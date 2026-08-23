@@ -1,6 +1,6 @@
 # PV-LIO-PLUS Project Plan
 
-## 0. Current status (2026-08-20)
+## 0. Current status (2026-08-23)
 
 Legend: `[x]` verified completed, `[ ]` not completed, and `[-]` planned
 but only partially evidenced. A checked item means that the stated scope was
@@ -9,12 +9,15 @@ accuracy or deployment validation is complete.
 
 ### Completed
 
-- [x] Five selectable backends are integrated: VoxelMap, VoxelMap++, ikd-tree,
-  iVox, and C3P-VoxelMap.
+- [x] Six selectable backends are integrated: VoxelMap, VoxelMap++, ikd-tree,
+  iVox, C3P-VoxelMap, and Super-LIO's OctVox.
 - [x] `MapManager` provides common backend lifecycle and configuration entry
   points.
 - [x] C3P has an independent observation-model path; ikd-tree and iVox share
   the point-neighborhood plane-fitting path.
+- [x] OctVox retains its native octant aggregation, capacity/LRU, ordered TopK,
+  4/5-point plane gate, range gate, and fixed information observation; its
+  geometric local-window mode is explicitly unsupported.
 - [x] The automated runner builds first with the `.vscode/tasks.json` command,
   validates bag topic/message types, runs combinations, and archives logs and
   outputs.
@@ -23,6 +26,9 @@ accuracy or deployment validation is complete.
   accuracy superiority.
 - [x] The test runner preserves generated launch files, configurations,
   commands, logs, status, trajectories, and PCD results in per-run folders.
+- [x] The runner builds only `pv_lio_plus`, supports a side-effect-free dry run,
+  records a run ID and source commit, and rejects stale, empty, non-finite, or
+  missing trajectory/PCD artifacts.
 
 ### Not completed yet
 
@@ -30,12 +36,12 @@ accuracy or deployment validation is complete.
   residual sign, distance semantics, and ownership has not been published.
 - [ ] Native residual/Jacobian/weight equivalence checks against every source
   backend have not been automated.
-- [ ] Numerical synthetic-plane tests, NaN/Inf checks, non-empty-output gates,
-  resource metrics, ATE/RPE, and regression tolerances are not implemented.
-- [ ] No Candidate local-map backend beyond the current five has been
-  integrated.
-- [ ] Candidate source/license feasibility and redistribution review remain
-  open for future imports.
+- [ ] Numerical synthetic-plane tests, resource metrics, ATE/RPE, and
+  regression tolerances are not implemented. Runtime NaN/Inf and non-empty
+  output gates are implemented in the runner.
+- [ ] R-VoxelMap cannot be copied or pushed until its upstream license is
+  supplied. Hybrid-VoxelMap needs semantic input and a tagged Plane/NDT
+  observation contract; it must not be represented as a plane-only adapter.
 - [ ] Map-only versus Native-stack experiment profiles have not yet been
   separated in the runner and result schema.
 
@@ -108,6 +114,7 @@ VoxelMap       -> native VoxelMap observation model
 VoxelMap++     -> native VoxelMap++ observation model
 C3P-VoxelMap   -> native C3P observation model
 ikd-tree/iVox  -> shared point-neighborhood-to-plane observation model
+OctVox         -> native ordered-TopK point-to-plane observation model
 ```
 
 Future Gaussian, surfel, or statistical-voxel methods must not be forced into a
@@ -157,6 +164,8 @@ The current selectable backends are:
 - `ikdtree`: FAST-LIO2 incremental ikd-tree with manager-side plane fitting;
 - `ivox`: Faster-LIO sparse incremental voxel map with manager-side plane fitting;
 - `c3p_voxelmap`: C3P-VoxelMap native probabilistic voxel-plane matching.
+- `octvox`: Super-LIO OctVox with native octant aggregation, ordered TopK, and
+  fixed information point-to-plane observations.
 
 ### 3.2 Current integration infrastructure
 
@@ -174,7 +183,7 @@ The current selectable backends are:
 
 ### Phase 0 - Freeze the baseline contract
 
-- [x] Record the five current backend names and output-file stems.
+- [x] Record the six current backend names and output-file stems.
 - [x] Record LiDAR/IMU topic and message-type requirements in the test
   manifest format.
 - [x] Separate C3P observation construction from ikd-tree/iVox observation
@@ -190,8 +199,8 @@ The current selectable backends are:
 - [x] Run Avia and SOLID/S3 data through all five backends.
 - [x] Archive per-combination logs, generated launch files, configurations,
   trajectories, and PCD outputs.
-- [ ] Add automated checks that every successful run produced a non-empty
-  trajectory and expected map artifact.
+- [x] Add automated checks that every successful run produced a new, non-empty,
+  finite trajectory and a new PCD artifact with positive `POINTS`.
 - [ ] Add numerical residual/Jacobian checks for VoxelMap, VoxelMap++, C3P,
   ikd-tree, and iVox using synthetic planes.
 - [ ] Audit backend-specific numerical assumptions before changing them,
@@ -218,6 +227,11 @@ The current selectable backends are:
 
 Candidates should be integrated one at a time, in this order of increasing
 observation-model risk:
+
+OctVox was integrated on 2026-08-23 because its source is GPL-3.0-or-later and
+its native TopK-to-plane observation can be retained exactly. R-VoxelMap is
+blocked by an absent upstream license; Hybrid-VoxelMap is blocked on semantic
+input and its Plane/NDT dual-residual contract.
 
 1. **Hybrid-VoxelMap and R-VoxelMap**
    - first assess whether their native output is still a probabilistic plane;

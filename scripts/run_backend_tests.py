@@ -21,13 +21,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import re
+import shlex
 import shutil
 import signal
 import subprocess
 import sys
 import time
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -41,6 +44,7 @@ BACKENDS = {
     "ikdtree": "pv_lio_ikdtree",
     "ivox": "pv_lio_ivox",
     "c3p_voxelmap": "pv_lio_c3p_voxelmap",
+    "octvox": "pv_lio_octvox",
 }
 BACKEND_ALIASES = {
     "voxel_map": "voxelmap",
@@ -52,6 +56,8 @@ BACKEND_ALIASES = {
     "ivox3d": "ivox",
     "c3p": "c3p_voxelmap",
     "c3p-voxelmap": "c3p_voxelmap",
+    "oct_vox": "octvox",
+    "oct-vox": "octvox",
 }
 LIDAR_TYPES = {
     "1": (1, "livox_ros_driver/CustomMsg"),
@@ -111,6 +117,23 @@ def read_manifest(path: Path) -> Dict[str, Any]:
     if not isinstance(data, dict) or not isinstance(data.get("datasets"), list):
         die("manifest must be an object containing a 'datasets' array")
     return data
+
+
+def make_run_id() -> str:
+    """Return a collision-resistant, UTC-readable identifier for one invocation."""
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    return f"{timestamp}-{uuid.uuid4().hex[:8]}"
+
+
+def source_git_commit(source_root: Path) -> str:
+    """Return the source repository commit without changing repository state."""
+    try:
+        result = subprocess.run(["git", "-C", str(source_root), "rev-parse", "HEAD"],
+                                capture_output=True, text=True, timeout=10, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return "unknown"
+    commit = result.stdout.strip()
+    return commit if result.returncode == 0 and commit else "unknown"
 
 
 def ros_master_alive(env: Dict[str, str]) -> bool:
@@ -301,6 +324,125 @@ def snapshot_files(root: Path) -> Dict[Path, int]:
     return {path: path.stat().st_mtime_ns for path in root.rglob("*") if path.is_file()}
 
 
+def output_is_new(path: Path, before: Dict[Path, int]) -> bool:
+    """Whether *path* is a regular file created or changed after the snapshot."""
+    if not path.is_file():
+        return False
+    old_time = before.get(path)
+    return old_time is None or path.stat().st_mtime_ns > old_time
+
+
+def read_trajectory_check(path: Path, before: Dict[Path, int]) -> Dict[str, Any]:
+    """Validate a newly written trajectory and report machine-readable details."""
+    result: Dict[str, Any] = {
+        "path": str(path),
+        "exists": path.is_file(),
+        "new": output_is_new(path, before),
+        "non_empty": False,
+        "finite": False,
+        "rows": 0,
+        "error": None,
+    }
+    if not result["exists"]:
+        result["error"] = "trajectory file is missing"
+        return result
+    if not result["new"]:
+        result["error"] = "trajectory file was not created or changed by this run"
+        return result
+    try:
+        if path.stat().st_size == 0:
+            result["error"] = "trajectory file is empty"
+            return result
+        finite = True
+        with path.open("r", encoding="utf-8") as trajectory:
+            for line_number, line in enumerate(trajectory, start=1):
+                fields = line.split()
+                if not fields:
+                    continue
+                result["non_empty"] = True
+                result["rows"] += 1
+                for field in fields:
+                    try:
+                        value = float(field)
+                    except ValueError:
+                        result["error"] = f"trajectory line {line_number} contains a non-numeric value"
+                        return result
+                    if not math.isfinite(value):
+                        finite = False
+                        result["error"] = f"trajectory line {line_number} contains NaN or Inf"
+                        return result
+        result["finite"] = finite
+        if not result["non_empty"]:
+            result["error"] = "trajectory has no non-empty rows"
+    except (OSError, UnicodeError) as exc:
+        result["error"] = f"cannot read trajectory: {exc}"
+    return result
+
+
+def read_pcd_check(path: Path, before: Dict[Path, int]) -> Dict[str, Any]:
+    """Validate a newly written PCD and its positive POINTS header."""
+    result: Dict[str, Any] = {
+        "path": str(path),
+        "exists": path.is_file(),
+        "new": output_is_new(path, before),
+        "non_empty": False,
+        "points": None,
+        "error": None,
+    }
+    if not result["exists"]:
+        result["error"] = "PCD file is missing"
+        return result
+    if not result["new"]:
+        result["error"] = "PCD file was not created or changed by this run"
+        return result
+    try:
+        result["non_empty"] = path.stat().st_size > 0
+        if not result["non_empty"]:
+            result["error"] = "PCD file is empty"
+            return result
+        points: Optional[int] = None
+        data_seen = False
+        with path.open("rb") as pcd:
+            for raw_line in pcd:
+                line = raw_line.decode("ascii", errors="ignore").strip()
+                if not line:
+                    continue
+                fields = line.split()
+                key = fields[0].upper()
+                if key == "POINTS" and len(fields) >= 2:
+                    try:
+                        points = int(fields[1])
+                    except ValueError:
+                        result["error"] = "PCD POINTS header is not an integer"
+                        return result
+                if key == "DATA":
+                    data_seen = True
+                    break
+        result["points"] = points
+        if points is None:
+            result["error"] = "PCD header has no POINTS field"
+        elif points <= 0:
+            result["error"] = f"PCD POINTS must be greater than zero (got {points})"
+        elif not data_seen:
+            result["error"] = "PCD header has no DATA field"
+    except (OSError, UnicodeError) as exc:
+        result["error"] = f"cannot read PCD: {exc}"
+    return result
+
+
+def validate_backend_outputs(output_root: Path, stem: str, before: Dict[Path, int]) -> Dict[str, Any]:
+    """Validate both artifacts produced by one backend replay."""
+    trajectory = read_trajectory_check(output_root / f"{stem}_pos.txt", before)
+    pcd = read_pcd_check(output_root / f"{stem}.pcd", before)
+    errors = [check["error"] for check in (trajectory, pcd) if check["error"]]
+    return {
+        "valid": not errors,
+        "trajectory": trajectory,
+        "pcd": pcd,
+        "errors": errors,
+    }
+
+
 def copy_changed_outputs(output_root: Path, run_dir: Path, before: Dict[Path, int], stem: str) -> List[str]:
     copied: List[str] = []
     if not output_root.exists():
@@ -330,19 +472,22 @@ def wait_for_backend_outputs(output_root: Path, stem: str, before: Dict[Path, in
     expected = (output_root / f"{stem}_pos.txt", output_root / f"{stem}.pcd")
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        for path in expected:
-            if path.is_file() and (path not in before or path.stat().st_mtime_ns > before[path]):
-                return
+        if all(output_is_new(path, before) for path in expected):
+            return
         time.sleep(0.25)
 
 
-def build_workspace(workspace_root: Path, results_root: Path) -> None:
+def build_workspace(workspace_root: Path, results_root: Path, run_id: str = "unknown",
+                    source_commit: str = "unknown") -> None:
     """Build the exact source tree before any replay is started."""
     build_log_path = results_root / "build.log"
     build_record = {
         "workspace": str(workspace_root),
         "command": ["/bin/bash", "-c",
-                    "source /opt/ros/noetic/setup.bash && catkin_make -j6 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"],
+                    "source /opt/ros/noetic/setup.bash && catkin_make --pkg pv_lio_plus -j6 "
+                    "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"],
+        "run_id": run_id,
+        "source_commit": source_commit,
         "started_at": datetime.now(timezone.utc).isoformat(),
     }
     build_env = dict(os.environ)
@@ -360,6 +505,40 @@ def build_workspace(workspace_root: Path, results_root: Path) -> None:
         die(f"catkin_make failed with code {result.returncode}; see {build_log_path}")
 
 
+def workspace_ros_environment(workspace_root: Path, base_env: Dict[str, str]) -> Dict[str, str]:
+    """Load the built workspace overlay for roscore, roslaunch, and rosbag.
+
+    The caller may invoke this script from any shell or device.  Extracting the
+    environment from ``devel/setup.bash`` avoids relying on a pre-sourced
+    workspace, which otherwise makes a successful build look like a missing
+    ``pv_lio_plus`` package at launch time.
+    """
+    setup = workspace_root / "devel" / "setup.bash"
+    if not setup.is_file():
+        die(f"workspace setup file is missing after build: {setup}")
+    command = (
+        "source /opt/ros/noetic/setup.bash && "
+        f"source {shlex.quote(str(setup))} && env -0"
+    )
+    try:
+        result = subprocess.run(["/bin/bash", "-c", command], env=base_env,
+                                capture_output=True, check=False, timeout=30)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        die(f"cannot load workspace ROS environment: {exc}")
+    if result.returncode != 0:
+        detail = result.stderr.decode(errors="replace").strip()
+        die(f"cannot source workspace setup {setup}: {detail or 'exit code ' + str(result.returncode)}")
+    environment: Dict[str, str] = {}
+    for item in result.stdout.split(b"\0"):
+        if not item or b"=" not in item:
+            continue
+        key, value = item.split(b"=", 1)
+        environment[os.fsdecode(key)] = os.fsdecode(value)
+    if not environment.get("ROS_PACKAGE_PATH"):
+        die(f"workspace setup did not provide ROS_PACKAGE_PATH: {setup}")
+    return environment
+
+
 def terminate_process(process: subprocess.Popen[Any], label: str) -> int:
     if process.poll() is not None:
         return int(process.returncode)
@@ -374,13 +553,15 @@ def terminate_process(process: subprocess.Popen[Any], label: str) -> int:
 
 
 def run_one(dataset: Dataset, backend: str, args: argparse.Namespace,
-            env: Dict[str, str], output_root: Path) -> Dict[str, Any]:
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    run_dir = Path(args.results_root).expanduser().resolve() / dataset.name / backend / stamp
+            env: Dict[str, str], output_root: Path, run_id: str = "unknown",
+            source_commit: str = "unknown") -> Dict[str, Any]:
+    run_dir = Path(args.results_root).expanduser().resolve() / dataset.name / backend / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
     dataset_record = dict(dataset.__dict__)
     dataset_record["bag"] = str(dataset.bag)
     dataset_record["config"] = str(dataset.config)
+    dataset_record["run_id"] = run_id
+    dataset_record["source_commit"] = source_commit
     (run_dir / "dataset.json").write_text(json.dumps(dataset_record, indent=2, ensure_ascii=False) + "\n",
                                            encoding="utf-8")
     shutil.copy2(dataset.config, run_dir / "base_config.yaml")
@@ -397,8 +578,12 @@ def run_one(dataset: Dataset, backend: str, args: argparse.Namespace,
     before = snapshot_files(output_root)
     launch_command = ["roslaunch", str(launch_file)]
     bag_command = build_bag_command(dataset)
-    (run_dir / "commands.json").write_text(json.dumps({"roslaunch": launch_command, "rosbag": bag_command},
-                                                        indent=2) + "\n", encoding="utf-8")
+    (run_dir / "commands.json").write_text(json.dumps({
+        "run_id": run_id,
+        "source_commit": source_commit,
+        "roslaunch": launch_command,
+        "rosbag": bag_command,
+    }, indent=2) + "\n", encoding="utf-8")
 
     launch_process: Optional[subprocess.Popen[Any]] = None
     bag_process: Optional[subprocess.Popen[Any]] = None
@@ -438,10 +623,18 @@ def run_one(dataset: Dataset, backend: str, args: argparse.Namespace,
 
     wait_for_backend_outputs(output_root, BACKENDS[backend], before)
     copied = copy_changed_outputs(output_root, run_dir, before, BACKENDS[backend])
+    output_checks = validate_backend_outputs(output_root, BACKENDS[backend], before)
+    output_error = "; ".join(output_checks["errors"])
+    if output_error:
+        error = f"output validation failed: {output_error}" if error is None else f"{error}; {output_error}"
     status = {
-        "dataset": dataset.name, "backend": backend, "success": error is None and bag_code == 0,
+        "run_id": run_id,
+        "source_commit": source_commit,
+        "dataset": dataset.name, "backend": backend,
+        "success": error is None and bag_code == 0 and output_checks["valid"],
         "error": error, "roslaunch_exit_code": launch_code, "rosbag_exit_code": bag_code,
         "duration_sec": round(time.time() - started, 3), "copied_results": copied,
+        "output_checks": output_checks,
     }
     (run_dir / "status.json").write_text(json.dumps(status, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return status
@@ -462,6 +655,8 @@ def main() -> int:
     parser.add_argument("--skip-topic-check", action="store_true",
                         help="skip rosbag info type/topic validation")
     parser.add_argument("--continue-on-error", action="store_true")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="print the test matrix and commands without building, starting ROS, or creating files")
     args = parser.parse_args()
 
     manifest_path = args.manifest.expanduser().resolve()
@@ -479,6 +674,25 @@ def main() -> int:
     if not algorithms:
         die("at least one backend is required")
 
+    workspace_root = Path(__file__).resolve().parents[3]
+    source_root = Path(__file__).resolve().parents[1]
+    run_id = make_run_id()
+    source_commit = source_git_commit(source_root)
+    if args.dry_run:
+        print(f"Dry run: run_id={run_id} source_commit={source_commit}")
+        print(f"Workspace: {workspace_root}")
+        print(f"Matrix: {len(datasets) * len(algorithms)} combination(s)")
+        for dataset in datasets:
+            print(f"[DATASET] {dataset.name}")
+            print(f"  bag: {dataset.bag}")
+            print(f"  config: {dataset.config}")
+            print(f"  lidar: {dataset.lidar_topic} ({dataset.lidar_message_type})")
+            print(f"  imu: {dataset.imu_topic} ({dataset.imu_message_type})")
+            print(f"  rosbag: {' '.join(build_bag_command(dataset))}")
+            for backend in algorithms:
+                print(f"  roslaunch[{backend}]: roslaunch <generated/{dataset.name}/{backend}.launch>")
+        return 0
+
     env = dict(os.environ)
     env["ROS_MASTER_URI"] = args.master_uri
     results_root = args.results_root.expanduser().resolve()
@@ -487,7 +701,9 @@ def main() -> int:
     # The node's ROOT_DIR is compile-time fixed and the node does not create
     # its root output directory before writing the final trajectory/PCD.
     output_root.mkdir(parents=True, exist_ok=True)
-    build_workspace(Path(__file__).resolve().parents[3], results_root)
+    build_workspace(workspace_root, results_root, run_id, source_commit)
+    env = workspace_ros_environment(workspace_root, env)
+    env["ROS_MASTER_URI"] = args.master_uri
     results: List[Dict[str, Any]] = []
     guard = RoscoreGuard(env, results_root / "roscore.log")
     try:
@@ -497,7 +713,7 @@ def main() -> int:
                 verify_topics(dataset, env)
             for backend in algorithms:
                 print(f"[RUN] dataset={dataset.name} backend={backend}", flush=True)
-                status = run_one(dataset, backend, args, env, output_root)
+                status = run_one(dataset, backend, args, env, output_root, run_id, source_commit)
                 results.append(status)
                 print(f"[{'PASS' if status['success'] else 'FAIL'}] dataset={dataset.name} backend={backend}", flush=True)
                 if not status["success"] and not args.continue_on_error:
@@ -508,7 +724,14 @@ def main() -> int:
     finally:
         guard.stop()
 
-    summary = {"results": results, "count": len(results), "passed": sum(x["success"] for x in results)}
+    summary = {
+        "run_id": run_id,
+        "source_commit": source_commit,
+        "workspace": str(workspace_root),
+        "results": results,
+        "count": len(results),
+        "passed": sum(x["success"] for x in results),
+    }
     summary_path = results_root / "summary.json"
     summary_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"Summary: {summary['passed']}/{summary['count']} passed; see {summary_path}")

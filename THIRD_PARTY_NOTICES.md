@@ -26,6 +26,7 @@ otherwise retained from their upstream sources.
 | ikd-Tree | Native path/header adaptation and scoped compiler-warning handling | 2026-08-09; notice 2026-08-16 |
 | Faster-LIO iVox | Native path adaptation; iVox KNN safety fixes and removal of the glog dependency | 2026-08-09; notice 2026-08-16 |
 | C3P-VoxelMap | Distinct namespace/guard; hash and match-data adaptation; scoped compiler-warning handling | 2026-08-09; notice 2026-08-16 |
+| Super-LIO OctVox | Isolated native namespace; retained octant aggregation, capacity/LRU, and ordered TopK table; MapManager and native observation integration | 2026-08-23 |
 | MapManager | New common backend lifecycle, search, update, local-window, and map-publication interface | 2026-08-09; notice 2026-08-16 |
 
 Each modified native source file carries a corresponding source-level notice.
@@ -38,6 +39,7 @@ Each modified native source file carries a corresponding source-level notice.
 | VoxelMap | `include/map_manager/native/voxelmap/voxel_map_util.hpp` | <https://github.com/hku-mars/VoxelMap> | GPLv2; developers credited upstream: Chongjian Yuan and Wei Xu |
 | ikd-Tree | `include/map_manager/native/ikdtree/` | <https://github.com/hku-mars/ikd-Tree> | GPLv2; upstream implementation by Yixi Cai, with FAST-LIO2 integration credited to Wei Xu |
 | Faster-LIO iVox | `include/map_manager/native/ivox/` except `hilbert.hpp` | <https://github.com/gaoxiang12/faster-lio> | GPLv2; authors credited upstream: Chunge Bai, Tao Xiang, Yajie Chen, Haoqian Wang, Fang Zhang, and Xiang Gao |
+| Super-LIO OctVox | `include/map_manager/native/octvox/` | <https://github.com/Liansheng-Wang/Super-LIO/tree/ros1> | GPL-3.0-or-later; source retained under `LICENSES/GPL-3.0.txt`; OctVox is used without the full Super-LIO node |
 | Hilbert curve helper | `include/map_manager/native/ivox/hilbert.hpp` | <https://github.com/spectral3d/hilbert_hpp> | MIT; the complete upstream notice is retained in the file |
 | IKFoM toolkit | `include/IKFoM_toolkit/` | <https://github.com/hku-mars/IKFoM> | BSD-3-Clause; the original notices are retained in the source files |
 | LOAM/Livox mapping base | `src/mapping.cpp` | LOAM and Livox contributions | BSD-3-Clause; the complete notice is retained at the top of the source file |

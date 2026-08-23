@@ -34,6 +34,7 @@ class ImuProcess;
 #include "native/c3p_voxelmap/c3p_voxel_map_util.hpp"
 #include "native/ikdtree/ikd_tree.h"
 #include "native/ivox/ivox3d.h"
+#include "native/octvox/octvox_map.hpp"
 #include "native/voxelmap/voxel_map_util.hpp"
 #include "native/voxelmap_plus/voxelmapplus_util.hpp"
 
@@ -51,7 +52,9 @@ enum class MapType
     /// Faster-LIO's iVox point map.
     IVox,
     /// C3P-VoxelMap's compact probabilistic voxel-plane map.
-    C3PVoxelMap
+    C3PVoxelMap,
+    /// Super-LIO's LRU octant-aggregated OctVox point map.
+    OctVox
 };
 
 MapType ParseMapType(const std::string &name);
@@ -162,6 +165,11 @@ struct MapManagerConfig
     int ivox_nearby_type = 18;
     /// Maximum number of iVox grids.
     std::size_t ivox_capacity = 1000000;
+
+    /// Super-LIO OctVox grid resolution.
+    double octvox_resolution = 0.5;
+    /// Maximum OctVox grids retained by its native LRU policy.
+    std::size_t octvox_capacity = 1000000;
 
     /// Enables C3P-VoxelMap plane merging.
     bool c3p_enable_voxel_merging = false;
@@ -286,6 +294,10 @@ class MapManager
 
     void update_c3p(const MapPointList &points, std::uint32_t frame_number);
 
+    void initialize_octvox(const MapPointList &points);
+
+    void update_octvox(const MapPointList &points);
+
     void search_point_backend(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
 
     void search_ikd_tree(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
@@ -294,7 +306,11 @@ class MapManager
 
     void search_c3p(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
 
+    void search_octvox(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
+
     bool fit_point_plane(const MapPoint &query, const PointVector &neighbors, PlaneMatch &match, MapType backend) const;
+
+    void refresh_octvox_snapshot();
 
     void erase_outside_ikd_window(const MapWindow &window);
 
@@ -328,10 +344,16 @@ class MapManager
 
     /// Native Faster-LIO iVox type used by this manager.
     using IVoxBackend = faster_lio::IVox<3, faster_lio::IVoxNodeType::DEFAULT, PointType>;
+    /// Native Super-LIO OctVox point type used by this manager.
+    using OctVoxPoint = Eigen::Vector3f;
+    /// Native Super-LIO OctVox map used by this manager.
+    using OctVoxBackend = octvox_ns::OctVoxMap<OctVoxPoint>;
     /// Native FAST-LIO2 ikd-tree instance.
     std::unique_ptr<KD_TREE<PointType>> ikd_tree_;
     /// Native Faster-LIO iVox instance.
     std::unique_ptr<IVoxBackend> ivox_;
+    /// Native Super-LIO OctVox instance.
+    std::unique_ptr<OctVoxBackend> octvox_;
     /// Native C3P-VoxelMap storage.
     std::unordered_map<c3p_map_ns::VOXEL_LOC, c3p_map_ns::OctoTree *> c3p_voxel_map_;
     /// C3P plane descriptors and merged planes.

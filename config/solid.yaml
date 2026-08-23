@@ -19,7 +19,7 @@ preprocess:
     feature_extract_enable: false
 
 mapping:
-    map_type: ivox                         # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap
+    map_type: ivox                         # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap, octvox
     local_window_en: false
     down_sample_size: 0.5               # m
     max_iteration: 4
@@ -46,6 +46,9 @@ mapping:
     ivox_resolution: 0.5                # m
     ivox_nearby_type: 18                 # 0, 6, 18 or 26 neighboring voxels
     ivox_capacity: 200000
+
+    octvox_resolution: 0.5               # m; Super-LIO native octant grid
+    octvox_capacity: 200000              # native LRU grid capacity; local_window_en must stay false
 
     c3p_enable_voxel_merging: false
     c3p_merge_theta_thresh: 0.05

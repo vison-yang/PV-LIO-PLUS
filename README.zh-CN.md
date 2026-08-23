@@ -4,7 +4,7 @@
 
 PV-LIO-PLUS 是一个 ROS1 激光-惯性里程计（LIO）框架，使用相同的点面估计前端对比不同的局部地图模型。本项目主要继承自 [PV-LIO](https://github.com/HViktorTsoi/PV-LIO.git)，继承了 [VoxelMap](https://github.com/hku-mars/VoxelMap.git) 的概率体素地图思想，以及 FAST-LIO 的紧耦合迭代滤波结构。
 
-本项目保留了原 PV-LIO、VoxelMap 和 VoxelMap++ 中已有的问题修复与优化，并新增 `MapManager`，允许通过同一份配置文件选择和对比五种局部地图。所有已合入的地图源码都放在本包内部；PV-LIO-PLUS 不链接其它完整 LIO 工程的源码。
+本项目保留了原 PV-LIO、VoxelMap 和 VoxelMap++ 中已有的问题修复与优化，并新增 `MapManager`，允许通过同一份配置文件选择和对比六种局部地图。所有已合入的地图源码都放在本包内部；PV-LIO-PLUS 不链接其它完整 LIO 工程的源码。
 
 ## 主要工作
 
@@ -29,6 +29,7 @@ PV-LIO-PLUS 是一个 ROS1 激光-惯性里程计（LIO）框架，使用相同�
 | FAST-LIO2 / ikd-tree | `include/map_manager/native/ikdtree` | `ikdtree` | FAST-LIO2 的增量 KD-tree 地图。 |
 | Faster-LIO / iVox | `include/map_manager/native/ivox` | `ivox` | Faster-LIO 的稀疏增量体素地图。 |
 | C3P-VoxelMap | `include/map_manager/native/c3p_voxelmap` | `c3p_voxelmap` | 紧凑概率体素地图，使用原生平面匹配和地图合并逻辑。 |
+| Super-LIO / OctVox | `include/map_manager/native/octvox` | `octvox` | 保留有序 TopK、4/5 点拟平面和固定观测信息量的 LRU 八分体点地图。 |
 
 因此，FAST-LIO2 和 Faster-LIO 已经分别通过 ikd-tree 和 iVox 体现在已合入的局部地图后端中。本仓库不包含它们的完整节点；如需端到端基线对比，请另行获取并编译上游工程。
 
@@ -40,7 +41,6 @@ PV-LIO-PLUS 是一个 ROS1 激光-惯性里程计（LIO）框架，使用相同�
 | --- | --- | --- |
 | Hybrid-VoxelMap | [Hybrid-VoxelMap](https://github.com/haiyang2022/Hybrid-VoxelMap) | 候选；混合体素/平面表示。 |
 | R-VoxelMap | [R-VoxelMap](https://github.com/NKU-MobFly-Robotics/R-VoxelMap) | 候选；鲁棒递归体素平面估计。 |
-| Super-LIO / OctVox | [Super-LIO](https://github.com/Liansheng-Wang/Super-LIO/tree/ros1) | 候选；OctVox 是 Super-LIO 内部的地图结构。 |
 | BIEVR-LIO | [BIEVR-LIO](https://github.com/ethz-asl/BIEVR-LIO) | 候选；体素化地图、地图引导采样和几何统计。 |
 | Surfel-LIO / hVox | [Surfel-LIO](https://github.com/93won/lidar_inertial_odometry) | 候选；层次化体素哈希和预计算 surfel。 |
 | LIO-GVM | [LIO-GVM](https://github.com/Ji1Xingyu/lio_gvm) | 候选；高斯体素地图和基于高斯的点云匹配。 |
@@ -65,10 +65,11 @@ MapManager
   |-- VoxelMap++
   |-- ikd-tree
   |-- iVox
-  `-- C3P-VoxelMap
+  |-- C3P-VoxelMap
+  `-- OctVox
 ```
 
-VoxelMap 和 VoxelMap++ 保留原生平面地图匹配；ikd-tree 和 iVox 保留点地图搜索，并使用管理器中的平面拟合适配层；C3P-VoxelMap 使用原生平面地图实现。这样可以在不改变 LIO 状态估计循环的情况下进行局部地图对比。
+VoxelMap 和 VoxelMap++ 保留原生平面地图匹配；ikd-tree 和 iVox 保留点地图搜索，并使用管理器中的平面拟合适配层；C3P-VoxelMap 使用原生平面地图实现；OctVox 保留其原生有序 TopK、平面门限和固定信息观测，不复用 iVox 的协方差加权路径。这样可以在不改变 LIO 状态估计循环的情况下进行局部地图对比。
 
 ## 环境与编译
 
@@ -95,10 +96,10 @@ source devel/setup.bash
 
 ```yaml
 mapping:
-  map_type: ikdtree   # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap
+  map_type: octvox    # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap, octvox
 ```
 
-局部窗口模式使用现有的 `mapping` 窗口参数配置。各后端的专用参数仍放在同一配置文件中，选择其它后端时会被忽略。
+局部窗口模式使用现有的 `mapping` 窗口参数配置。各后端的专用参数仍放在同一配置文件中，选择其它后端时会被忽略。`octvox` 保留 Super-LIO 的容量/LRU 淘汰语义，因此会拒绝几何局部窗口模式。
 
 ## 运行
 
@@ -123,6 +124,7 @@ rosbag play --clock /path/to/your.bag
 | `ikdtree` | `pv_lio_ikdtree_pos.txt` | `pv_lio_ikdtree.pcd` |
 | `ivox` | `pv_lio_ivox_pos.txt` | `pv_lio_ivox.pcd` |
 | `c3p_voxelmap` | `pv_lio_c3p_voxelmap_pos.txt` | `pv_lio_c3p_voxelmap.pcd` |
+| `octvox` | `pv_lio_octvox_pos.txt` | `pv_lio_octvox.pcd` |
 
 轨迹文件保存带时间戳的位姿记录。根据点云保存配置，还可能在 `output/PCD/` 下生成分段点云。进行地图对比时，应对所有后端使用相同的数据包片段、传感器参数、窗口设置和输出目录组织方式。
 
@@ -141,9 +143,9 @@ C3P-VoxelMap 的上游许可证声明仍需进一步确认，在确认前不应�
 - [FAST-LIO / ikd-tree](https://github.com/hku-mars/FAST_LIO)
 - [Faster-LIO / iVox](https://github.com/gaoxiang12/faster-lio)
 - [C3P-VoxelMap](https://github.com/deptrum/c3p-voxelmap)
+- [Super-LIO / OctVox](https://github.com/Liansheng-Wang/Super-LIO/tree/ros1)
 - [Hybrid-VoxelMap](https://github.com/haiyang2022/Hybrid-VoxelMap)
 - [R-VoxelMap](https://github.com/NKU-MobFly-Robotics/R-VoxelMap)
-- [Super-LIO](https://github.com/Liansheng-Wang/Super-LIO/tree/ros1)
 - [BIEVR-LIO](https://github.com/ethz-asl/BIEVR-LIO)
 - [Surfel-LIO](https://github.com/93won/lidar_inertial_odometry)
 - [LIO-GVM](https://github.com/Ji1Xingyu/lio_gvm)
