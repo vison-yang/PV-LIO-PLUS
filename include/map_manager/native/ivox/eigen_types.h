@@ -8,8 +8,8 @@
  *
  * Local modifications by PV-LIO-PLUS contributors:
  * - placed in the native backend include layout.
- * Modified: 2026-08-09; license notice updated: 2026-08-16.
- * No functional changes were made to these type definitions.
+ * - added an opt-in hash path without the legacy fixed modulus.
+ * Modified: 2026-08-27; license notice updated: 2026-08-16.
  */
 
 //
@@ -22,6 +22,8 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
+
+#include <cstdint>
 
 /// alias for eigen
 using Vec2i = Eigen::Vector2i;
@@ -65,6 +67,12 @@ struct hash_vec {
     inline size_t operator()(const Eigen::Matrix<int, N, 1>& v) const;
 };
 
+/// Faster hash used only by the opt-in iVox implementation.
+template <int N>
+struct fast_hash_vec {
+    inline size_t operator()(const Eigen::Matrix<int, N, 1>& v) const noexcept;
+};
+
 /// implementation
 template <>
 inline bool less_vec<2>::operator()(const Eigen::Matrix<int, 2, 1>& v1, const Eigen::Matrix<int, 2, 1>& v2) const {
@@ -87,6 +95,23 @@ inline size_t hash_vec<2>::operator()(const Eigen::Matrix<int, 2, 1>& v) const {
 template <>
 inline size_t hash_vec<3>::operator()(const Eigen::Matrix<int, 3, 1>& v) const {
     return size_t(((v[0]) * 73856093) ^ ((v[1]) * 471943) ^ ((v[2]) * 83492791)) % 10000000;
+}
+
+/// The unsigned products have defined wraparound and retain all hash bits.
+template <>
+inline size_t fast_hash_vec<2>::operator()(const Eigen::Matrix<int, 2, 1>& v) const noexcept {
+    const auto x = static_cast<std::uint64_t>(static_cast<std::uint32_t>(v[0]));
+    const auto y = static_cast<std::uint64_t>(static_cast<std::uint32_t>(v[1]));
+    return static_cast<size_t>((x * 73856093ULL) ^ (y * 471943ULL));
+}
+
+/// Three-dimensional variant used by PV-LIO-PLUS's optimized iVox map.
+template <>
+inline size_t fast_hash_vec<3>::operator()(const Eigen::Matrix<int, 3, 1>& v) const noexcept {
+    const auto x = static_cast<std::uint64_t>(static_cast<std::uint32_t>(v[0]));
+    const auto y = static_cast<std::uint64_t>(static_cast<std::uint32_t>(v[1]));
+    const auto z = static_cast<std::uint64_t>(static_cast<std::uint32_t>(v[2]));
+    return static_cast<size_t>((x * 73856093ULL) ^ (y * 471943ULL) ^ (z * 83492791ULL));
 }
 
 constexpr auto less_vec2i = [](const Vec2i& v1, const Vec2i& v2) {

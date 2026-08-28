@@ -11,7 +11,9 @@
 
 #include <Eigen/StdVector>
 #include <cstddef>
+#include <fstream>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "config.hpp"
@@ -77,6 +79,11 @@ class Mapping
     void InitializeMap();
     void UpdateMap();
 
+    // ----------------------------- Timing output ----------------------------
+    void OpenTimingLog();
+    void WriteTimingLog(double lidar_end_time, bool converged);
+    void CloseTimingLog();
+
     // ---------------------------- Sensor lifecycle ----------------------------
     bool first_scan_         = true;
     bool ekf_initialized_    = false;
@@ -117,6 +124,8 @@ class Mapping
     double avg_eseikf_time_       = 0.0;
     double avg_update_time_       = 0.0;
     double avg_total_time_        = 0.0;
+    std::ofstream timing_output_;
+    std::string timing_output_path_;
     PointCloudXYZI::Ptr feats_with_correspondence_{new PointCloudXYZI()};
 
     static Mapping* active_instance_;

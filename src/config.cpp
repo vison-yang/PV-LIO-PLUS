@@ -76,6 +76,7 @@ bool Config::Load(ros::NodeHandle& nh)
     nh.param<double>("mapping/ikd_box_length", map_manager_config_->ikd_box_length, 0.2);
     nh.param<double>("mapping/ivox_resolution", map_manager_config_->ivox_resolution, 0.2);
     nh.param<int>("mapping/ivox_nearby_type", map_manager_config_->ivox_nearby_type, 18);
+    nh.param<bool>("mapping/ivox_optimized", map_manager_config_->ivox_optimized, false);
 
     int ivox_capacity = static_cast<int>(map_manager_config_->ivox_capacity);
     nh.param<int>("mapping/ivox_capacity", ivox_capacity, 1000000);
@@ -106,6 +107,8 @@ bool Config::Load(ros::NodeHandle& nh)
     nh.param<bool>("publish/map_en", map_publish_en_, true);
     nh.param<bool>("pcd_save/pcd_save_en", pcd_save_en_, false);
     nh.param<int>("pcd_save/interval", pcd_save_interval_, -1);
+    nh.param<bool>("logging/timing_en", timing_log_en_, false);
+    nh.param<std::string>("logging/timing_path", timing_log_path_, std::string());
 
     // ------------------------------ Preprocessing -----------------------------
     nh.param<double>("preprocess/blind", preprocess_->blind, 0.01);

@@ -7,9 +7,9 @@
  * Original license: GPLv2. See LICENSE and THIRD_PARTY_NOTICES.md.
  *
  * Local modifications by PV-LIO-PLUS contributors:
- * - placed in the native backend include layout.
- * Modified: 2026-08-09; license notice updated: 2026-08-16.
- * No functional changes were made to the node implementation.
+ * - placed in the native backend include layout;
+ * - allow the KNN candidate container to use inline storage.
+ * Modified: 2026-08-27; license notice updated: 2026-08-16.
  */
 
 #include <pcl/common/centroid.h>
@@ -68,7 +68,8 @@ class IVoxNode {
 
     inline PointT GetPoint(const std::size_t idx) const;
 
-    int KNNPointByCondition(std::vector<DistPoint>& dis_points, const PointT& point, const int& K,
+    template <typename DistPointContainer>
+    int KNNPointByCondition(DistPointContainer& dis_points, const PointT& point, const int& K,
                             const double& max_range);
 
    private:
@@ -98,7 +99,8 @@ class IVoxNodePhc {
 
     bool NNPoint(const PointT& cur_pt, DistPoint& dist_point) const;
 
-    int KNNPointByCondition(std::vector<DistPoint>& dis_points, const PointT& cur_pt, const int& K = 5,
+    template <typename DistPointContainer>
+    int KNNPointByCondition(DistPointContainer& dis_points, const PointT& cur_pt, const int& K = 5,
                             const double& max_range = 5.0);
 
    private:
@@ -152,7 +154,8 @@ PointT IVoxNode<PointT, dim>::GetPoint(const std::size_t idx) const {
 }
 
 template <typename PointT, int dim>
-int IVoxNode<PointT, dim>::KNNPointByCondition(std::vector<DistPoint>& dis_points, const PointT& point, const int& K,
+template <typename DistPointContainer>
+int IVoxNode<PointT, dim>::KNNPointByCondition(DistPointContainer& dis_points, const PointT& point, const int& K,
                                                const double& max_range) {
     std::size_t old_size = dis_points.size();
 // #define INNER_TIMER
@@ -340,8 +343,9 @@ bool IVoxNodePhc<PointT, dim>::NNPoint(const PointT& cur_pt, DistPoint& dist_poi
 }
 
 template <typename PointT, int dim>
-int IVoxNodePhc<PointT, dim>::KNNPointByCondition(std::vector<DistPoint>& dis_points, const PointT& cur_pt,
-                                                  const int& K, const double& max_range) {
+template <typename DistPointContainer>
+int IVoxNodePhc<PointT, dim>::KNNPointByCondition(DistPointContainer& dis_points, const PointT& cur_pt, const int& K,
+                                                  const double& max_range) {
     uint32_t cur_idx = CalculatePhcIndex(cur_pt);
     PhcCube cube{cur_idx, cur_pt};
     auto it = std::lower_bound(phc_cubes_.begin(), phc_cubes_.end(), cube,

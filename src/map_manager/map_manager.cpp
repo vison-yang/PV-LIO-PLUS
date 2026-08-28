@@ -206,6 +206,7 @@ void MapManager::configure_point_backends()
         IVoxBackend::Options options;
         options.resolution_ = static_cast<float>(config_.ivox_resolution);
         options.capacity_   = std::max<std::size_t>(config_.ivox_capacity, 1);
+        options.use_optimized_ = config_.ivox_optimized;
         switch (config_.ivox_nearby_type)
         {
             case 0:

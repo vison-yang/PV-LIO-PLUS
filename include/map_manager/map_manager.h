@@ -165,6 +165,8 @@ struct MapManagerConfig
     int ivox_nearby_type = 18;
     /// Maximum number of iVox grids.
     std::size_t ivox_capacity = 1000000;
+    /// Enables the semantics-preserving iVox storage/query optimization path.
+    bool ivox_optimized = false;
 
     /// Super-LIO OctVox grid resolution.
     double octvox_resolution = 0.5;

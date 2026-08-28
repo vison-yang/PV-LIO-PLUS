@@ -159,6 +159,23 @@ also be written under `output/PCD/` according to the configured scan-saving
 options. When comparing maps, use the same bag segment, sensor parameters,
 window settings, and output directory layout for every backend.
 
+### Per-frame timing CSV
+
+Set `logging/timing_en: true` to print each corrected pose together with the
+current and running-average `search`, `ikf`, `map_update`, and `total` times
+(milliseconds). It also writes a comma-separated file. `logging/timing_path`
+selects an explicit file; an empty path writes
+`output/<backend>_timing.csv`, for example `pv_lio_ivox_timing.csv`.
+
+The CSV has one header and one row for each frame completing an EKF update and
+map update. Its stable fields are `frame`, sensor `stamp_sec`, pose
+(`pos_*_m`, `quat_*`), and `<stage>_ms` / `<stage>_avg_ms`. `search_ms` is the
+sum of map-search work requested by all iterated-EKF observation evaluations;
+`ikf_update_ms` therefore includes that search time. `total_ms` covers the
+whole processed frame through ROS publication/map snapshot, but excludes the
+timing log write itself. The stream is buffered and closed on node shutdown;
+rows are not flushed per frame.
+
 ## License and third-party notices
 
 PV-LIO-PLUS is distributed under the GNU General Public License, version 2 or

@@ -46,6 +46,7 @@ mapping:
     ivox_resolution: 0.2                  # m
     ivox_nearby_type: 18                   # 0, 6, 18 or 26 neighboring voxels
     ivox_capacity: 1000000
+    ivox_optimized: false                  # false=legacy (compatible default), true=optimized storage/query path
 
     octvox_resolution: 0.5                 # m; Super-LIO native octant grid
     octvox_capacity: 1000000               # native LRU grid capacity; local_window_en must stay false
@@ -84,3 +85,7 @@ publish:
 pcd_save:
     pcd_save_en: true
     interval: -1                           # frames/file; -1 writes all frames to one file
+
+logging:
+    timing_en: false                       # print per-frame pose/timing and write a CSV when enabled
+    timing_path: ""                         # empty: output/pv_lio_plus_timing.csv; otherwise an explicit CSV path

@@ -71,8 +71,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
 #include <limits>
 #include <mutex>
+#include <system_error>
 #include <thread>
 
 #include "imu_processing.hpp"
@@ -104,6 +108,7 @@ Mapping::Mapping() : map_manager_(new pv_lio_plus::MapManager)
 /** @brief Releases the active mapping instance. */
 Mapping::~Mapping()
 {
+    CloseTimingLog();
     if (active_instance_ == this)
     {
         active_instance_ = nullptr;
@@ -769,6 +774,91 @@ void Mapping::UpdateMap()
     }
 }
 
+/** @brief Opens the optional per-frame timing CSV after configuration is known. */
+void Mapping::OpenTimingLog()
+{
+    CloseTimingLog();
+    if (!config_.timing_log_en_)
+    {
+        return;
+    }
+
+    if (config_.timing_log_path_.empty())
+    {
+        const std::string stem = result_file_stem(pv_lio_plus::MapTypeName(config_.map_manager_config().type));
+        timing_output_path_ = (std::filesystem::path(config_.root_dir_) / (stem + "_timing.csv")).string();
+    }
+    else
+    {
+        timing_output_path_ = config_.timing_log_path_;
+    }
+
+    const std::filesystem::path output_path(timing_output_path_);
+    std::error_code error;
+    const std::filesystem::path parent = output_path.parent_path();
+    if (!parent.empty())
+    {
+        std::filesystem::create_directories(parent, error);
+    }
+    if (error)
+    {
+        ROS_WARN("Cannot create timing-log directory for %s: %s", timing_output_path_.c_str(), error.message().c_str());
+        timing_output_path_.clear();
+        return;
+    }
+
+    timing_output_.open(timing_output_path_, std::ios::out | std::ios::trunc);
+    if (!timing_output_.is_open())
+    {
+        ROS_WARN("Cannot open timing log: %s", timing_output_path_.c_str());
+        timing_output_path_.clear();
+        return;
+    }
+
+    timing_output_ << "frame,stamp_sec,elapsed_sec,converged,pos_x_m,pos_y_m,pos_z_m,quat_w,quat_x,quat_y,quat_z,"
+                   << "search_ms,search_avg_ms,ikf_update_ms,ikf_update_avg_ms,map_update_ms,map_update_avg_ms,"
+                   << "total_ms,total_avg_ms\n";
+    timing_output_ << std::fixed << std::setprecision(6);
+    ROS_INFO("Per-frame timing log: %s", timing_output_path_.c_str());
+}
+
+/** @brief Emits one pose and its current/mean stage timings without forcing a disk flush. */
+void Mapping::WriteTimingLog(double lidar_end_time, bool converged)
+{
+    if (!config_.timing_log_en_)
+    {
+        return;
+    }
+
+    std::printf("[%4.4f] Pos: %3.3f %3.3f %3.3f %d | ms cur(avg): search %.3f(%.3f), ikf %.3f(%.3f), "
+                "update %.3f(%.3f), total %.3f(%.3f)\n",
+                lidar_end_time - first_lidar_time_, state_point_.pos(0), state_point_.pos(1), state_point_.pos(2),
+                static_cast<int>(converged), search_time_, avg_search_time_, eseikf_time_, avg_eseikf_time_,
+                update_time_, avg_update_time_, total_time_, avg_total_time_);
+
+    if (!timing_output_.is_open())
+    {
+        return;
+    }
+
+    timing_output_ << scan_total_count_ << ',' << lidar_end_time << ',' << lidar_end_time - first_lidar_time_ << ','
+                   << static_cast<int>(converged) << ',' << state_point_.pos(0) << ',' << state_point_.pos(1) << ','
+                   << state_point_.pos(2) << ',' << geo_quat_.w << ',' << geo_quat_.x << ',' << geo_quat_.y << ','
+                   << geo_quat_.z << ',' << search_time_ << ',' << avg_search_time_ << ',' << eseikf_time_ << ','
+                   << avg_eseikf_time_ << ',' << update_time_ << ',' << avg_update_time_ << ',' << total_time_ << ','
+                   << avg_total_time_ << '\n';
+}
+
+/** @brief Closes the optional timing log once the single-threaded mapping loop stops. */
+void Mapping::CloseTimingLog()
+{
+    if (timing_output_.is_open())
+    {
+        timing_output_.close();
+    }
+    timing_output_path_.clear();
+}
+
 /** @brief Runs the configured ROS mapping loop and persists its outputs. */
 int Mapping::Run()
 {
@@ -788,6 +878,7 @@ int Mapping::Run()
                   pv_lio_plus::MapTypeName(config_.map_manager_config().type));
         return 1;
     }
+    OpenTimingLog();
 
     down_size_filter_surf_.setLeafSize(config_.filter_size_surf_min_, config_.filter_size_surf_min_,
                                        config_.filter_size_surf_min_);
@@ -888,16 +979,6 @@ int Mapping::Run()
             //             state_point_.bg.x(), state_point_.bg.y(), state_point_.bg.z(),
             //             state_point_.grav.get_vect().x(), state_point_.grav.get_vect().y(),
             //             state_point_.grav.get_vect().z());
-            avg_eseikf_time_ = avg_eseikf_time_ * (scan_total_count_ / double(scan_total_count_ + 1)) +
-                               eseikf_time_ / (scan_total_count_ + 1);
-            avg_search_time_ = avg_search_time_ * (scan_total_count_ / double(scan_total_count_ + 1)) +
-                               search_time_ / (scan_total_count_ + 1);
-            avg_update_time_ = avg_update_time_ * (scan_total_count_ / double(scan_total_count_ + 1)) +
-                               update_time_ / (scan_total_count_ + 1);
-            avg_total_time_ = avg_total_time_ * (scan_total_count_ / double(scan_total_count_ + 1)) +
-                              total_time_ / (scan_total_count_ + 1);
-            scan_total_count_++;
-
             // Publish the current state and optionally persist scan output.
             const auto map_cloud = config_.map_publish_en_ ? map_manager_->snapshot() : PointCloudXYZI::Ptr();
             publish_subscribe_.PublishFrame(feats_undistort_, feats_undistort_down_, state_point_, kf_, *imu_process_,
@@ -909,17 +990,28 @@ int Mapping::Run()
 
             total_time_ = (ros::WallTime::now() - t0).toSec() * 1000;
 
-            // verbose
-            std::printf("[%4.4f] Pos: %3.3f %3.3f %3.3f %u\n", lidar_end_time - first_lidar_time_, state_point_.pos(0),
-                        state_point_.pos(1), state_point_.pos(2), bConverged);
-            // printf("Time(ms): eseikf %3.3lf, search %3.3lf, update %3.3lf, total %3.3lf \n",
-            //        eseikf_time_, search_time_, update_time_, total_time_);
+            const double frame_count = static_cast<double>(scan_total_count_ + 1);
+            avg_eseikf_time_ += (eseikf_time_ - avg_eseikf_time_) / frame_count;
+            avg_search_time_ += (search_time_ - avg_search_time_) / frame_count;
+            avg_update_time_ += (update_time_ - avg_update_time_) / frame_count;
+            avg_total_time_ += (total_time_ - avg_total_time_) / frame_count;
+            ++scan_total_count_;
+
+            WriteTimingLog(lidar_end_time, bConverged);
+
+            if (!config_.timing_log_en_)
+            {
+                std::printf("[%4.4f] Pos: %3.3f %3.3f %3.3f %d\n", lidar_end_time - first_lidar_time_,
+                            state_point_.pos(0), state_point_.pos(1), state_point_.pos(2),
+                            static_cast<int>(bConverged));
+            }
         }
 
         rate.sleep();
     }
 
     // 5. Persist trajectory and point-cloud results after shutdown.
+    CloseTimingLog();
     publish_subscribe_.SaveResults(config_, config_.map_manager_config().type);
     return 0;
 }

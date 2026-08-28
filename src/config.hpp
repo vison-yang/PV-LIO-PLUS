@@ -60,8 +60,10 @@ class Config
     bool scan_lidar_pub_en_ = false;
     bool publish_voxel_map_ = false;
     bool map_publish_en_    = true;
+    bool timing_log_en_     = false;
 
     std::string root_dir_ = ".";
+    std::string timing_log_path_;
     std::string lidar_topic_;
     std::string imu_topic_;
     double lidar_time_offset_ = 0.0;
