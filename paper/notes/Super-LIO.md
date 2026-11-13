@@ -21,6 +21,8 @@ X &= [R_{\mathrm{I}}^{G}, p_{\mathrm{I}}^{G}, v_{\mathrm{I}}^{G}, b_{\mathrm{a}}
 \end{aligned}
 $$
 
+符号说明：$R_I^G,p_I^G,v_I^G$ 是 IMU 在世界系中的姿态、位置和速度，$b_a,b_g$ 是加速度计与陀螺仪偏置，$g$ 是重力；其余 15 维由非旋转状态组成。
+
 IMU 以中值积分传播。锚定在扫描末时刻 $t_{\mathrm{k}}$ 的点先去畸变到 $I_{\mathrm{k}}$：
 
 $$
@@ -29,6 +31,8 @@ p_{\mathrm{i}}^{I_{\mathrm{k}}} &= R_{I_{\mathrm{i}}}^{I_{\mathrm{k}}} (R_{\math
 \end{aligned}
 $$
 
+符号说明：$p_i^L$ 是 LiDAR 系扫描点，$R_L^I,p_L^I$ 是 LiDAR 到 IMU 的外参；$R_{I_i}^{I_k},p_{I_i}^{I_k}$ 将点从采样时刻变换到扫描末端时刻的 IMU 系。
+
 再用当前状态变换到全局：
 
 $$
@@ -36,6 +40,8 @@ $$
 p_{\mathrm{i}}^{G} &= R_{\mathrm{I}}^{G}(t_{\mathrm{k}}) p_{\mathrm{i}}^{I_{\mathrm{k}}} + p_{\mathrm{I}}^{G}(t_{\mathrm{k}})
 \end{aligned}
 $$
+
+符号说明：$R_I^G(t_k),p_I^G(t_k)$ 是扫描末端 IMU 到世界系的姿态和平移，$p_i^G$ 是去畸变点的世界坐标。
 
 点到平面残差仍为 $r_{\mathrm{i}}=n_{\mathrm{i}}^{\mathrm{T}}(p_{\mathrm{i}}^{\mathrm{G}}-c_{\mathrm{i}})$，线性化后送入 IESKF。
 
@@ -49,6 +55,8 @@ $$
 n_{\mathrm{s}}  \leftarrow n_{\mathrm{s}} + 1
 \end{aligned}
 $$
+
+符号说明：$p$ 是新点，$\mu_s$ 是子体素递推代表点，$n_s$ 是已吸收点数；$r_v,r_s$ 是父、子体素边长，$\tau_{merge}$ 是吸收新点的距离门限。
 
 只有当 $\lVert p-\mu_{\mathrm{s}} \rVert \le \tau_{\mathrm{merge}}$ 且 $n_{\mathrm{s}} \le n_{\max}$ 时继续吸收。这样有三个效果：
 
@@ -68,6 +76,8 @@ dis(A,B) &= \min_{C_{\mathrm{i}} \in A,C_{\mathrm{j}} \in B} \lVert C_{\mathrm{i
 \end{aligned}
 $$
 
+符号说明：$A,B$ 是两个子体素，$C_i,C_j$ 遍历它们的顶点，$dis(A,B)$ 是两个立方体之间的最短距离。
+
 在初始化时枚举搜索半径内所有子体素，得到有限距离集合 $D={d_{\mathrm{m}}}$，将相同距离的子体素放到同一组 $H_{\mathrm{m}}$，并按距离拼接：
 
 $$
@@ -75,6 +85,8 @@ $$
 T &= [H_{\mathrm{0}} \lVert  H_{\mathrm{1}}  \rVert ... \lVert  H_{\mathrm{M}}]
 \end{aligned}
 $$
+
+符号说明：$D$ 收集不同的体素距离，$H_m$ 收集距离同为 $d_m$ 的子体素，$T$ 是按距离从近到远拼接的访问序列；$M$ 是距离组编号上界。
 
 对 8 个子体素只需通过三轴反射和异或得到对应列表。一次查询流程为：
 

@@ -17,6 +17,8 @@ p_{\mathrm{w}} &= R p_{\mathrm{I}} + p
 \end{aligned}
 $$
 
+符号说明：$p_b,p_I,p_w$ 分别是输入点在机体、IMU 和世界系的坐标；$R_{LI},p_{LI}$ 是 LiDAR 到 IMU 的外参，$R,p$ 是 IMU 当前世界位姿。
+
 局部平面用中心 $p_{\mathrm{bar}}$、法向 $n$ 和最小特征值描述，点到平面残差为：
 
 $$
@@ -24,6 +26,8 @@ $$
 r_{\mathrm{i}} &= n_{\mathrm{i}}^\top p_{\mathrm{w}} + d_{\mathrm{i}}
 \end{aligned}
 $$
+
+符号说明：$n_i,d_i$ 是第 $i$ 个局部平面的法向和偏置，$r_i$ 是世界点到该平面的有符号距离。
 
 右扰动下，外参已知时的 6-DoF 位姿 Jacobian 写成：
 
@@ -37,6 +41,8 @@ n_i
 \end{aligned}
 $$
 
+符号说明：$h_i$ 是 6 维位姿扰动的 Jacobian，前 3 项对应旋转、后 3 项对应平移；$[Rp_I]_{\times}$ 是叉乘矩阵，$n_i$ 是平面法向。
+
 论文用无量纲的平面可观测性指标筛选平面：
 
 $$
@@ -44,6 +50,8 @@ $$
 \kappa = \lambda_{\min} / \operatorname{tr}(\Sigma_{\mathrm{pts}})
 \end{aligned}
 $$
+
+符号说明：$\lambda_{min}$ 是邻域点协方差最小特征值，$\Sigma_{pts}$ 是点集协方差，$\operatorname{tr}$ 为迹；$\kappa$ 衡量平面内外的相对散布。
 
 当 $\kappa < 0.05$ 时接受为平面。邻域搜索采用自适应 Chebyshev 壳层，最多取 25 个点；同时根据 LiDAR 的距离、入射角和离散化误差构造点噪声。平面协方差近似为 $\lambda_{\min} / N_{\mathrm{eff}} * I_{\mathrm{6}}$，从而形成 LiDAR 信息：
 
@@ -54,6 +62,8 @@ b_{\mathrm{L}} &= -\sum_i (1 / \sigma_{\mathrm{i}}^{2}) h_{\mathrm{i}}^\top r_{\
 \end{aligned}
 $$
 
+符号说明：$\sigma_i$ 是 LiDAR 残差标准差，$\Lambda_L$ 是 LiDAR 信息矩阵，$b_L$ 是对应信息向量；$h_i,r_i$ 分别为 Jacobian 和残差。
+
 **视觉约束。** 视觉使用 LiDAR 提供的深度锚点进行直接法 patch 光度残差。深度相关噪声、梯度和 patch 质量会影响权重；Jacobian 在一次 InEKF 迭代开始前冻结，避免迭代期间重复计算。5 帧滑窗中，重复使用同一 LiDAR 锚点时用 $w_{\mathrm{dec}} = 1 / n_{\mathrm{used}}$ 降低过度计数。质量因子由 RMS、有效 patch 数和拒绝比例组成：
 
 $$
@@ -63,6 +73,8 @@ q &= q_{\mathrm{rms}} q_{\mathrm{cnt}} q_{\mathrm{rej}} \\
 b_{\mathrm{V}} &= -\sum_j w_{\mathrm{j}} J_{\mathrm{j}}^\top r_{\mathrm{j}}
 \end{aligned}
 $$
+
+符号说明：$J_j,r_j,w_j$ 是视觉 patch 的 Jacobian、光度残差和权重；$q$ 是视觉质量因子，$\Lambda_V,b_V$ 分别为视觉信息矩阵和信息向量。
 
 **SAIF 子空间融合。** LiDAR 和视觉信息先相加，再对 6-DoF 外部位姿块做特征分解：
 
@@ -77,6 +89,8 @@ b' &= U^\top (b_{\mathrm{L}} + q b_{\mathrm{V}}) \\
 b_{\mathrm{f}} &= U \tilde{b}'
 \end{aligned}
 $$
+
+符号说明：$\Lambda_\Sigma$ 是融合信息矩阵，$U$ 的列向量是特征方向，$\lambda_k$ 是对应信息强度；$\gamma_k$ 按 $\sigma_{min}$ 衰减弱方向，带波浪号的量是衰减后的信息，结果记为 $\Lambda_f,b_f$。
 
 小特征值方向被连续衰减而不是整块清零；较强的方向保持原有信息。$\Lambda_{\mathrm{f}}$ 仍为半正定矩阵，因此可以直接送入 InEKF。算法只处理外部传感器的 6-DoF 位姿子块，不对完整 18 状态做无量纲混合；实现时必须注意平移和旋转信息量纲不同，$\sigma_{\min}$ 的设定不能脱离单位。
 

@@ -20,6 +20,8 @@ L_{\mathrm{V}} &= \operatorname{majority\_vote}({l_{\mathrm{i}} | p_{\mathrm{i}}
 \end{aligned}
 $$
 
+符号说明：$V$ 是体素，$p_i$ 是其中的点，$l_i$ 是点标签；$L_V$ 是多数票得到的体素类别，$S_v,N_{sem}$ 控制体素尺度和启动投票所需点数。
+
 若为 planar 且协方差最小特征值 $\lambda_{\min} < \tau_{\mathrm{p}}$，拟合平面；若为 nonplanar 或平面拟合失败，保存 Gaussian。语义每 $W=50$ 帧低频刷新，同一空间体素的新语义可覆盖旧语义。
 
 点集统计量为：
@@ -30,6 +32,8 @@ $$
 \Sigma = (1/n) \sum_i (p_{\mathrm{i}}-\mu)(p_{\mathrm{i}}-\mu)^\top
 \end{aligned}
 $$
+
+符号说明：$n$ 是体素内点数，$\mu$ 是点均值，$\Sigma$ 描述点的空间散布；$s,S$ 是增量维护的坐标和外积累加量。
 
 增量地图只更新 $n, s=\sum p_{\mathrm{i}}, S=\sum p_{\mathrm{i}} p_{\mathrm{i}}^{\mathrm{T}}$，再恢复 $\mu=s/n$、$\Sigma=S/n-\mu \mu^{\mathrm{T}}$。平面体素还做特征分解并与六邻居做共面合并。
 
@@ -43,6 +47,8 @@ r_{\mathrm{PL}} &= - (p_{\mathrm{w}}^\top \omega + d) / \lVert \omega \rVert
 \end{aligned}
 $$
 
+符号说明：$p_b$ 是机体系点，$p_w=Rp_b+t$ 是世界系点，$\omega$ 是未归一化平面法向参数，$d$ 是平面偏置；$r_{PL}$ 是带符号点面距离。
+
 状态 Jacobian：
 
 $$
@@ -51,6 +57,8 @@ H &= [([p_{\mathrm{b}}]_\times R^\top n)^\top, -n^\top]
 \end{aligned}
 $$
 
+符号说明：$H$ 是对旋转和平移增量的残差 Jacobian，$n$ 是单位法向；$[p_b]_\times$ 表示由点坐标构成的反对称叉乘矩阵。
+
 残差方差把 LiDAR 点噪声和局部平面参数协方差相加：
 
 $$
@@ -58,6 +66,8 @@ $$
 \sigma_{\mathrm{PL}}^{2} = J_{\mathrm{p}} \Sigma_{\mathrm{L}} J_{\mathrm{p}}^\top + J_{\mathrm{pl}} \Sigma_{\mathrm{pl}} J_{\mathrm{pl}}^\top
 \end{aligned}
 $$
+
+符号说明：$J_p,J_{pl}$ 分别是残差对 LiDAR 点和平面参数的 Jacobian，$\Sigma_L,\Sigma_{pl}$ 是对应协方差；$\sigma_{PL}^2$ 是传播后的残差方差。
 
 ### 3) Gaussian 残差和统一 IESEKF
 
@@ -69,6 +79,8 @@ r_{\mathrm{GD}} &= -\sigma_{\mathrm{avg}} \sqrt{(p_{\mathrm{w}}-\mu)^\top \Sigma
 \sigma_{\mathrm{avg}} = \sqrt{\operatorname{tr}(\Sigma)/3}
 \end{aligned}
 $$
+
+符号说明：$\mu,\Sigma$ 是 Gaussian 体素的均值和协方差，$\operatorname{tr}$ 表示矩阵迹；$r_{GD}$ 是缩放后的 Mahalanobis 距离，$\sigma_{avg}$ 将它换到距离量纲。
 
 $\sigma_{\mathrm{avg}}$ 使 Gaussian 残差量纲和点到平面距离接近。均值协方差为 $\Sigma_{\mu}=\Sigma/n$，点和均值的 Jacobian 分别传播到残差方差 $\sigma_{\mathrm{GD}}^{2}$。
 
@@ -82,6 +94,8 @@ x+ &= x- + K r \\
 P+ &= (I-KH)P
 \end{aligned}
 $$
+
+符号说明：$\sigma_i$ 是第 $i$ 个残差的标准差，$\alpha_i$ 是鲁棒权重，$w_i$ 是合成测量权重；$K$ 为滤波增益，$x^-,P$ 与 $x^+,P^+$ 分别表示更新前后状态和协方差。
 
 所以平面区域保留精确法向约束，非平面区域则通过分布形状获得鲁棒约束，二者在一个 IESEKF 更新中融合。
 

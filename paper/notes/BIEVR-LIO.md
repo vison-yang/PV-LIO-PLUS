@@ -24,6 +24,8 @@ n \leftarrow n + n_{\mathrm{scan}} \\
 \end{aligned}
 $$
 
+符号说明：$p_{\mathrm{i}}$ 是扫描点，$n$ 是体素内点数，$s$ 和 $C$ 分别累计点坐标及其外积；$\mu$、$\Sigma$ 是由这些统计量得到的均值和协方差。
+
 对协方差做 PCA，最小特征值方向为主平面法向。将该平面作为局部图像平面，把每个点投影到 `(u,v)` 像素，并把沿法向的偏差存为高度 $I(u,v)$：
 
 $$
@@ -42,6 +44,8 @@ w_{\mathrm{i}} &= \min(0.5, \lVert L p_{\mathrm{i}} \rVert^{-1})
 \end{aligned}
 $$
 
+符号说明：$I(u,v)$ 是像素高度，$W$ 是该像素已有的累计权重，$w_i$ 是新点的距离权重，$z_i$ 是新点沿图像法向的高度；$\lVert Lp_i\rVert$ 表示 LiDAR 系中的量程。
+
 然后用一像素半径的 Gaussian filter 抑制像素噪声。若平面法向变化超过 3 度，则把旧图像投影到新平面坐标系再重建。这样图像保留锐利的不连续和微小起伏，不必每次重建昂贵的连续函数。
 
 ### 2) MID 和双分辨率地图感知采样
@@ -53,6 +57,8 @@ $$
 MID &= (1/\lvert \Omega_{\mathrm{obs}} \rvert) \sum_{(u,v) \in \Omega_{\mathrm{obs}}} \lVert I(u,v) \rVert
 \end{aligned}
 $$
+
+符号说明：$\Omega_{\mathrm{obs}}$ 是已有观测值的像素集合，$|\Omega_{\mathrm{obs}}|$ 是其像素数；MID 对这些像素的高度幅值取平均。
 
 采样分两步：
 
@@ -89,6 +95,8 @@ $$
 \xi^* = \operatorname*{arg\,\min}_{\xi} \sum_i \rho(\lVert r_{\mathrm{i}}(\xi) \rVert)
 \end{aligned}
 $$
+
+符号说明：$\xi$ 是待估计的位姿增量，$r_i$ 是第 $i$ 个点的高度残差，$\rho$ 是 Huber 鲁棒损失；$\partial/\partial\xi$ 表示对位姿增量求导。
 
 ### 4) 松耦合状态结构
 

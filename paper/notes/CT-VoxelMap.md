@@ -34,6 +34,8 @@ p(t) &= p_{i-1} + \sum_j \lambda_{\mathrm{tilde,j}} d_{\mathrm{pj}}
 \end{aligned}
 $$
 
+符号说明：$R(t),p(t)$ 是时刻 $t$ 的姿态和平移，$i$ 标记当前 knot 区间，$j$ 遍历局部增量，$N$ 是样条阶数；$u$ 是归一化时间，$\tilde\lambda_j$ 是累计基函数权重，$d_{Rj},d_{pj}$ 是相邻 knot 的旋转和平移增量。
+
 对旋转增量递推角速度。令 $A_{\mathrm{j}}=Exp(\lambda_{\mathrm{tilde}}_j d_{\mathrm{Rj}})$，则：
 
 $$
@@ -44,6 +46,8 @@ v(t) &= \sum_j \dot{\lambda_{\mathrm{tilde,j}}} d_{\mathrm{pj}} \\
 a(t) &= \sum_j \ddot{\lambda_{\mathrm{tilde,j}}} d_{\mathrm{pj}}
 \end{aligned}
 $$
+
+符号说明：$\omega,v,a$ 分别是角速度、线速度和线加速度；点号表示对时间求导，$A_j$ 是第 $j$ 个旋转增量对应的旋转矩阵。
 
 这样加速度、角速度和位置都由同一组增量直接生成。新时间段到来时，只需移位增量数组，并用上一段最后增量做恒速初始化；避免单独推导 $j=0$ 和 $j=N-1$ 的特殊边界 Jacobian。
 
@@ -64,6 +68,8 @@ g\boxminus g^{\mathrm{tk}}
 \end{aligned}
 $$
 
+符号说明：$h_B$ 汇总 IMU 测量残差和状态先验残差；$a_m,\omega_m$ 是加速度计和陀螺仪测量，$b_a,b_w$ 是相应偏置，$g$ 是重力。上标 $\mathrm{tk}$ 表示参考 knot 状态，$\boxminus$ 是流形上的差。
+
 例如旋转增量的导数为：
 
 $$
@@ -72,6 +78,8 @@ $$
  &= \lambda_{\mathrm{tilde,j}} P_{\mathrm{j}} J_{\mathrm{r}}(\lambda_{\mathrm{tilde,j}} d_{\mathrm{Rj}})
 \end{aligned}
 $$
+
+符号说明：$P_j$ 表示该增量之后的旋转乘积，$J_r$ 是 SO(3) 右 Jacobian；此式是旋转对第 $j$ 个增量的导数。
 
 其中 $P_{\mathrm{j}}$ 是后续旋转乘积，$J_{\mathrm{r}}$ 是 SO(3) 右 Jacobian。平移增量对加速度的导数为 $R^{\mathrm{T}} ddot(\lambda_{\mathrm{tilde}}_j) I$，因此可以在同一个误差状态滤波框架中计算 IMU 与 LiDAR 的观测。
 
@@ -86,6 +94,8 @@ $$
 \end{aligned}
 $$
 
+符号说明：$\delta_{\theta,m}$、$\delta_{p,m}$ 是第 $m$ 个样本的旋转与平移误差，$N$ 是样本数；$\Sigma_R,\Sigma_p$ 分别描述两类误差的不确定性。
+
 LiDAR 点变换为：
 
 $$
@@ -93,6 +103,8 @@ $$
 G p_{\mathrm{i}} &= R_{\mathrm{I}}^{G}(t) (R_{\mathrm{L}}^{I} Lp_i + p_{\mathrm{L}}^{I}) + p^{G}(t)
 \end{aligned}
 $$
+
+符号说明：$L p_i$ 是 LiDAR 系点，$R_L^I,p_L^I$ 是 LiDAR 到 IMU 的外参，$R_I^G,p^G$ 将 IMU 系变换到世界系；$G p_i$ 表示变换后的点。
 
 其协方差同时包含 LiDAR 点噪声、位姿旋转不确定性和位移不确定性。这个步骤的关键意义是：连续轨迹表达本身的误差不再被错误地当成零噪声。
 
@@ -106,6 +118,8 @@ h_{\mathrm{plane}} &= u_{\mathrm{1}}^\top (G p_{\mathrm{i}} - q) \\
 h_{\mathrm{voxel}} &= \Lambda^{-1/2} U^\top (G p_{\mathrm{i}} - q)
 \end{aligned}
 $$
+
+符号说明：$q$ 是体素中心，$U,\Lambda$ 是协方差的特征向量矩阵和特征值对角阵；$u_1$ 是平面残差采用的法向方向，$h_{voxel}$ 则保留三个特征方向的归一化残差。
 
 平面残差只沿法向约束，体素残差在三个特征方向上约束，特征值越小的方向权重越大。观测协方差把平面法向、中心、LiDAR 点以及 spline 位姿误差一起传播。论文还用 3-sigma 门限剔除不一致点；voxel feature 只有三个方向都通过检查才有效。
 

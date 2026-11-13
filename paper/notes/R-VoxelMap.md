@@ -23,6 +23,8 @@ W p_{\mathrm{i}} &= W R_{\mathrm{L}} L p_{\mathrm{i}} + W t_{\mathrm{L}} \\
 \end{aligned}
 $$
 
+符号说明：上标 $W,L$ 分别标记世界系和 LiDAR 系，$R_L,t_L$ 是位姿旋转和平移；$\Sigma_{Lpi}$ 是点测量协方差，$\Sigma_R,\Sigma_t$ 是姿态和位置不确定性，$\Sigma_{Wpi}$ 是传播到世界系后的点协方差。
+
 对当前节点点集 $P_{\mathrm{in}}$ 做 RANSAC，得内点 $I$ 和离群点 $O$。若 $\lvert I \rvert/\lvert P_{\mathrm{in}} \rvert > p_{\mathrm{th}}$，对 $I$ 求：
 
 $$
@@ -32,6 +34,8 @@ A &= \operatorname{mean}(p_{\mathrm{i}} p_{\mathrm{i}}^\top) - q q^\top \\
 n &= \operatorname{eigenvector}(A, \lambda_{\min})
 \end{aligned}
 $$
+
+符号说明：$P_{in}$ 是节点输入点集，$I$、$O$ 分别为 RANSAC 内点和离群点；$q$ 是内点均值，$A$ 是协方差，$n$ 是最小特征值方向的平面法向。
 
 当最小特征值满足平面阈值后，执行平面有效性检查。有效点形成当前节点的概率平面；其余点 $O$ 被放入八叉树子节点递归处理，直到所有点被解释或达到最大深度。与只在叶节点保存特征的结构不同，R-VoxelMap 允许任意八叉树节点保存点和平面。
 
@@ -45,6 +49,8 @@ $$
 \operatorname{floor}((p_{\mathrm{i}}-q)^\top u_{\mathrm{2}}/r) )
 \end{aligned}
 $$
+
+符号说明：$u_1,u_2$ 是平面内两个投影方向，$r$ 是二维网格边长，$(x_i,y_i)$ 是点投影后的网格索引；$I_{best}$ 是区域生长选出的最大连通簇。
 
 对占用网格做 4-邻接 DFS/区域生长，选点数最多的连通簇 $I_{\mathrm{best}}$。只有当 $\lvert I_{\mathrm{best}} \rvert/\lvert P_{\mathrm{in}} \rvert > p_{\mathrm{th}}$ 时，才用该簇重拟合平面；否则整个节点的点都继续递归。这个步骤拒绝两个相邻但不连续物理平面被拟合成一个无限平面。
 
@@ -60,6 +66,8 @@ A \leftarrow S/(N+1) - q q^\top
 \end{aligned}
 $$
 
+符号说明：$p_{new}$ 是新点，$N,q,S$ 是更新前点数、均值和二阶外积和；更新后的 $q,A$ 给出递推均值及协方差。
+
 若更新后最小特征值仍满足阈值，则吸收点；否则暂存在叶节点的非平面点集中，等待周期性八叉树重建。重建利用链表拼接复用点，不复制大向量；低分辨率体素用 LRU 控制大范围地图的内存。
 
 对候选平面 $i$，点到平面距离为 $d_{\mathrm{i}}=n_{\mathrm{i}}^{\mathrm{T}}(Wp_{\mathrm{i}}-q_{\mathrm{i}})$，联合点和面参数不确定性得到：
@@ -71,6 +79,8 @@ J_{\mathrm{w}} &= [ (Wp_i-q_{\mathrm{i}})^\top, -n_{\mathrm{i}}^\top, n_{\mathrm
 \end{aligned}
 $$
 
+符号说明：$d_i$ 是点面有符号距离，$\Sigma_{nq}$ 与 $\Sigma_{Wpi}$ 分别是平面参数和世界点协方差；$J_w$ 是距离 Jacobian，$\sigma_i^2$ 为传播得到的距离方差。
+
 进一步以
 
 $$
@@ -78,6 +88,8 @@ $$
 p_{\mathrm{i}} &= 1/(\sigma_{\mathrm{i}} \sqrt{2 \pi}) \exp(-d_{\mathrm{i}}^{2}/(2 \sigma_{\mathrm{i}}^{2}))
 \end{aligned}
 $$
+
+符号说明：此处的 $p_i$ 表示距离观测的高斯似然值，不是点坐标；$d_i$ 是点面距离，$\sigma_i$ 是其标准差，该值用于比较候选平面的可信度。
 
 作为对应概率，在距离阈值内选概率最大的平面送入 MAP/IEKF。
 

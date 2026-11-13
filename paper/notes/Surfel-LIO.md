@@ -20,6 +20,8 @@ c_{n+1} &= (n c_{\mathrm{n}} + p_{\mathrm{new}})/(n+1)
 \end{aligned}
 $$
 
+符号说明：$p_{new}$ 是新点，$c_n$ 是已有 $n$ 个点的质心，$c_{n+1}$ 是吸收该点后的质心。
+
 每 `3 x 3 x 3` 个 L0 组成一个 L1 父体素。L1 不保存原始点，而收集其中有效 L0 质心 ${c_{\mathrm{i}}}$，计算：
 
 $$
@@ -29,6 +31,8 @@ C &= \operatorname{mean}_{i} (c_{\mathrm{i}}-c_{\mathrm{bar}})(c_{\mathrm{i}}-c_
 \end{aligned}
 $$
 
+符号说明：$c_i$ 是有效 L0 子体素质心，$c_{bar}$ 是这些质心的均值，$C$ 是其协方差。
+
 特征分解 $C$ 得 $\lambda_{\mathrm{1}} \ge \lambda_{\mathrm{2}} \ge \lambda_{\mathrm{3}}$，surfel 法向 $n=v_{\mathrm{3}}$，中心为 $c_{\mathrm{bar}}$。平面可信度：
 
 $$
@@ -36,6 +40,8 @@ $$
 \rho = (\lambda_{\mathrm{2}}-\lambda_{\mathrm{3}})/(\lambda_{\mathrm{1}}+\epsilon)
 \end{aligned}
 $$
+
+符号说明：$\lambda_1\ge\lambda_2\ge\lambda_3$ 是 $C$ 的特征值，$v_3$ 是最小特征方向并作为 surfel 法向；$\rho$ 是平面可信度，$\epsilon$ 避免分母为零。
 
 $\rho < \rho_{\min}$ 的 surfel 不参与匹配。新点改变 L0 后只把对应 L1 标记为 dirty，当前扫描完成后统一重算一次，避免一个扫描内重复 PCA。
 
@@ -49,6 +55,8 @@ M(kx,ky,kz) &= \sum_{i=0}^{20} (x_{\mathrm{i}} 4^{i} + y_{\mathrm{i}} 2 4^{i} + 
 \end{aligned}
 $$
 
+符号说明：$(k_x,k_y,k_z)$ 是整数体素坐标，$x_i,y_i,z_i$ 是各轴的第 $i$ 个二进制位；$M$ 将这些位交错编码为 Morton 键。
+
 最多 21 位/轴。Z-order 让扫描中空间相近的连续点更可能访问相近 key，改善缓存；Robin Hood open addressing 减少冲突探测长度。查询过程只需量化坐标、计算 Morton code、哈希表读取 L1 surfel，不需要运行时邻域枚举或 PCA。
 
 ### 3) IEKF 观测
@@ -61,6 +69,8 @@ r_{\mathrm{i}} &= n_{\mathrm{i}}^\top (R p_{\mathrm{i}}^{L} + p - c_{\mathrm{i}}
 \end{aligned}
 $$
 
+符号说明：$p_i^L$ 是 LiDAR 系点，$R,p$ 是当前姿态和平移，$c_i,n_i$ 是匹配 surfel 的中心和法向；$r_i$ 是点面残差。
+
 误差状态 $R_{\mathrm{true}}=R Exp(\delta \theta)$ 下，Jacobian 为：
 
 $$
@@ -68,6 +78,8 @@ $$
 H_{\mathrm{i}} &= [-n_{\mathrm{i}}^\top R [p_{\mathrm{i}}^{L}]_\times, n_{\mathrm{i}}^\top, 0_{1\times 9}]
 \end{aligned}
 $$
+
+符号说明：$\delta\theta$ 表示旋转扰动，$[p_i^L]_\times$ 是叉乘矩阵；$H_i$ 的前两块对应旋转和平移，$0_{1\times9}$ 表示对其余状态分量无直接导数。
 
 叠加所有有效 surfel 对应后，按普通 IEKF 迭代到收敛。由于 surfel 已在地图更新阶段固定，迭代期间只重算残差，不重算邻域和法向。
 

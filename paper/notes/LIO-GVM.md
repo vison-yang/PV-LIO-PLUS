@@ -21,6 +21,8 @@ P_{i+1} &= F_{\mathrm{x}} P_{\mathrm{i}} F_{\mathrm{x}}^\top + F_{\mathrm{w}} W 
 \end{aligned}
 $$
 
+符号说明：$x_i,P_i$ 是 IMU 状态及其协方差，$f$ 是离散传播模型，$u_i,w_i$ 分别代表输入和过程噪声；$F_x,F_w$ 是相应 Jacobian，$W$ 是过程噪声协方差，$\boxplus$ 表示流形状态更新。
+
 扫描去畸变后，对每个源点及其邻域拟合 Gaussian：
 
 $$
@@ -28,6 +30,8 @@ $$
 L_{\mathrm{k}} p_{\mathrm{j}} \sim N(L_{\mathrm{k}} \mu_{\mathrm{j}}, L_{\mathrm{k}} C_{\mathrm{j}})
 \end{aligned}
 $$
+
+符号说明：$\mu_j,C_j$ 是第 $j$ 个源 Gaussian 的均值和协方差；$L_k,G$ 标记扫描局部系和全局系，$T_{Lk},R_{Lk}$ 是当前位姿的平移和旋转部分，帽号表示变换后的分布。
 
 用当前迭代位姿投影到全局：
 
@@ -49,6 +53,8 @@ s_{j,i} &= sqrt( (\det C_{\mathrm{j}} \det C_{\mathrm{i}})^{1/2} \\
 \end{aligned}
 $$
 
+符号说明：$s_{j,i}$ 衡量源分布 $j$ 与目标分布 $i$ 的相似程度，$C_j,C_i$ 是它们的协方差，$\det$ 表示行列式；$s_t$ 是筛选阈值。
+
 $s$ 越大表示协方差形状越接近。查询源均值所在体素及其 7 邻域，只保留 $s \ge s_{\mathrm{t}}$ 的候选；噪声越大时阈值应放宽。
 
 ### 3) 相似度加权的分布到分布残差
@@ -62,6 +68,8 @@ J &= \sum_j s_{\mathrm{j}}^{2} (\mu_{\mathrm{hat,j}} - \mu_{\mathrm{i}})^\top \\
 (\mu_{\mathrm{hat,j}} - \mu_{\mathrm{i}})
 \end{aligned}
 $$
+
+符号说明：$J$ 是所有匹配项的加权代价，$\mu_{hat,j}-\mu_i$ 是两分布均值差，$s_j$ 是相似度，$\alpha I$ 用于稳定求逆；$D_j$ 是合并协方差逆平方根，$z_j$ 是白化并加权后的向量残差。
 
 令 $D_{\mathrm{j}}=(C_{\mathrm{hat}}_j+C_{\mathrm{i}}+\alpha I)^(-1/2)$，单个向量残差为
 
@@ -79,6 +87,8 @@ H_{\mathrm{j}} &= [-s_{\mathrm{j}} D_{\mathrm{j}} [I, q_{\mathrm{j}}]_\times,  s
 \end{aligned}
 $$
 
+符号说明：$H_j$ 是残差对 18 维误差状态的 Jacobian；前两块对应旋转和平移，$q_j$ 是叉乘块中的位置向量，$0_{3\times15}$ 表示其余状态分量的直接导数为零。
+
 所有残差叠加后，使用 IESKF/MAP 更新。$\alpha I$ 用于避免协方差奇异。
 
 ### 4) 仅 Gaussian 的体素地图
@@ -91,6 +101,8 @@ $$
 C &= (M C + N C_{\mathrm{bar}})/(M+N)
 \end{aligned}
 $$
+
+符号说明：$(\mu,C)$ 是已有地图 Gaussian，$(\mu_{bar},C_{bar})$ 是当前扫描统计量，$M,N$ 是二者各自的点数；合并后仍以均值和协方差保存体素。
 
 论文还将更新后的 $M$ 限制为 $\max(M,N)$，避免历史权重无限增大，使远处或早期错误状态造成的统计量永久“冻结”。
 

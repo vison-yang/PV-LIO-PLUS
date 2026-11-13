@@ -22,6 +22,8 @@ n_{\mathrm{curr}} &= \operatorname{ceil}(n_{\max} * \max( \\
 \end{aligned}
 $$
 
+符号说明：$n_{curr}$ 是当前扫描的子帧数，$n_{max}$ 是上限；$\sigma_{acc,curr},\sigma_{gyr,curr}$ 是当前扫描的加速度和角速度波动，带 $\max$ 的量是历史归一化上限。
+
 运动越激烈，子帧越多，单个子帧内的 IMU 传播误差越小；运动平稳时减少子帧，避免稀疏更新。
 
 ### 2) 子帧 IESKF 更新和 ESKS 向后平滑
@@ -36,6 +38,8 @@ P_{\mathrm{k}} &= (I-KH)P_{\mathrm{k}}
 \end{aligned}
 $$
 
+符号说明：$x_k,P_k$ 是第 $k$ 个子帧的状态及协方差，$H$ 是观测 Jacobian，$\mathbb R$ 是测量噪声协方差，$K$ 是滤波增益，$h(x_k)$ 是观测残差。
+
 所有属于当前整帧的子帧处理完后，从最后一个子帧向前执行 RTS 风格平滑：
 
 $$
@@ -45,6 +49,8 @@ x_{\mathrm{k}}^{s} &= x_{\mathrm{k}}^{u} + G_{\mathrm{k}} (x_{k+1}^{s} - x_{k+1}
 P_{\mathrm{k}}^{s} &= P_{\mathrm{k}} + G_{\mathrm{k}}(P_{k+1}^{s}-P_{k+1}^-)G_{\mathrm{k}}^\top
 \end{aligned}
 $$
+
+符号说明：上标 $s$ 表示平滑结果，$u$ 表示前向滤波更新结果，$-$ 表示预测值；$F_k$ 是状态转移 Jacobian，$G_k$ 是向后平滑增益。
 
 论文讨论了误差状态 reset 与 smoother 的兼容问题：临时取消 reset，在未 reset 的误差状态上做传播、更新和后向平滑，再把修正量加回名义状态。最后用协方差最小特征值检查某个子帧是否仍退化，只有约束充分的子帧才进入地图。
 

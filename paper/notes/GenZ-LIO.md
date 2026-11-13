@@ -20,6 +20,8 @@ m_{\mathrm{bar,t}} &= (1/\lvert W \rvert) \sum_{i=1}^{\lvert W \rvert} m_{t+1-i}
 \end{aligned}
 $$
 
+符号说明：$m_t$ 是当前扫描临时点到邻点距离的中值，$\bar m_t$ 是长度为 $|W|$ 的滑动平均；$N_{desired,t}$ 是目标点数，$\rho$ 将距离映射为采样比例，$\tau_m$ 是饱和阈值，$p$ 控制曲线形状。
+
 将尺度映射为目标点数：
 
 $$
@@ -41,6 +43,8 @@ e_{\mathrm{t}} &= N_{\mathrm{desired},t} - N_{\mathrm{temp},t} \\
 \Delta e_{\mathrm{t}} = (e_{\mathrm{t}}-e_{t-1})/\Delta t_{\mathrm{scan}}
 \end{aligned}
 $$
+
+符号说明：$N_{temp,t}$ 是临时点数，$e_t$ 是目标与实际点数之差，$\Delta e_t$ 是误差变化率；$d_t$ 是体素边长，$K_p,K_d$ 分别为比例和微分增益，$\Gamma_p,\Gamma_d$ 用于调节增益。
 
 体素大小采用：
 
@@ -87,6 +91,8 @@ R_{\mathrm{pl}} &= H_{\mathrm{v,pl}} \Sigma_{n,q,Lp} H_{\mathrm{v,pl}}^\top
 \end{aligned}
 $$
 
+符号说明：$n,q$ 是地图平面的法向和中心，$Lp$ 是 LiDAR 系点，$\Sigma_{n,q,Lp}$ 是这些量的联合协方差；$H_{v,pl}$ 将不确定性传播到残差方差 $R_{pl}$。
+
 点到点不直接使用 3 维向量，而是使用 L2 范数标量：
 
 $$
@@ -98,6 +104,8 @@ R_{\mathrm{norm,po}} &= (z_{\mathrm{po}}^\top/\lVert z_{\mathrm{po}} \rVert) R_{
 \end{aligned}
 $$
 
+符号说明：$z_{po}$ 是点差向量，$z_{norm,po}$ 是其长度；$H_{po},R_{po}$ 是向量残差的 Jacobian 和协方差，投影后得到标量残差的 $H_{norm,po},R_{norm,po}$。
+
 再加入体素访问范围和实际检查点数带来的离散化方差：
 
 $$
@@ -107,6 +115,8 @@ R_{\mathrm{comb,po}} &= \lambda_{\mathrm{po}} (R_{\mathrm{norm,po}} + R_{\mathrm
 \end{aligned}
 $$
 
+符号说明：$N_{acc,vox}$ 是访问体素数，$N_{eval,pt}$ 是实际检查点数，$d_{root}$ 是根体素边长；$R_{disc}$ 表示有限搜索带来的离散化方差，$\lambda_{po}$ 调节点到点项权重。
+
 对所有点到平面和点到点项堆叠，在 ESIKF 中求解 MAP：
 
 $$
@@ -115,6 +125,8 @@ $$
 + \sum_i \lVert z_{\mathrm{i}} + H_{\mathrm{i}} ex \rVert_{R_{\mathrm{i}}}^{2}
 \end{aligned}
 $$
+
+符号说明：$\delta x$ 是待求状态增量，$x_{hat},P_{hat}$ 是先验状态及协方差；$z_i,H_i,R_i$ 分别是第 $i$ 项观测残差、Jacobian 和协方差，$\boxminus$ 表示流形上的差。
 
 点到平面与点到点共享同一状态、同一先验和同一迭代过程，$\lambda_{\mathrm{po}}$ 用来抵消两种几何支持规模不同造成的原始协方差量级差异。
 
