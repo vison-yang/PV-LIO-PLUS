@@ -1,0 +1,49 @@
+# 论文与官方源码资料
+
+核验日期：2026-11-14。本目录收录 22 篇论文及 2 份供既有笔记使用的旧版归档，覆盖主 README 的算法清单，并补充 FAST-LIO 和 ikd-Tree 原始论文。
+
+本轮重新核验全部本地 PDF 的页数与 SHA-256；新增加 i-Octree、KISS-ICP 和 iG-LIO 三份作者论文及源码。已有论文版本继续固定在表列版本，不代表全部都核查为最新版本。地图替换资格以[范围审查](notes/MAP_BACKEND_SCOPE_REVIEW.md)为准；完整论文清单包括已从主 README 候选表移除的相关方法。
+
+表中的源码链接指向作者项目，不表示该算法已接入 PV-LIO-PLUS，也不表示已在本机完成编译或数据集复现。未确认官方源码的项目保留论文入口，不以同名项目、相关算法或独立重实现替代。PDF 的具体版本、页数及 SHA-256 记录在 [catalog.json](catalog.json)。
+
+| 方法 | 本地论文 / 版本 | 作者论文或出版社入口 | 官方源码 |
+| --- | --- | --- | --- |
+| PV-LIO | 上游 README 未提供独立论文链接；相关基础论文见 VoxelMap、FAST-LIO | [项目说明](https://github.com/HViktorTsoi/PV-LIO) | [PV-LIO](https://github.com/HViktorTsoi/PV-LIO) |
+| VoxelMap | [PDF](VoxelMap.pdf)，arXiv v5，8 页 | [2109.07082v5](https://arxiv.org/abs/2109.07082v5) | [VoxelMap](https://github.com/hku-mars/VoxelMap) |
+| VoxelMap++ | [PDF](VoxelMap++.pdf)，arXiv v1，8 页 | [2308.02799v1](https://arxiv.org/abs/2308.02799v1) | [VoxelMapPlus_Public](https://github.com/uestc-icsp/VoxelMapPlus_Public) |
+| FAST-LIO | [PDF](FAST-LIO.pdf)，arXiv v3，8 页 | [2010.08196v3](https://arxiv.org/abs/2010.08196v3) | [FAST_LIO](https://github.com/hku-mars/FAST_LIO)，当前主分支为 FAST-LIO2 |
+| FAST-LIO2 | [PDF](FAST-LIO2.pdf)，arXiv v1，19 页 | [2107.06829v1](https://arxiv.org/abs/2107.06829v1) | [FAST_LIO](https://github.com/hku-mars/FAST_LIO) |
+| ikd-Tree | [PDF](ikd-Tree.pdf)，arXiv v1，8 页 | [2102.10808v1](https://arxiv.org/abs/2102.10808v1) | [ikd-Tree](https://github.com/hku-mars/ikd-Tree)；也是 FAST-LIO2 的内部地图 |
+| Faster-LIO / iVox | [PDF](Faster-LIO.pdf)，IEEE RA-L 2022，8 页 | [10.1109/LRA.2022.3152830](https://doi.org/10.1109/LRA.2022.3152830) | [faster-lio](https://github.com/gaoxiang12/faster-lio)；PDF 来自该作者仓库的 `doc/faster-lio.pdf` |
+| C3P-VoxelMap | [PDF](C3P-VoxelMap.pdf)，arXiv v2，8 页 | [2406.01195v2](https://arxiv.org/abs/2406.01195v2) | [c3p-voxelmap](https://github.com/deptrum/c3p-voxelmap) |
+| Super-LIO / OctVox | [PDF](Super-LIO.pdf)，arXiv v2，8 页 | [2509.05723v2](https://arxiv.org/abs/2509.05723v2) | [Super-LIO，ROS1 分支](https://github.com/Liansheng-Wang/Super-LIO/tree/ros1) |
+| Hybrid-VoxelMap | [PDF](Hybrid-VoxelMap.pdf)，IEEE RA-L 正式版，8 页 | [10.1109/LRA.2025.3632730](https://doi.org/10.1109/LRA.2025.3632730) | [Hybrid-VoxelMap](https://github.com/haiyang2022/Hybrid-VoxelMap) |
+| R-VoxelMap | [PDF](R-VoxelMap.pdf)，arXiv v1，8 页 | [2601.12377v1](https://arxiv.org/abs/2601.12377v1) | [R-VoxelMap](https://github.com/NKU-MobFly-Robotics/R-VoxelMap) |
+| BIEVR-LIO | [PDF](BIEVR-LIO.pdf)，arXiv v2，12 页 | [2604.14421v2](https://arxiv.org/abs/2604.14421v2) | [BIEVR-LIO](https://github.com/ethz-asl/BIEVR-LIO) |
+| Surfel-LIO / hVox | [PDF](Surfel-LIO.pdf)，arXiv v2，8 页 | [2512.03397v2](https://arxiv.org/abs/2512.03397v2) | [lidar_inertial_odometry](https://github.com/93won/lidar_inertial_odometry) |
+| LIO-GVM | [PDF](LIO-GVM.pdf)，arXiv v3，8 页 | [2306.17436v3](https://arxiv.org/abs/2306.17436v3) | [lio_gvm](https://github.com/Ji1Xingyu/lio_gvm)，上游发布缺少编译必需的定制头文件 |
+| FR-LIO / RC-Vox | [PDF](FR-LIO.pdf)，arXiv v3，8 页 | [2302.04031v3](https://arxiv.org/abs/2302.04031v3) | 未验证到作者官方仓库；RC-Vox 是其内部地图结构 |
+| CT-VoxelMap | [PDF](CT-VoxelMap.pdf)，arXiv v1，16 页 | [2604.03747v1](https://arxiv.org/abs/2604.03747v1) | 未验证到作者官方仓库 |
+| GenZ-LIO | [PDF](GenZ-LIO.pdf)，arXiv v3，29 页 | [2603.16273v3](https://arxiv.org/abs/2603.16273v3) | [genz-lio](https://github.com/cocel-postech/genz-lio)，支持独立 C++/Python、ROS1 和 ROS2 |
+| SA-LIVO | [PDF](SA-LIVO.pdf)，arXiv v3，17 页 | [2606.25699v3](https://arxiv.org/abs/2606.25699v3) | 当前 v3 论文未提供官方仓库入口 |
+| SV-LIO | [PDF](SV-LIO.pdf)，Electronics 2026 正式版，22 页 | [10.3390/electronics15081744](https://doi.org/10.3390/electronics15081744) | 未验证到作者官方仓库 |
+| Environment-Adaptive Solid-State LIO | [PDF](Environment-Adaptive-Solid-State-LIO.pdf)，arXiv v2，6 页 | [2604.15864v2](https://arxiv.org/abs/2604.15864v2) | 未验证到作者官方仓库 |
+
+| i-Octree | [PDF](i-Octree.pdf)，arXiv v2，7 页 | [2309.08315v2](https://arxiv.org/abs/2309.08315v2) | [i-octree](https://github.com/zhujun3753/i-octree)，仅抽动态八叉树；独立 CMake 示例 |
+| KISS-ICP / VoxelHashMap | [PDF](KISS-ICP.pdf)，RA-L 2023 作者预印本，8 页 | [10.1109/LRA.2023.3236571](https://doi.org/10.1109/LRA.2023.3236571) | [kiss-icp](https://github.com/PRBonn/kiss-icp)，仅抽几何点图；完整系统是纯激光点点 ICP |
+| iG-LIO / incremental VoxelMap | [PDF](iG-LIO.pdf)，RA-L 2024 作者 early access，8 页 | [10.1109/LRA.2024.3349915](https://doi.org/10.1109/LRA.2024.3349915) | [ig_lio](https://github.com/zijiechenrobotics/ig_lio)，仅抽增量点图；完整 GICP 不纳入固定点面比较 |
+
+## 旧版归档与笔记对应关系
+
+- [GenZ-LIO v2](GenZ-LIO-v2.pdf)，21 页，是 [GenZ-LIO 笔记](notes/GenZ-LIO.md) 中原 v2 推导与图表的依据；默认 `GenZ-LIO.pdf` 为 v3，笔记另列 v3 补充。
+- [SA-LIVO v2](SA-LIVO-v2.pdf)，18 页，是 [SA-LIVO 笔记](notes/SA-LIVO.md) 中原 v2 推导与图表的依据；默认 `SA-LIVO.pdf` 为 v3，笔记另列 v3 补充。v3 标题为 *SA-LIVO: Efficient LiDAR-Inertial-Visual Odometry with Subspace-Aware Information Fusion*，不应把 v2 的推导或实验数字当作 v3 的结论。
+- 其余既有专题笔记入口见 [notes/README.md](notes/README.md)。笔记补全和版本差异整理见该索引；笔记中的结果属于作者报告，不是本工作空间的数据回放结果。
+
+## 源码核查边界
+
+- GenZ-LIO v3 明确链接 `cocel-postech/genz-lio`；GenZ-ICP 是相关的另一项目。
+- 本清单中的 FR-LIO 是 2023 年 *Fast and Robust LiDAR-Inertial Odometry by Tightly-Coupled Iterated Kalman Smoother and Robocentric Voxels*。同名的 Flight-ready Drift-Aware 项目不对应这篇论文。
+- CT-VoxelMap 和 SA-LIVO 的独立论文重实现不视为作者官方发布。
+- LIO-GVM 已公开仓库，但作者的 [Project Update](https://github.com/Ji1Xingyu/lio_gvm#project-update) 仍注明 `.hpp` 待更新；[issue #8](https://github.com/Ji1Xingyu/lio_gvm/issues/8) 与 [issue #13](https://github.com/Ji1Xingyu/lio_gvm/issues/13) 也报告缺少定制 Fast-VGICP 和 IKFoM 接口。通用依赖不能补足这些作者定制接口，因此“官方源码已获取”不等于其完整节点目前可编译。
+- “未验证到”以本次作者论文、作者仓库及公开检索结果为依据，不能证明不存在任何公开实现。
+- [IKFoM](https://github.com/hku-mars/IKFoM) 是 PV-LIO 使用的滤波工具库，其源码随项目的 `include/IKFoM_toolkit/` 保留，不另计为一个完整 LIO 基线。

@@ -1,0 +1,298 @@
+{
+  "checked_on": "2026-11-14",
+  "workspace_root": ".",
+  "project_repository": "src/PV_LIO_PLUS",
+  "note": "The workspace root is not a Git repository. Sources retain their own repositories. upstream_commit pins author provenance; local_commit and patches record compatibility edits. Existing dirty source edits were snapshotted before this task.",
+  "sources": [
+    {
+      "name": "FAST_LIO",
+      "path": "src/FAST_LIO",
+      "repository": "git@github.com:hku-mars/FAST_LIO.git",
+      "upstream_commit": "d30656a5cd7188962d449a3631703647f793d880",
+      "local_commit": "d30656a5cd7188962d449a3631703647f793d880",
+      "branch": "main",
+      "build_group": "catkin-src",
+      "scope": "existing integrated map baseline",
+      "local_changes": []
+    },
+    {
+      "name": "GenZ-LIO",
+      "path": "src/GenZ-LIO",
+      "repository": "git@github.com:cocel-postech/genz-lio.git",
+      "upstream_commit": "bf444f7a747ed3da8548b56b49c14f207e8d49bb",
+      "local_commit": "bf444f7a747ed3da8548b56b49c14f207e8d49bb",
+      "branch": "master",
+      "build_group": "catkin-src",
+      "scope": "candidate pure-plane map component; full hybrid estimator excluded",
+      "local_changes": [
+        "M ros/CMakeLists.txt"
+      ]
+    },
+    {
+      "name": "Hybrid-VoxelMap",
+      "path": "src/Hybrid-VoxelMap",
+      "repository": "git@github.com:haiyang2022/Hybrid-VoxelMap.git",
+      "upstream_commit": "89ed71c2bff47b11a78dabbf244afbed6d311c5d",
+      "local_commit": "89ed71c2bff47b11a78dabbf244afbed6d311c5d",
+      "branch": "main",
+      "build_group": "catkin-src",
+      "scope": "related work; semantic/hybrid residual excluded",
+      "local_changes": [
+        "M CMakeLists.txt",
+        " M include/common_lib.h",
+        " M launch/mapping_m2dgr.launch",
+        " M launch/mapping_ntuviral.launch",
+        " M src/IMU_Processing.hpp",
+        " M src/voxelMapping.cpp"
+      ]
+    },
+    {
+      "name": "PV-LIO",
+      "path": "src/PV-LIO",
+      "repository": "git@github.com:HViktorTsoi/PV-LIO.git",
+      "upstream_commit": "494c27f62f7333d6cc32c26dccaa8d8a971c2c2d",
+      "local_commit": "494c27f62f7333d6cc32c26dccaa8d8a971c2c2d",
+      "branch": "master",
+      "build_group": "catkin-src",
+      "scope": "existing integrated map baseline",
+      "local_changes": [
+        "M CMakeLists.txt",
+        " M package.xml"
+      ]
+    },
+    {
+      "name": "PV_LIO_PLUS",
+      "path": "src/PV_LIO_PLUS",
+      "repository": "git@github.com:vison-yang/PV-LIO-PLUS.git",
+      "upstream_commit": "b85f535b2c06a885bdf9e24bc8ba43293357910a",
+      "local_commit": "b85f535b2c06a885bdf9e24bc8ba43293357910a",
+      "branch": "local",
+      "build_group": "catkin-src",
+      "scope": "comparison framework",
+      "local_changes": [
+        "M README.md",
+        " M README.zh-CN.md",
+        " M paper/GenZ-LIO.pdf",
+        " M paper/SA-LIVO.pdf",
+        " M paper/notes/GenZ-LIO.md",
+        " M paper/notes/README.md",
+        " M paper/notes/SA-LIVO.md",
+        "?? paper/Environment-Adaptive-Solid-State-LIO.pdf",
+        "?? paper/FAST-LIO.pdf",
+        "?? paper/FAST-LIO2.pdf",
+        "?? paper/Faster-LIO.pdf",
+        "?? paper/GenZ-LIO-v2.pdf",
+        "?? paper/KISS-ICP.pdf",
+        "?? paper/README.md",
+        "?? paper/SA-LIVO-v2.pdf",
+        "?? paper/VoxelMap++.pdf",
+        "?? paper/VoxelMap.pdf",
+        "?? paper/catalog.json",
+        "?? paper/i-Octree.pdf",
+        "?? paper/iG-LIO.pdf",
+        "?? paper/ikd-Tree.pdf",
+        "?? paper/notes/MAP_BACKEND_SCOPE_REVIEW.md",
+        "?? scripts/build_upstream.py",
+        "?? scripts/build_workspace.sh",
+        "?? scripts/prepare_workspace_deps.sh"
+      ]
+    },
+    {
+      "name": "R-VoxelMap",
+      "path": "src/R-VoxelMap",
+      "repository": "git@github.com:NKU-MobFly-Robotics/R-VoxelMap.git",
+      "upstream_commit": "50ffbbab3626e384d77f0da91a7e51d5e4b14ff7",
+      "local_commit": "50ffbbab3626e384d77f0da91a7e51d5e4b14ff7",
+      "branch": "main",
+      "build_group": "catkin-src",
+      "scope": "candidate geometric plane map",
+      "local_changes": [
+        "M CMakeLists.txt",
+        " M include/common_lib.h",
+        " M launch/avia.launch",
+        " M launch/kitti.launch",
+        " M launch/m2dgr.launch",
+        " M launch/m3dgr.launch",
+        " M launch/ntu.launch",
+        " M src/voxelMapping.cpp"
+      ]
+    },
+    {
+      "name": "Super-LIO",
+      "path": "src/Super-LIO",
+      "repository": "git@github.com:Liansheng-Wang/Super-LIO.git",
+      "upstream_commit": "60b57aaac8dc397f80c56364e7ccb008c300cc29",
+      "local_commit": "60b57aaac8dc397f80c56364e7ccb008c300cc29",
+      "branch": "ros1",
+      "build_group": "catkin-src",
+      "scope": "existing integrated map baseline",
+      "local_changes": [
+        "M src/super_lio/CMakeLists.txt",
+        " M src/super_lio/package.xml",
+        " M src/super_lio/src/apps/relocation_node.cpp",
+        " M src/super_lio/src/apps/super_lio_node.cpp"
+      ]
+    },
+    {
+      "name": "VoxelMap",
+      "path": "src/VoxelMap",
+      "repository": "git@github.com:hku-mars/VoxelMap.git",
+      "upstream_commit": "c184a6c244586e966c7ac9e978c9d2d7528d75d5",
+      "local_commit": "c184a6c244586e966c7ac9e978c9d2d7528d75d5",
+      "branch": "(detached)",
+      "build_group": "catkin-src",
+      "scope": "existing integrated map baseline",
+      "local_changes": []
+    },
+    {
+      "name": "VoxelMapPlus_Public",
+      "path": "src/VoxelMapPlus_Public",
+      "repository": "git@github.com:uestc-icsp/VoxelMapPlus_Public.git",
+      "upstream_commit": "fe73d5c233c688ecfb755d737b70df0097a17494",
+      "local_commit": "fe73d5c233c688ecfb755d737b70df0097a17494",
+      "branch": "main",
+      "build_group": "catkin-src",
+      "scope": "existing integrated map baseline",
+      "local_changes": [
+        "M CMakeLists.txt",
+        " M package.xml"
+      ]
+    },
+    {
+      "name": "c3p_voxelmap",
+      "path": "src/c3p_voxelmap",
+      "repository": "git@github.com:deptrum/c3p-voxelmap.git",
+      "upstream_commit": "ab4a802099dd366bb79bfc0dcad11c0aa9b0cc4b",
+      "local_commit": "ab4a802099dd366bb79bfc0dcad11c0aa9b0cc4b",
+      "branch": "main",
+      "build_group": "catkin-src",
+      "scope": "existing integrated map baseline",
+      "local_changes": [
+        "M src/voxelMapping.cpp"
+      ]
+    },
+    {
+      "name": "faster_lio",
+      "path": "src/faster_lio",
+      "repository": "git@github.com:gaoxiang12/faster-lio.git",
+      "upstream_commit": "ea0e0910a4cf2da49f569d168442a9c8c1bbe672",
+      "local_commit": "ea0e0910a4cf2da49f569d168442a9c8c1bbe672",
+      "branch": "main",
+      "build_group": "catkin-src",
+      "scope": "existing integrated map baseline",
+      "local_changes": [
+        "M CMakeLists.txt",
+        " M cmake/packages.cmake",
+        " M package.xml"
+      ]
+    },
+    {
+      "name": "ig_lio",
+      "path": "src/ig_lio",
+      "repository": "https://github.com/zijiechenrobotics/ig_lio.git",
+      "upstream_commit": "2d79259e3aaa5bbb10d6b13234398760bbacf8f5",
+      "local_commit": "2d79259e3aaa5bbb10d6b13234398760bbacf8f5",
+      "branch": "main",
+      "build_group": "catkin-src",
+      "scope": "candidate incremental point-map component; full GICP excluded",
+      "local_changes": [
+        "M CMakeLists.txt",
+        " M package.xml"
+      ]
+    },
+    {
+      "name": "BIEVR-LIO",
+      "path": "upstream/BIEVR-LIO",
+      "repository": "git@github.com:ethz-asl/BIEVR-LIO.git",
+      "upstream_commit": "38f98b900dad0e562cddfff16f85f681288a95ed",
+      "local_commit": "38f98b900dad0e562cddfff16f85f681288a95ed",
+      "branch": "main",
+      "build_group": "isolated-upstream",
+      "scope": "related work; bump-image residual excluded",
+      "local_changes": []
+    },
+    {
+      "name": "Surfel-LIO",
+      "path": "upstream/Surfel-LIO",
+      "repository": "git@github.com:93won/lidar_inertial_odometry.git",
+      "upstream_commit": "73348c1e5560eccd2df1ff9f87683b2326a396d4",
+      "local_commit": "73348c1e5560eccd2df1ff9f87683b2326a396d4",
+      "branch": "master",
+      "build_group": "isolated-upstream",
+      "scope": "candidate precomputed L1 surfel map; fixed local snapshot",
+      "local_changes": [
+        "M CMakeLists.txt"
+      ]
+    },
+    {
+      "name": "i-Octree",
+      "path": "upstream/i-Octree",
+      "repository": "https://github.com/zhujun3753/i-octree.git",
+      "upstream_commit": "5b640e05dab23230207dd849eb1549b5074d1a0e",
+      "local_commit": "5b640e05dab23230207dd849eb1549b5074d1a0e",
+      "branch": "main",
+      "build_group": "isolated-upstream",
+      "scope": "candidate dynamic octree index",
+      "local_changes": [
+        "M CMakeLists.txt"
+      ]
+    },
+    {
+      "name": "kiss-icp",
+      "path": "upstream/kiss-icp",
+      "repository": "https://github.com/PRBonn/kiss-icp.git",
+      "upstream_commit": "1ffa7d7512f10bfc8b1185095011fa31184019e3",
+      "local_commit": "1ffa7d7512f10bfc8b1185095011fa31184019e3",
+      "branch": "main",
+      "build_group": "isolated-upstream",
+      "scope": "candidate VoxelHashMap; full point-to-point ICP excluded",
+      "local_changes": []
+    },
+    {
+      "name": "lio_gvm",
+      "path": "upstream/lio_gvm",
+      "repository": "git@github.com:Ji1Xingyu/lio_gvm.git",
+      "upstream_commit": "c80c968ed7ffe61af0a02a1b3c72fe03149c5c3e",
+      "local_commit": "c80c968ed7ffe61af0a02a1b3c72fe03149c5c3e",
+      "branch": "main",
+      "build_group": "isolated-upstream",
+      "scope": "related work; missing author map headers and Gaussian residual excluded",
+      "local_changes": []
+    },
+    {
+      "name": "Sophus",
+      "path": "upstream/deps/Sophus",
+      "repository": "https://github.com/strasdat/Sophus.git",
+      "upstream_commit": "d0b7315a0d90fc6143defa54596a3a95d9fa10ec",
+      "local_commit": "d0b7315a0d90fc6143defa54596a3a95d9fa10ec",
+      "build_group": "dependency",
+      "scope": "ikd-Tree: i-Octree comparison; Sophus/robin-map: pinned KISS dependencies"
+    },
+    {
+      "name": "ikd-Tree",
+      "path": "upstream/deps/ikd-Tree",
+      "repository": "https://github.com/hku-mars/ikd-Tree.git",
+      "upstream_commit": "c0e36a16b6e4d557d3783b16911207f6398dd478",
+      "local_commit": "c0e36a16b6e4d557d3783b16911207f6398dd478",
+      "build_group": "dependency",
+      "scope": "ikd-Tree: i-Octree comparison; Sophus/robin-map: pinned KISS dependencies"
+    },
+    {
+      "name": "robin-map",
+      "path": "upstream/deps/robin-map",
+      "repository": "https://github.com/Tessil/robin-map.git",
+      "upstream_commit": "4ec1bf19c6a96125ea22062f38c2cf5b958e448e",
+      "local_commit": "4ec1bf19c6a96125ea22062f38c2cf5b958e448e",
+      "build_group": "dependency",
+      "scope": "ikd-Tree: i-Octree comparison; Sophus/robin-map: pinned KISS dependencies"
+    },
+    {
+      "name": "livox_ros_driver",
+      "path": "src/livox_ros_driver",
+      "repository": "https://github.com/Livox-SDK/livox_ros_driver",
+      "upstream_commit": null,
+      "build_group": "catkin-src",
+      "scope": "existing ROS1 message/driver source; this local tree has no Git metadata, revision cannot be asserted"
+    }
+  ]
+}
