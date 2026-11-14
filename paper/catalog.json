@@ -15,7 +15,7 @@
       "source_repository": "https://github.com/hku-mars/VoxelMap",
       "author_source_status": "verified",
       "acquisition_url": "https://arxiv.org/pdf/2109.07082v5",
-      "notes_pending": "notes/VoxelMap.md"
+      "notes": "notes/VoxelMap.md"
     },
     {
       "algorithm": "VoxelMap++",
@@ -29,7 +29,7 @@
       "source_repository": "https://github.com/uestc-icsp/VoxelMapPlus_Public",
       "author_source_status": "verified",
       "acquisition_url": "https://arxiv.org/pdf/2308.02799v1",
-      "notes_pending": "notes/VoxelMap++.md"
+      "notes": "notes/VoxelMap++.md"
     },
     {
       "algorithm": "FAST-LIO",
@@ -43,7 +43,7 @@
       "source_repository": "https://github.com/hku-mars/FAST_LIO",
       "author_source_status": "verified",
       "acquisition_url": "https://arxiv.org/pdf/2010.08196v3",
-      "notes_pending": "notes/FAST-LIO.md"
+      "notes": "notes/FAST-LIO.md"
     },
     {
       "algorithm": "FAST-LIO2",
@@ -57,7 +57,7 @@
       "source_repository": "https://github.com/hku-mars/FAST_LIO",
       "author_source_status": "verified",
       "acquisition_url": "https://arxiv.org/pdf/2107.06829v1",
-      "notes_pending": "notes/FAST-LIO2.md"
+      "notes": "notes/FAST-LIO2.md"
     },
     {
       "algorithm": "ikd-Tree",
@@ -71,7 +71,7 @@
       "source_repository": "https://github.com/hku-mars/ikd-Tree",
       "author_source_status": "verified",
       "acquisition_url": "https://arxiv.org/pdf/2102.10808v1",
-      "notes_pending": "notes/ikd-Tree.md"
+      "notes": "notes/ikd-Tree.md"
     },
     {
       "algorithm": "Faster-LIO / iVox",
@@ -85,7 +85,7 @@
       "source_repository": "https://github.com/gaoxiang12/faster-lio",
       "author_source_status": "verified",
       "acquisition_url": "https://github.com/gaoxiang12/faster-lio/blob/main/doc/faster-lio.pdf",
-      "notes_pending": "notes/Faster-LIO.md"
+      "notes": "notes/Faster-LIO.md"
     },
     {
       "algorithm": "C3P-VoxelMap",
@@ -272,7 +272,7 @@
       "source_repository": null,
       "author_source_status": "not_verified",
       "acquisition_url": "https://arxiv.org/pdf/2604.15864v2",
-      "notes_pending": "notes/Environment-Adaptive-Solid-State-LIO.md"
+      "notes": "notes/Environment-Adaptive-Solid-State-LIO.md"
     },
     {
       "algorithm": "GenZ-LIO",
@@ -314,7 +314,7 @@
       "pages": 7,
       "bytes": 892382,
       "sha256": "0a3aa35b7aa9eb9f2fd04d70de86e64a71b6825481110e5e9666d4b931324daf",
-      "notes_pending": "notes/i-Octree.md"
+      "notes": "notes/i-Octree.md"
     },
     {
       "algorithm": "KISS-ICP / VoxelHashMap",
@@ -328,7 +328,7 @@
       "pages": 8,
       "bytes": 2300936,
       "sha256": "ac348e4cb4716bf46b2f1244fc87c75e190f693f31ff18104e093c83176215a1",
-      "notes_pending": "notes/KISS-ICP.md"
+      "notes": "notes/KISS-ICP.md"
     },
     {
       "algorithm": "iG-LIO / incremental VoxelMap",
@@ -342,7 +342,7 @@
       "pages": 8,
       "bytes": 2957761,
       "sha256": "90ad0b49040f3e79996afeab8627643461847e9cc4d427b3324c5a8cc0c6abd2",
-      "notes_pending": "notes/iG-LIO.md"
+      "notes": "notes/iG-LIO.md"
     }
   ],
   "verification_scope": "All local PDFs rehashed and page-counted; new source repositories and map-component eligibility reviewed on this date. Existing paper versions were retained, not all asserted as latest."

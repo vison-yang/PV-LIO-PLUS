@@ -99,3 +99,11 @@ $$
 Surfel-LIO 是一个很明确的“预计算换查询”方案：如果地图几何在一次 IEKF 更新中不会变化，就不应在每次查询重做 PCA。其适用边界也明确：固定尺度和局部平面假设在曲面、极稀疏环境中可能丢失有效约束，且论文尚未验证 UAV、手持和旋转式 LiDAR。
 
 ---
+
+## 2026-11-14 地图替换边界
+
+- 本地上游版本固定为 Surfel-LIO 73348c1；该版本符合论文的预计算 L1 surfel 地图方向，是范围审查认可的地图层候选。
+- 本地更新期由 UpdateVoxelMap 汇集 L0 质心、SVD 并保存 L1 法向/中心；估计查询链为 Estimator::FindCorrespondences → VoxelMap::GetSurfelAtPoint，按 L1 key 读取已存平面。
+- GetL1Surfels 是 viewer 遍历接口，不是估计查询入口。本地查询没有 GetClosestSurfel/KNearest，也不在查询期做 kNN/PCA。
+- 抽取时只保留地图层并适配 PV 的公共点面观测和协方差语义；排除原 Estimator、预处理及滤波。
+- 远程 2cbfad9 改为 KD-tree/PCA，仅作为升级风险提示，不能据此描述当前本地 73348c1。详见[范围审查](MAP_BACKEND_SCOPE_REVIEW.md)。

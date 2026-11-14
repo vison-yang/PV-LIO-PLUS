@@ -28,7 +28,6 @@
 | SA-LIVO | [PDF](SA-LIVO.pdf)，arXiv v3，17 页 | [2606.25699v3](https://arxiv.org/abs/2606.25699v3) | 当前 v3 论文未提供官方仓库入口 |
 | SV-LIO | [PDF](SV-LIO.pdf)，Electronics 2026 正式版，22 页 | [10.3390/electronics15081744](https://doi.org/10.3390/electronics15081744) | 未验证到作者官方仓库 |
 | Environment-Adaptive Solid-State LIO | [PDF](Environment-Adaptive-Solid-State-LIO.pdf)，arXiv v2，6 页 | [2604.15864v2](https://arxiv.org/abs/2604.15864v2) | 未验证到作者官方仓库 |
-
 | i-Octree | [PDF](i-Octree.pdf)，arXiv v2，7 页 | [2309.08315v2](https://arxiv.org/abs/2309.08315v2) | [i-octree](https://github.com/zhujun3753/i-octree)，仅抽动态八叉树；独立 CMake 示例 |
 | KISS-ICP / VoxelHashMap | [PDF](KISS-ICP.pdf)，RA-L 2023 作者预印本，8 页 | [10.1109/LRA.2023.3236571](https://doi.org/10.1109/LRA.2023.3236571) | [kiss-icp](https://github.com/PRBonn/kiss-icp)，仅抽几何点图；完整系统是纯激光点点 ICP |
 | iG-LIO / incremental VoxelMap | [PDF](iG-LIO.pdf)，RA-L 2024 作者 early access，8 页 | [10.1109/LRA.2024.3349915](https://doi.org/10.1109/LRA.2024.3349915) | [ig_lio](https://github.com/zijiechenrobotics/ig_lio)，仅抽增量点图；完整 GICP 不纳入固定点面比较 |
@@ -37,7 +36,7 @@
 
 - [GenZ-LIO v2](GenZ-LIO-v2.pdf)，21 页，是 [GenZ-LIO 笔记](notes/GenZ-LIO.md) 中原 v2 推导与图表的依据；默认 `GenZ-LIO.pdf` 为 v3，笔记另列 v3 补充。
 - [SA-LIVO v2](SA-LIVO-v2.pdf)，18 页，是 [SA-LIVO 笔记](notes/SA-LIVO.md) 中原 v2 推导与图表的依据；默认 `SA-LIVO.pdf` 为 v3，笔记另列 v3 补充。v3 标题为 *SA-LIVO: Efficient LiDAR-Inertial-Visual Odometry with Subspace-Aware Information Fusion*，不应把 v2 的推导或实验数字当作 v3 的结论。
-- 其余既有专题笔记入口见 [notes/README.md](notes/README.md)。笔记补全和版本差异整理见该索引；笔记中的结果属于作者报告，不是本工作空间的数据回放结果。
+- 其余既有专题笔记入口见 [notes/README.md](notes/README.md)。22 篇正式论文的独立笔记及版本差异整理均已补齐；笔记中的结果属于作者报告，不是本工作空间的数据回放结果。
 
 ## 源码核查边界
 
