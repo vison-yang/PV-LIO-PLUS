@@ -59,14 +59,17 @@ mapping:
     c3p_merge_y_coord_diff_thresh: 5.0
 
     extrinsic_est_en: false               # enable online IMU-LiDAR extrinsic estimation
+    # extrinsic_T: [0.0, -0.037, -0.02124] # extrinsic_T_I2L, consumed as LiDAR-to-IMU [m]
+    # extrinsic_R: [-0.00463911, -0.02533197, -0.99966833,
+    #               0.00352892, -0.99967328, 0.02531572,
+    #               -0.99998301, -0.00341031, 0.00472699] # R_I2L, row-major LiDAR-to-IMU rotation
     extrinsic_T: [0.0, -0.037, -0.02124] # extrinsic_T_I2L, consumed as LiDAR-to-IMU [m]
-    extrinsic_R: [-0.00463911, -0.02533197, -0.99966833,
-                  0.00352892, -0.99967328, 0.02531572,
-                  -0.99998301, -0.00341031, 0.00472699] # R_I2L, row-major LiDAR-to-IMU rotation
-
+    extrinsic_R: [0, 0, -1,
+                  0, -1, 0,
+                  -1, 0, 0] # R_I2L, row-major LiDAR-to-IMU rotation
 noise_model:
-    ranging_cov: 0.03
-    angle_cov: 0.15
+    ranging_cov: 0.05
+    angle_cov: 0.0001
     acc_cov: 0.3
     gyr_cov: 0.1
     b_acc_cov: 0.005
