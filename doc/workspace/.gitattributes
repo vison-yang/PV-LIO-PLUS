@@ -1,0 +1,4 @@
+# Keep recorded hashes, patch context, and compiler output byte-for-byte.
+patches/*.patch -text -whitespace
+evidence/* -text
+evidence/*.log -whitespace

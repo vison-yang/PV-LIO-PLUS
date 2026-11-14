@@ -154,7 +154,23 @@ C3P-VoxelMap 的上游许可证声明仍需进一步确认，在确认前不应�
 - [Surfel-LIO](https://github.com/93won/lidar_inertial_odometry)
 - [LIO-GVM](https://github.com/Ji1Xingyu/lio_gvm)
 - [GenZ-LIO](https://github.com/cocel-postech/genz-lio)
+- [i-Octree](https://github.com/zhujun3753/i-octree)
+- [KISS-ICP / VoxelHashMap](https://github.com/PRBonn/kiss-icp)
+- [iG-LIO](https://github.com/zijiechenrobotics/ig_lio)
 
 ## 工作空间源码与编译记录
 
-本工作空间由多个独立 Git 仓库组成，固定来源见[源码清单](doc/workspace/SOURCE_MANIFEST.json)。可共同编译的 ROS1 包位于工作空间 `src/`；独立 CMake、ROS2/混合构建、包名冲突或源码不完整的项目放在 `upstream/`，逐个独立编译。已从地图候选列表移除的相关研究仍保留源码和编译结果。依赖前缀放在工作空间内。
+本工作空间由多个独立 Git 仓库组成，固定来源见[源码清单](doc/workspace/SOURCE_MANIFEST.json)，结果见[编译报告](doc/workspace/BUILD_REPORT.md)。可共同编译的 ROS1 包位于工作空间 `src/`；独立 CMake、ROS2/混合构建、包名冲突或源码不完整的项目放在 `upstream/`，逐个独立编译。已从地图候选列表移除的相关研究仍保留源码和编译结果。依赖前缀放在工作空间内。
+
+现有多项目工作空间应使用本地 Eigen/Ceres 前缀与明确的头文件顺序：
+
+```bash
+bash src/PV_LIO_PLUS/scripts/prepare_workspace_deps.sh
+bash src/PV_LIO_PLUS/scripts/build_workspace.sh \
+  --build-dir build/maintenance-20261114-unified \
+  --devel-dir devel/maintenance-20261114-unified --jobs 2
+source devel/maintenance-20261114-unified/setup.bash
+python3 src/PV_LIO_PLUS/scripts/build_upstream.py --jobs 2
+```
+
+独立构建脚本逐项保存并继续处理失败项；LIO-GVM 仍需作者补齐源码。编译结果不等同地图精度结论。

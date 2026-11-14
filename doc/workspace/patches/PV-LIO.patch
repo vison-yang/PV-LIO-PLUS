@@ -1,0 +1,52 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 57702d9..ee6d11a 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -64,6 +64,8 @@ find_package(catkin REQUIRED COMPONENTS
+   rospy
+   std_msgs
+   pcl_ros
++  pcl_conversions
++  rosbag
+   tf
+   livox_ros_driver
+   message_generation
+@@ -100,6 +102,7 @@ catkin_package(
+ )
+ 
+ add_executable(pv_lio_node src/voxelMapping.cpp src/preprocess.cpp)
++add_dependencies(pv_lio_node ${catkin_EXPORTED_TARGETS})
+ target_link_libraries(pv_lio_node ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES})
+ target_include_directories(pv_lio_node PRIVATE ${PYTHON_INCLUDE_DIRS})
+ 
+diff --git a/package.xml b/package.xml
+index 8c92cf5..65823d5 100644
+--- a/package.xml
++++ b/package.xml
+@@ -25,6 +25,11 @@
+   <build_depend>sensor_msgs</build_depend>
+   <build_depend>tf</build_depend>
+   <build_depend>pcl_ros</build_depend>
++  <build_depend>pcl_conversions</build_depend>
++  <build_depend>rosbag</build_depend>
++  <build_depend>eigen_conversions</build_depend>
++  <build_depend>boost</build_depend>
++  <build_depend>python3-dev</build_depend>
+   <build_depend>livox_ros_driver</build_depend>
+   <build_depend>message_generation</build_depend>
+ 
+@@ -36,11 +41,13 @@
+   <run_depend>std_msgs</run_depend>
+   <run_depend>tf</run_depend>
+   <run_depend>pcl_ros</run_depend>
++  <run_depend>pcl_conversions</run_depend>
++  <run_depend>rosbag</run_depend>
++  <run_depend>eigen_conversions</run_depend>
+   <run_depend>livox_ros_driver</run_depend>
+   <run_depend>message_runtime</run_depend>
+ 
+   <test_depend>rostest</test_depend>
+-  <test_depend>rosbag</test_depend>
+ 
+   <export>
+   </export>

@@ -1,0 +1,123 @@
+{
+  "checked_on": "2026-11-14",
+  "src": {
+    "status": "passed",
+    "packages": 14,
+    "build_dir": "build/maintenance-20261114-unified",
+    "devel_dir": "devel/maintenance-20261114-unified",
+    "log": "output/maintenance-20261114/logs/src-unified-build.log",
+    "include_order_checked": 87,
+    "wrong_eigen_priority": 0,
+    "exit_code": 0,
+    "genz_ctest": {
+      "passed": 21,
+      "total": 21,
+      "exit_code": 0,
+      "log": "output/maintenance-20261114/logs/genz-ctest.log"
+    },
+    "elf_audit": {
+      "elf_files": 23,
+      "missing_libraries": 0,
+      "unresolved_symbols": 0,
+      "exit_code": 0,
+      "log": "output/maintenance-20261114/logs/elf-ldd-audit.log"
+    },
+    "eigen_preprocessor_audit": {
+      "representative_command_groups": 13,
+      "eigen_version": "3.4.0",
+      "exit_code": 0,
+      "log": "output/maintenance-20261114/logs/eigen-preprocessor-versions.log"
+    },
+    "ros_package_resolution": {
+      "packages": 14,
+      "exit_code": 0,
+      "log": "output/maintenance-20261114/logs/ros-package-resolution.log"
+    },
+    "pv_backend_symbols": {
+      "backends": 6,
+      "exit_code": 0,
+      "log": "output/maintenance-20261114/logs/pv-six-backends-elf.log"
+    },
+    "dependency_consumer": {
+      "eigen_version": "3.4.0",
+      "ceres_version": "2.2.0",
+      "solution_x": 10,
+      "usable": true,
+      "exit_code": 0,
+      "log": "output/maintenance-20261114/logs/local-deps-consumer.log"
+    }
+  },
+  "upstream": [
+    {
+      "project": "BIEVR-LIO",
+      "exit_code": 0,
+      "log": "output/maintenance-20261114/upstream-sequential/BIEVR-LIO.log",
+      "build_steps": 1
+    },
+    {
+      "project": "Surfel-LIO",
+      "exit_code": 0,
+      "log": "output/maintenance-20261114/upstream-sequential/Surfel-LIO.log",
+      "build_steps": 4
+    },
+    {
+      "project": "i-Octree",
+      "exit_code": 0,
+      "log": "output/maintenance-20261114/upstream-sequential/i-Octree.log",
+      "build_steps": 2
+    },
+    {
+      "project": "kiss-icp",
+      "exit_code": 0,
+      "log": "output/maintenance-20261114/upstream-sequential/kiss-icp.log",
+      "build_steps": 2
+    },
+    {
+      "project": "lio_gvm",
+      "exit_code": 1,
+      "log": "output/maintenance-20261114/upstream-sequential/lio_gvm.log",
+      "build_steps": 1
+    }
+  ],
+  "runtime_evaluation": "Not performed; compiler/linker verification is not trajectory or map quality validation.",
+  "upstream_linkage": [
+    {
+      "binary": "upstream/build/bievr_ros1_ws/install_isolated/lib/bievr_lio_ros/process_bag",
+      "exit_code": 0,
+      "missing": []
+    },
+    {
+      "binary": "upstream/build/bievr_ros1_ws/install_isolated/lib/bievr_lio_ros/process_topics",
+      "exit_code": 0,
+      "missing": []
+    },
+    {
+      "binary": "upstream/build/Surfel-LIO/lio_player",
+      "exit_code": 0,
+      "missing": []
+    },
+    {
+      "binary": "upstream/build/i-Octree/time_compare",
+      "exit_code": 0,
+      "missing": []
+    }
+  ],
+  "paper_review": {
+    "canonical_notes": 22,
+    "archived_pdfs": 2,
+    "substantive_issue_groups_fixed": 5,
+    "final_review": "passed",
+    "report": "doc/workspace/PAPER_REVIEW.md"
+  },
+  "verification_logs": "doc/workspace/evidence/manifest.json",
+  "artifact_validation": {
+    "status": "passed",
+    "pdfs": 24,
+    "canonical_notes": 22,
+    "source_entries": 21,
+    "compatibility_patches": 11,
+    "local_markdown_links": 190,
+    "errors": 0,
+    "record": "doc/workspace/evidence/final-artifact-validation.json"
+  }
+}

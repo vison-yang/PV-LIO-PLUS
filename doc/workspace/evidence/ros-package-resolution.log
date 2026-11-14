@@ -1,0 +1,16 @@
+ROS_PACKAGE_PATH=/home/yxy/src/lio_ws/src:/opt/ros/noetic/share
+basic                  /home/yxy/src/lio_ws/src/Super-LIO/src/basic
+genz_lio               /home/yxy/src/lio_ws/src/GenZ-LIO/ros
+livox_ros_driver       /home/yxy/src/lio_ws/src/livox_ros_driver
+c3p_voxelmap           /home/yxy/src/lio_ws/src/c3p_voxelmap
+fast_lio               /home/yxy/src/lio_ws/src/FAST_LIO
+faster_lio             /home/yxy/src/lio_ws/src/faster_lio
+hybrid_voxel_map       /home/yxy/src/lio_ws/src/Hybrid-VoxelMap
+ig_lio                 /home/yxy/src/lio_ws/src/ig_lio
+pv_lio                 /home/yxy/src/lio_ws/src/PV-LIO
+pv_lio_plus            /home/yxy/src/lio_ws/src/PV_LIO_PLUS
+rvoxelmap              /home/yxy/src/lio_ws/src/R-VoxelMap
+super_lio              /home/yxy/src/lio_ws/src/Super-LIO/src/super_lio
+voxel_map              /home/yxy/src/lio_ws/src/VoxelMap
+voxel_map_plus         /home/yxy/src/lio_ws/src/VoxelMapPlus_Public
+ros_package_resolution_exit_status=0

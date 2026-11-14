@@ -223,12 +223,31 @@ clarification before public redistribution of those local copies.
 - [Surfel-LIO](https://github.com/93won/lidar_inertial_odometry)
 - [LIO-GVM](https://github.com/Ji1Xingyu/lio_gvm)
 - [GenZ-LIO](https://github.com/cocel-postech/genz-lio)
+- [i-Octree](https://github.com/zhujun3753/i-octree)
+- [KISS-ICP / VoxelHashMap](https://github.com/PRBonn/kiss-icp)
+- [iG-LIO](https://github.com/zijiechenrobotics/ig_lio)
 
 ## Workspace source and build records
 
 For this multi-repository workspace, see the pinned
-[source manifest](doc/workspace/SOURCE_MANIFEST.json). ROS1 packages that can be built
+[source manifest](doc/workspace/SOURCE_MANIFEST.json) and
+[build report](doc/workspace/BUILD_REPORT.md). ROS1 packages that can be built
 together live in workspace `src/`; standalone CMake, ROS2/mixed builds, and
 conflicting or incomplete source releases live in workspace `upstream/`.
 The latter are compiled separately, including related-work baselines removed
 from the map-only candidate list. Dependency prefixes stay inside the workspace.
+
+For the existing multi-project workspace, build with the local Eigen/Ceres
+prefix and explicit include ordering:
+
+```bash
+bash src/PV_LIO_PLUS/scripts/prepare_workspace_deps.sh
+bash src/PV_LIO_PLUS/scripts/build_workspace.sh \
+  --build-dir build/maintenance-20261114-unified \
+  --devel-dir devel/maintenance-20261114-unified --jobs 2
+source devel/maintenance-20261114-unified/setup.bash
+python3 src/PV_LIO_PLUS/scripts/build_upstream.py --jobs 2
+```
+
+The upstream script records and continues individual failures; LIO-GVM still
+requires missing author source. These commands validate builds, not map quality.

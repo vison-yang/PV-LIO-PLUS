@@ -1,0 +1,66 @@
+diff --git a/ros/CMakeLists.txt b/ros/CMakeLists.txt
+index c768736..c5937a6 100644
+--- a/ros/CMakeLists.txt
++++ b/ros/CMakeLists.txt
+@@ -69,7 +69,18 @@ else()
+   find_package(catkin REQUIRED COMPONENTS
+     roscpp sensor_msgs nav_msgs geometry_msgs visualization_msgs tf tf2_ros pcl_ros pcl_conversions)
+ 
+-  find_package(livox_ros_driver QUIET)
++  # In a merged catkin_make workspace this package can be configured before an
++  # optional source-space driver.  Loading its stale devel-space config here
++  # would create placeholder message targets that collide with the real ones.
++  list(FIND CATKIN_ORDERED_PACKAGES livox_ros_driver _genz_livox_workspace_index)
++  if(NOT _genz_livox_workspace_index EQUAL -1 AND
++     NOT TARGET livox_ros_driver_generate_messages_cpp)
++    set(livox_ros_driver_FOUND TRUE)
++    set(livox_ros_driver_INCLUDE_DIRS "${CATKIN_DEVEL_PREFIX}/include")
++    set(livox_ros_driver_EXPORTED_TARGETS livox_ros_driver_generate_messages_cpp)
++  else()
++    find_package(livox_ros_driver QUIET)
++  endif()
+   if(livox_ros_driver_FOUND)
+     message(STATUS "livox_ros_driver found: Livox CustomMsg support enabled")
+   else()
+@@ -91,6 +102,9 @@ else()
+     target_include_directories(genz_lio_node PRIVATE ${livox_ros_driver_INCLUDE_DIRS})
+     target_link_libraries(genz_lio_node ${livox_ros_driver_LIBRARIES})
+     target_compile_definitions(genz_lio_node PRIVATE GENZ_LIO_WITH_LIVOX)
++    if(livox_ros_driver_EXPORTED_TARGETS)
++      add_dependencies(genz_lio_node ${livox_ros_driver_EXPORTED_TARGETS})
++    endif()
+   endif()
+ 
+   install(TARGETS genz_lio_node RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+@@ -104,7 +118,10 @@ target_include_directories(genz_lio_node PRIVATE ${PCL_INCLUDE_DIRS} ${CMAKE_CUR
+ target_link_libraries(genz_lio_node genz_lio::core genz_lio::config ${PCL_LIBRARIES} yaml-cpp)
+ 
+ get_target_property(_genz_eigen_includes genz_lio_core GENZ_LIO_EIGEN_INCLUDE_DIRS)
+-target_include_directories(genz_lio_node SYSTEM BEFORE PRIVATE ${_genz_eigen_includes})
++# A SYSTEM include is searched after every ordinary -I path even with BEFORE.
++# Noetic's PCL exports an older /usr/include/eigen3 as an ordinary include.
++set_property(TARGET genz_lio_node PROPERTY NO_SYSTEM_FROM_IMPORTED TRUE)
++target_include_directories(genz_lio_node BEFORE PRIVATE ${_genz_eigen_includes})
+ 
+ if(GENZ_LIO_BUILD_TESTS)
+   enable_testing()
+@@ -119,7 +136,8 @@ if(GENZ_LIO_BUILD_TESTS)
+   target_compile_definitions(test_input_timing PRIVATE GENZ_LIO_ROS_VERSION=${GENZ_LIO_ROS_VERSION})
+   target_include_directories(test_input_timing PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+   target_link_libraries(test_input_timing genz_lio::core)
+-  target_include_directories(test_input_timing SYSTEM BEFORE PRIVATE ${_genz_eigen_includes})
++  set_property(TARGET test_input_timing PROPERTY NO_SYSTEM_FROM_IMPORTED TRUE)
++  target_include_directories(test_input_timing BEFORE PRIVATE ${_genz_eigen_includes})
+   if(GENZ_LIO_ROS_VERSION EQUAL 2)
+     ament_target_dependencies(test_input_timing rclcpp sensor_msgs nav_msgs geometry_msgs visualization_msgs tf2_ros)
+   else()
+@@ -136,7 +154,8 @@ if(GENZ_LIO_BUILD_TESTS)
+     ament_target_dependencies(test_ros2_topics
+       rclcpp sensor_msgs nav_msgs geometry_msgs visualization_msgs tf2_ros pcl_conversions)
+     target_link_libraries(test_ros2_topics genz_lio::core genz_lio::config ${PCL_LIBRARIES} yaml-cpp)
+-    target_include_directories(test_ros2_topics SYSTEM BEFORE PRIVATE ${_genz_eigen_includes})
++    set_property(TARGET test_ros2_topics PROPERTY NO_SYSTEM_FROM_IMPORTED TRUE)
++    target_include_directories(test_ros2_topics BEFORE PRIVATE ${_genz_eigen_includes})
+     add_test(NAME ros2_topics COMMAND test_ros2_topics ${CMAKE_CURRENT_SOURCE_DIR}/config)
+     set_tests_properties(ros2_topics PROPERTIES ENVIRONMENT "ROS_DOMAIN_ID=198")
+   endif()

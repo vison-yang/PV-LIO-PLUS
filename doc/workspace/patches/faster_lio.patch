@@ -1,0 +1,44 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 51725ea..bdd52e9 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -12,7 +12,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 ${CMAKE_CXX_FLAGS}")
+ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS}")
+ 
+ add_definitions(-DROOT_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/\")
+-add_subdirectory(thirdparty/livox_ros_driver)
+ 
+ include(cmake/packages.cmake)
+ 
+diff --git a/cmake/packages.cmake b/cmake/packages.cmake
+index 24f662e..dab78af 100644
+--- a/cmake/packages.cmake
++++ b/cmake/packages.cmake
+@@ -24,6 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
+         std_msgs
+         pcl_ros
+         tf
++        livox_ros_driver
+         message_generation
+         eigen_conversions
+         )
+diff --git a/package.xml b/package.xml
+index 93d615a..4c230ee 100644
+--- a/package.xml
++++ b/package.xml
+@@ -24,6 +24,7 @@
+     <build_depend>sensor_msgs</build_depend>
+     <build_depend>tf</build_depend>
+     <build_depend>pcl_ros</build_depend>
++    <build_depend>livox_ros_driver</build_depend>
+     <build_depend>message_generation</build_depend>
+     <build_depend>libgoogle-glog-dev</build_depend>
+ 
+@@ -35,6 +36,7 @@
+     <run_depend>std_msgs</run_depend>
+     <run_depend>tf</run_depend>
+     <run_depend>pcl_ros</run_depend>
++    <run_depend>livox_ros_driver</run_depend>
+     <run_depend>message_runtime</run_depend>
+     <run_depend>libgoogle-glog-dev</run_depend>
+ 

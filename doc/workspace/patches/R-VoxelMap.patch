@@ -1,0 +1,152 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 7b33a5d..9749a51 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -79,14 +79,14 @@ generate_messages(
+ )
+ 
+ catkin_package(
+-  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs message_runtime
++  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy std_msgs message_runtime livox_ros_driver
+   DEPENDS EIGEN3 PCL
+   INCLUDE_DIRS
+ )
+ 
+-add_executable(voxel_mapping_odom src/voxelMapping.cpp  src/preprocess.cpp)
+-target_link_libraries(voxel_mapping_odom ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+-target_include_directories(voxel_mapping_odom PRIVATE ${PYTHON_INCLUDE_DIRS})
++add_executable(rvoxelmap_mapping_odom src/voxelMapping.cpp  src/preprocess.cpp)
++target_link_libraries(rvoxelmap_mapping_odom ${catkin_LIBRARIES} ${PCL_LIBRARIES})
++target_include_directories(rvoxelmap_mapping_odom PRIVATE ${PYTHON_INCLUDE_DIRS})
+ 
+ add_executable(map_test src/test/map_test.cpp)
+ target_link_libraries(map_test ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES})
+@@ -95,3 +95,15 @@ target_include_directories(map_test PRIVATE ${PYTHON_INCLUDE_DIRS})
+ add_executable(map_update_test src/test/map_update_test.cpp)
+ target_link_libraries(map_update_test ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES})
+ target_include_directories(map_update_test PRIVATE ${PYTHON_INCLUDE_DIRS})
++
++set(RVOXELMAP_TARGETS
++  rvoxelmap_mapping_odom
++  map_test
++  map_update_test
++)
++foreach(target ${RVOXELMAP_TARGETS})
++  add_dependencies(${target}
++    ${${PROJECT_NAME}_EXPORTED_TARGETS}
++    ${catkin_EXPORTED_TARGETS}
++  )
++endforeach()
+diff --git a/include/common_lib.h b/include/common_lib.h
+index 0076e21..05a4a3d 100644
+--- a/include/common_lib.h
++++ b/include/common_lib.h
+@@ -233,4 +233,4 @@ bool esti_plane(Matrix<T, 4, 1> &pca_result, const PointVector &point,
+   return true;
+ }
+ 
+-#endif
+\ No newline at end of file
++#endif
+diff --git a/launch/avia.launch b/launch/avia.launch
+index 20e7462..547a03a 100644
+--- a/launch/avia.launch
++++ b/launch/avia.launch
+@@ -18,9 +18,9 @@
+     <param name="time_file_path" type="string" value="$(arg result_dir)/time_rvoxelmap_$(arg bag_name).txt" />
+     <param name="time_aver_file_path" type="string" value="$(arg result_dir)/time_aver_rvoxelmap_$(arg bag_name).txt" />
+ 
+-    <node pkg="rvoxelmap" type="voxel_mapping_odom" name="voxel_mapping_odom_origin" output="screen"/>
++    <node pkg="rvoxelmap" type="rvoxelmap_mapping_odom" name="rvoxelmap_mapping_origin" output="screen"/>
+     <group if="$(arg rviz)">
+     <node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz_voxelmap" args="-d $(find rvoxelmap)/rviz_cfg/voxel_mapping.rviz" />
+     </group>
+     </group>
+-</launch>
+\ No newline at end of file
++</launch>
+diff --git a/launch/kitti.launch b/launch/kitti.launch
+index 90fe7e5..61d2344 100644
+--- a/launch/kitti.launch
++++ b/launch/kitti.launch
+@@ -19,7 +19,7 @@
+     <param name="time_aver_file_path" type="string" value="$(arg result_dir)/time_aver_rvoxelmap_$(arg bag_name).txt" />
+ 
+ 
+-    <node pkg="rvoxelmap" type="voxel_mapping_odom" name="voxel_mapping_odom" output="screen">
++    <node pkg="rvoxelmap" type="rvoxelmap_mapping_odom" name="rvoxelmap_mapping" output="screen">
+     <!-- <remap from="cloud_registered" to="/cloud_registered" /> -->
+     </node>
+ 
+@@ -27,4 +27,4 @@
+     <node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find rvoxelmap)/rviz_cfg/voxel_mapping.rviz" />
+     </group>
+     </group>
+-</launch>
+\ No newline at end of file
++</launch>
+diff --git a/launch/m2dgr.launch b/launch/m2dgr.launch
+index 2120079..d5d5402 100644
+--- a/launch/m2dgr.launch
++++ b/launch/m2dgr.launch
+@@ -18,9 +18,9 @@
+     <param name="time_file_path" type="string" value="$(arg result_dir)/time_rvoxelmap_$(arg bag_name).txt" />
+     <param name="time_aver_file_path" type="string" value="$(arg result_dir)/time_aver_rvoxelmap_$(arg bag_name).txt" />
+ 
+-    <node pkg="rvoxelmap" type="voxel_mapping_odom" name="voxel_mapping_odom" output="screen"/>
++    <node pkg="rvoxelmap" type="rvoxelmap_mapping_odom" name="rvoxelmap_mapping" output="screen"/>
+     <group if="$(arg rviz)">
+     <node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find rvoxelmap)/rviz_cfg/voxel_mapping.rviz" />
+     </group>
+     </group>
+-</launch>
+\ No newline at end of file
++</launch>
+diff --git a/launch/m3dgr.launch b/launch/m3dgr.launch
+index b26f653..6c8f4cc 100644
+--- a/launch/m3dgr.launch
++++ b/launch/m3dgr.launch
+@@ -18,9 +18,9 @@
+     <param name="time_file_path" type="string" value="$(arg result_dir)/time_rvoxelmap_$(arg bag_name).txt" />
+     <param name="time_aver_file_path" type="string" value="$(arg result_dir)/time_aver_rvoxelmap_$(arg bag_name).txt" />
+ 
+-    <node pkg="rvoxelmap" type="voxel_mapping_odom" name="voxel_mapping_odom_origin" output="screen"/>
++    <node pkg="rvoxelmap" type="rvoxelmap_mapping_odom" name="rvoxelmap_mapping_origin" output="screen"/>
+     <group if="$(arg rviz)">
+     <node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz_voxelmap" args="-d $(find rvoxelmap)/rviz_cfg/voxel_mapping.rviz" />
+     </group>
+     </group>
+-</launch>
+\ No newline at end of file
++</launch>
+diff --git a/launch/ntu.launch b/launch/ntu.launch
+index 719495c..9799a40 100644
+--- a/launch/ntu.launch
++++ b/launch/ntu.launch
+@@ -19,10 +19,10 @@
+     <param name="time_file_path" type="string" value="$(arg result_dir)/time_rvoxelmap_$(arg bag_name).txt" />
+     <param name="time_aver_file_path" type="string" value="$(arg result_dir)/time_aver_rvoxelmap_$(arg bag_name).txt" />
+ 
+-    <node pkg="rvoxelmap" type="voxel_mapping_odom" name="voxel_mapping_odom" output="screen"/>
++    <node pkg="rvoxelmap" type="rvoxelmap_mapping_odom" name="rvoxelmap_mapping" output="screen"/>
+     <group if="$(arg rviz)">
+     <node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find rvoxelmap)/rviz_cfg/voxel_mapping.rviz" />
+     </group>
+     </group>
+ 
+-</launch>
+\ No newline at end of file
++</launch>
+diff --git a/src/voxelMapping.cpp b/src/voxelMapping.cpp
+index 6c5ab48..9d997f3 100644
+--- a/src/voxelMapping.cpp
++++ b/src/voxelMapping.cpp
+@@ -613,7 +613,7 @@ void update_time_log(){
+ }
+ 
+ int main(int argc, char **argv) {
+-  ros::init(argc, argv, "voxelMapping");
++  ros::init(argc, argv, "rvoxelmap_mapping");
+   ros::NodeHandle nh;
+ 
+   double ranging_cov = 0.0;

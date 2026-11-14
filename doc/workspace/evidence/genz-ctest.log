@@ -1,0 +1,49 @@
+Test project /home/yxy/src/lio_ws/build/maintenance-20261114-unified
+      Start  1: save_odometry
+ 1/21 Test  #1: save_odometry ....................   Passed    0.09 sec
+      Start  2: terminal_status
+ 2/21 Test  #2: terminal_status ..................   Passed    0.00 sec
+      Start  3: input_timing
+ 3/21 Test  #3: input_timing .....................   Passed    0.01 sec
+      Start  4: core_types
+ 4/21 Test  #4: core_types .......................   Passed    0.00 sec
+      Start  5: downsample
+ 5/21 Test  #5: downsample .......................   Passed    0.01 sec
+      Start  6: scale_aware_voxelizer
+ 6/21 Test  #6: scale_aware_voxelizer ............   Passed    2.53 sec
+      Start  7: imu_processor
+ 7/21 Test  #7: imu_processor ....................   Passed    0.01 sec
+      Start  8: preprocessor
+ 8/21 Test  #8: preprocessor .....................   Passed    0.00 sec
+      Start  9: hybrid_metric
+ 9/21 Test  #9: hybrid_metric ....................   Passed    0.07 sec
+      Start 10: pipeline
+10/21 Test #10: pipeline .........................   Passed    4.23 sec
+      Start 11: imu_lifecycle
+11/21 Test #11: imu_lifecycle ....................   Passed    0.01 sec
+      Start 12: filter_update
+12/21 Test #12: filter_update ....................   Passed    0.01 sec
+      Start 13: deskew_geometry
+13/21 Test #13: deskew_geometry ..................   Passed    0.01 sec
+      Start 14: plane_refit
+14/21 Test #14: plane_refit ......................   Passed    0.00 sec
+      Start 15: plane_degeneracy
+15/21 Test #15: plane_degeneracy .................   Passed    0.00 sec
+      Start 16: adaptive_gate
+16/21 Test #16: adaptive_gate ....................   Passed    0.00 sec
+      Start 17: scan_buffer
+17/21 Test #17: scan_buffer ......................   Passed    0.00 sec
+      Start 18: worker_threads
+18/21 Test #18: worker_threads ...................   Passed    0.00 sec
+      Start 19: observation_product
+19/21 Test #19: observation_product ..............   Passed    0.05 sec
+      Start 20: memory_storage
+20/21 Test #20: memory_storage ...................   Passed    0.00 sec
+      Start 21: config_io
+21/21 Test #21: config_io ........................   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 21
+
+Total Test time (real) =   7.09 sec
+
+genz_ctest_exit_status=0

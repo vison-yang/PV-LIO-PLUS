@@ -13,125 +13,91 @@
       "branch": "main",
       "build_group": "catkin-src",
       "scope": "existing integrated map baseline",
-      "local_changes": []
+      "local_changes": [],
+      "compatibility_patch": null,
+      "submodules": [
+        " e2e3f4e9d3b95a9e66b1ba83dc98d4a05ed8a3c4 include/ikd-Tree (remotes/origin/fast_lio)"
+      ]
     },
     {
       "name": "GenZ-LIO",
       "path": "src/GenZ-LIO",
       "repository": "git@github.com:cocel-postech/genz-lio.git",
       "upstream_commit": "bf444f7a747ed3da8548b56b49c14f207e8d49bb",
-      "local_commit": "bf444f7a747ed3da8548b56b49c14f207e8d49bb",
+      "local_commit": "24dce4f497df127f695f5fdf3392cc5f9e7fa4c3",
       "branch": "master",
       "build_group": "catkin-src",
       "scope": "candidate pure-plane map component; full hybrid estimator excluded",
-      "local_changes": [
-        "M ros/CMakeLists.txt"
-      ]
+      "local_changes": [],
+      "compatibility_patch": "patches/GenZ-LIO.patch",
+      "patch_base_commit": "bf444f7a747ed3da8548b56b49c14f207e8d49bb",
+      "patch_sha256": "070d9f2cfdbc777e69e35c104d042444ade65ebcbeb79c6dca341eaa1a611630"
     },
     {
       "name": "Hybrid-VoxelMap",
       "path": "src/Hybrid-VoxelMap",
       "repository": "git@github.com:haiyang2022/Hybrid-VoxelMap.git",
       "upstream_commit": "89ed71c2bff47b11a78dabbf244afbed6d311c5d",
-      "local_commit": "89ed71c2bff47b11a78dabbf244afbed6d311c5d",
+      "local_commit": "917ff8020be428a1cfe52798641b61b2b05ea54a",
       "branch": "main",
       "build_group": "catkin-src",
       "scope": "related work; semantic/hybrid residual excluded",
-      "local_changes": [
-        "M CMakeLists.txt",
-        " M include/common_lib.h",
-        " M launch/mapping_m2dgr.launch",
-        " M launch/mapping_ntuviral.launch",
-        " M src/IMU_Processing.hpp",
-        " M src/voxelMapping.cpp"
-      ]
+      "local_changes": [],
+      "compatibility_patch": "patches/Hybrid-VoxelMap.patch",
+      "patch_base_commit": "89ed71c2bff47b11a78dabbf244afbed6d311c5d",
+      "patch_sha256": "c8cf39468b0c0ce88718708b17aa9ced67db1e9247aac7b5ee6ca64fc835e3ad"
     },
     {
       "name": "PV-LIO",
       "path": "src/PV-LIO",
       "repository": "git@github.com:HViktorTsoi/PV-LIO.git",
       "upstream_commit": "494c27f62f7333d6cc32c26dccaa8d8a971c2c2d",
-      "local_commit": "494c27f62f7333d6cc32c26dccaa8d8a971c2c2d",
+      "local_commit": "4a22b930ea76b4371965bad99a2a789bc3e28873",
       "branch": "master",
       "build_group": "catkin-src",
       "scope": "existing integrated map baseline",
-      "local_changes": [
-        "M CMakeLists.txt",
-        " M package.xml"
-      ]
+      "local_changes": [],
+      "compatibility_patch": "patches/PV-LIO.patch",
+      "patch_base_commit": "494c27f62f7333d6cc32c26dccaa8d8a971c2c2d",
+      "patch_sha256": "518424791542c62406b961d371f63ed02ef919d8f237b77e0783d7353e5837ca"
     },
     {
       "name": "PV_LIO_PLUS",
       "path": "src/PV_LIO_PLUS",
       "repository": "git@github.com:vison-yang/PV-LIO-PLUS.git",
       "upstream_commit": "b85f535b2c06a885bdf9e24bc8ba43293357910a",
-      "local_commit": "b85f535b2c06a885bdf9e24bc8ba43293357910a",
       "branch": "local",
       "build_group": "catkin-src",
       "scope": "comparison framework",
-      "local_changes": [
-        "M README.md",
-        " M README.zh-CN.md",
-        " M paper/GenZ-LIO.pdf",
-        " M paper/SA-LIVO.pdf",
-        " M paper/notes/GenZ-LIO.md",
-        " M paper/notes/README.md",
-        " M paper/notes/SA-LIVO.md",
-        "?? paper/Environment-Adaptive-Solid-State-LIO.pdf",
-        "?? paper/FAST-LIO.pdf",
-        "?? paper/FAST-LIO2.pdf",
-        "?? paper/Faster-LIO.pdf",
-        "?? paper/GenZ-LIO-v2.pdf",
-        "?? paper/KISS-ICP.pdf",
-        "?? paper/README.md",
-        "?? paper/SA-LIVO-v2.pdf",
-        "?? paper/VoxelMap++.pdf",
-        "?? paper/VoxelMap.pdf",
-        "?? paper/catalog.json",
-        "?? paper/i-Octree.pdf",
-        "?? paper/iG-LIO.pdf",
-        "?? paper/ikd-Tree.pdf",
-        "?? paper/notes/MAP_BACKEND_SCOPE_REVIEW.md",
-        "?? scripts/build_upstream.py",
-        "?? scripts/build_workspace.sh",
-        "?? scripts/prepare_workspace_deps.sh"
-      ]
+      "tracking_note": "Framework commits are recorded in STAGES.md; the manifest does not recursively pin its own containing commit."
     },
     {
       "name": "R-VoxelMap",
       "path": "src/R-VoxelMap",
       "repository": "git@github.com:NKU-MobFly-Robotics/R-VoxelMap.git",
       "upstream_commit": "50ffbbab3626e384d77f0da91a7e51d5e4b14ff7",
-      "local_commit": "50ffbbab3626e384d77f0da91a7e51d5e4b14ff7",
+      "local_commit": "5166480ebec04e348fe3d2aad80a72450ac60ffc",
       "branch": "main",
       "build_group": "catkin-src",
       "scope": "candidate geometric plane map",
-      "local_changes": [
-        "M CMakeLists.txt",
-        " M include/common_lib.h",
-        " M launch/avia.launch",
-        " M launch/kitti.launch",
-        " M launch/m2dgr.launch",
-        " M launch/m3dgr.launch",
-        " M launch/ntu.launch",
-        " M src/voxelMapping.cpp"
-      ]
+      "local_changes": [],
+      "compatibility_patch": "patches/R-VoxelMap.patch",
+      "patch_base_commit": "50ffbbab3626e384d77f0da91a7e51d5e4b14ff7",
+      "patch_sha256": "21806edabb5389d2e3dbc47562d9a0804d5cf96847dcddabbb2a550238af7d44"
     },
     {
       "name": "Super-LIO",
       "path": "src/Super-LIO",
       "repository": "git@github.com:Liansheng-Wang/Super-LIO.git",
       "upstream_commit": "60b57aaac8dc397f80c56364e7ccb008c300cc29",
-      "local_commit": "60b57aaac8dc397f80c56364e7ccb008c300cc29",
+      "local_commit": "9bd033b3601393ced91deefdaa517d5c33e76642",
       "branch": "ros1",
       "build_group": "catkin-src",
       "scope": "existing integrated map baseline",
-      "local_changes": [
-        "M src/super_lio/CMakeLists.txt",
-        " M src/super_lio/package.xml",
-        " M src/super_lio/src/apps/relocation_node.cpp",
-        " M src/super_lio/src/apps/super_lio_node.cpp"
-      ]
+      "local_changes": [],
+      "compatibility_patch": "patches/Super-LIO.patch",
+      "patch_base_commit": "60b57aaac8dc397f80c56364e7ccb008c300cc29",
+      "patch_sha256": "a3c30b16397fe5ac09a573ace832539439a59262598693f7cee6d0dfb893e668"
     },
     {
       "name": "VoxelMap",
@@ -142,63 +108,64 @@
       "branch": "(detached)",
       "build_group": "catkin-src",
       "scope": "existing integrated map baseline",
-      "local_changes": []
+      "local_changes": [],
+      "compatibility_patch": null
     },
     {
       "name": "VoxelMapPlus_Public",
       "path": "src/VoxelMapPlus_Public",
       "repository": "git@github.com:uestc-icsp/VoxelMapPlus_Public.git",
       "upstream_commit": "fe73d5c233c688ecfb755d737b70df0097a17494",
-      "local_commit": "fe73d5c233c688ecfb755d737b70df0097a17494",
+      "local_commit": "d0cf184d1e162ead4d95371c06db45aa5bb4515b",
       "branch": "main",
       "build_group": "catkin-src",
       "scope": "existing integrated map baseline",
-      "local_changes": [
-        "M CMakeLists.txt",
-        " M package.xml"
-      ]
+      "local_changes": [],
+      "compatibility_patch": "patches/VoxelMapPlus_Public.patch",
+      "patch_base_commit": "fe73d5c233c688ecfb755d737b70df0097a17494",
+      "patch_sha256": "77261d2617c09cef44c6dd4ac3b06f1c182b81980bc474493c3e15e65c2cd5cc"
     },
     {
       "name": "c3p_voxelmap",
       "path": "src/c3p_voxelmap",
       "repository": "git@github.com:deptrum/c3p-voxelmap.git",
       "upstream_commit": "ab4a802099dd366bb79bfc0dcad11c0aa9b0cc4b",
-      "local_commit": "ab4a802099dd366bb79bfc0dcad11c0aa9b0cc4b",
+      "local_commit": "69f84b880ddafef7fc9e46dee6b9b01f1afeb8b3",
       "branch": "main",
       "build_group": "catkin-src",
       "scope": "existing integrated map baseline",
-      "local_changes": [
-        "M src/voxelMapping.cpp"
-      ]
+      "local_changes": [],
+      "compatibility_patch": "patches/c3p_voxelmap.patch",
+      "patch_base_commit": "ab4a802099dd366bb79bfc0dcad11c0aa9b0cc4b",
+      "patch_sha256": "e9e3889c3ba7911fd1169cf2af7673cd764e7209c9b7584d478c641f9dc2eddd"
     },
     {
       "name": "faster_lio",
       "path": "src/faster_lio",
       "repository": "git@github.com:gaoxiang12/faster-lio.git",
       "upstream_commit": "ea0e0910a4cf2da49f569d168442a9c8c1bbe672",
-      "local_commit": "ea0e0910a4cf2da49f569d168442a9c8c1bbe672",
+      "local_commit": "1273553f1fc188d7ecf594e187586ed950c9929b",
       "branch": "main",
       "build_group": "catkin-src",
       "scope": "existing integrated map baseline",
-      "local_changes": [
-        "M CMakeLists.txt",
-        " M cmake/packages.cmake",
-        " M package.xml"
-      ]
+      "local_changes": [],
+      "compatibility_patch": "patches/faster_lio.patch",
+      "patch_base_commit": "ea0e0910a4cf2da49f569d168442a9c8c1bbe672",
+      "patch_sha256": "a4a16ad6716523548f2b4c2f9915ae115a1b7d7a445a055767c71139391cd3ea"
     },
     {
       "name": "ig_lio",
       "path": "src/ig_lio",
       "repository": "https://github.com/zijiechenrobotics/ig_lio.git",
       "upstream_commit": "2d79259e3aaa5bbb10d6b13234398760bbacf8f5",
-      "local_commit": "2d79259e3aaa5bbb10d6b13234398760bbacf8f5",
+      "local_commit": "a75b362f085271505351b1fdc592f46d77d1f5aa",
       "branch": "main",
       "build_group": "catkin-src",
       "scope": "candidate incremental point-map component; full GICP excluded",
-      "local_changes": [
-        "M CMakeLists.txt",
-        " M package.xml"
-      ]
+      "local_changes": [],
+      "compatibility_patch": "patches/ig_lio.patch",
+      "patch_base_commit": "2d79259e3aaa5bbb10d6b13234398760bbacf8f5",
+      "patch_sha256": "e18fda70bba770ec9995cc1a531e0def07a97dfdc8ad61a754bdb0176937e3bf"
     },
     {
       "name": "BIEVR-LIO",
@@ -209,33 +176,36 @@
       "branch": "main",
       "build_group": "isolated-upstream",
       "scope": "related work; bump-image residual excluded",
-      "local_changes": []
+      "local_changes": [],
+      "compatibility_patch": null
     },
     {
       "name": "Surfel-LIO",
       "path": "upstream/Surfel-LIO",
       "repository": "git@github.com:93won/lidar_inertial_odometry.git",
       "upstream_commit": "73348c1e5560eccd2df1ff9f87683b2326a396d4",
-      "local_commit": "73348c1e5560eccd2df1ff9f87683b2326a396d4",
+      "local_commit": "2ed04104a3e166582e9c7560640c919c4e7bb93b",
       "branch": "master",
       "build_group": "isolated-upstream",
       "scope": "candidate precomputed L1 surfel map; fixed local snapshot",
-      "local_changes": [
-        "M CMakeLists.txt"
-      ]
+      "local_changes": [],
+      "compatibility_patch": "patches/Surfel-LIO.patch",
+      "patch_base_commit": "73348c1e5560eccd2df1ff9f87683b2326a396d4",
+      "patch_sha256": "f1386330653cd949658d7944c48992c202e2f89b0d9a78f44b2397dc82478dbe"
     },
     {
       "name": "i-Octree",
       "path": "upstream/i-Octree",
       "repository": "https://github.com/zhujun3753/i-octree.git",
       "upstream_commit": "5b640e05dab23230207dd849eb1549b5074d1a0e",
-      "local_commit": "5b640e05dab23230207dd849eb1549b5074d1a0e",
+      "local_commit": "25903a33dd7a47b1de111a4cc7a756ead3a343ce",
       "branch": "main",
       "build_group": "isolated-upstream",
       "scope": "candidate dynamic octree index",
-      "local_changes": [
-        "M CMakeLists.txt"
-      ]
+      "local_changes": [],
+      "compatibility_patch": "patches/i-Octree.patch",
+      "patch_base_commit": "5b640e05dab23230207dd849eb1549b5074d1a0e",
+      "patch_sha256": "465d9e0a3c618e3e157de0ced22d5de425c6ab444c493eabc6d6df2b30662443"
     },
     {
       "name": "kiss-icp",
@@ -246,7 +216,8 @@
       "branch": "main",
       "build_group": "isolated-upstream",
       "scope": "candidate VoxelHashMap; full point-to-point ICP excluded",
-      "local_changes": []
+      "local_changes": [],
+      "compatibility_patch": null
     },
     {
       "name": "lio_gvm",
@@ -257,7 +228,8 @@
       "branch": "main",
       "build_group": "isolated-upstream",
       "scope": "related work; missing author map headers and Gaussian residual excluded",
-      "local_changes": []
+      "local_changes": [],
+      "compatibility_patch": null
     },
     {
       "name": "Sophus",
@@ -266,7 +238,9 @@
       "upstream_commit": "d0b7315a0d90fc6143defa54596a3a95d9fa10ec",
       "local_commit": "d0b7315a0d90fc6143defa54596a3a95d9fa10ec",
       "build_group": "dependency",
-      "scope": "ikd-Tree: i-Octree comparison; Sophus/robin-map: pinned KISS dependencies"
+      "scope": "ikd-Tree: i-Octree comparison; Sophus/robin-map: pinned KISS dependencies",
+      "local_changes": [],
+      "compatibility_patch": null
     },
     {
       "name": "ikd-Tree",
@@ -275,7 +249,9 @@
       "upstream_commit": "c0e36a16b6e4d557d3783b16911207f6398dd478",
       "local_commit": "c0e36a16b6e4d557d3783b16911207f6398dd478",
       "build_group": "dependency",
-      "scope": "ikd-Tree: i-Octree comparison; Sophus/robin-map: pinned KISS dependencies"
+      "scope": "ikd-Tree: i-Octree comparison; Sophus/robin-map: pinned KISS dependencies",
+      "local_changes": [],
+      "compatibility_patch": null
     },
     {
       "name": "robin-map",
@@ -284,7 +260,9 @@
       "upstream_commit": "4ec1bf19c6a96125ea22062f38c2cf5b958e448e",
       "local_commit": "4ec1bf19c6a96125ea22062f38c2cf5b958e448e",
       "build_group": "dependency",
-      "scope": "ikd-Tree: i-Octree comparison; Sophus/robin-map: pinned KISS dependencies"
+      "scope": "ikd-Tree: i-Octree comparison; Sophus/robin-map: pinned KISS dependencies",
+      "local_changes": [],
+      "compatibility_patch": null
     },
     {
       "name": "livox_ros_driver",
@@ -294,5 +272,17 @@
       "build_group": "catkin-src",
       "scope": "existing ROS1 message/driver source; this local tree has no Git metadata, revision cannot be asserted"
     }
-  ]
+  ],
+  "dependency_environment": {
+    "prefix": ".workspace-deps",
+    "eigen_version": "3.4.0",
+    "ceres_version": "2.2.0",
+    "ceres_author_commit": "85331393dc0dff09f6fb9903ab0c4bfa3e134b01",
+    "source_stage": "~/srcv/thirdparty/ceres-2.2-build/verification/stage/usr/local",
+    "cmake_for_kiss": "3.28.4",
+    "cmake_path": ".workspace-tools/python/cmake/data/bin/cmake",
+    "cmake_install_command": "python3 -m pip install --target .workspace-tools/python cmake==3.28.4",
+    "system_modified": false
+  },
+  "patches_note": "Patches are full worktree deltas against the pinned author commit, including relevant compatibility edits already present when this task began. They do not replace the source repositories. Apply only to the matching clean author baseline."
 }

@@ -1,0 +1,181 @@
+[
+  {
+    "project": "BIEVR-LIO",
+    "exit_code": 0,
+    "log": "/home/yxy/src/lio_ws/output/maintenance-20261114/upstream-sequential/BIEVR-LIO.log",
+    "steps": [
+      {
+        "command": [
+          "bash",
+          "-c",
+          "source /opt/ros/noetic/setup.bash\nexec \"$@\"",
+          "build-upstream",
+          "catkin_make_isolated",
+          "--install",
+          "--cmake-args",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_FIND_USE_PACKAGE_REGISTRY=OFF",
+          "-DEigen3_DIR=/home/yxy/src/lio_ws/.workspace-deps/share/eigen3/cmake",
+          "-DCMAKE_PREFIX_PATH=/home/yxy/src/lio_ws/.workspace-deps;/opt/ros/noetic",
+          "-DCeres_DIR=/home/yxy/src/lio_ws/.workspace-deps/lib/cmake/Ceres",
+          "--make-args",
+          "-j2"
+        ],
+        "cwd": "/home/yxy/src/lio_ws/upstream/build/bievr_ros1_ws",
+        "exit_code": 0
+      }
+    ]
+  },
+  {
+    "project": "Surfel-LIO",
+    "exit_code": 0,
+    "log": "/home/yxy/src/lio_ws/output/maintenance-20261114/upstream-sequential/Surfel-LIO.log",
+    "steps": [
+      {
+        "command": [
+          "cmake",
+          "-S",
+          "/home/yxy/src/lio_ws/upstream/Surfel-LIO/thirdparty/pangolin",
+          "-B",
+          "/home/yxy/src/lio_ws/upstream/build/pangolin",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DBUILD_EXAMPLES=OFF",
+          "-DBUILD_TESTS=OFF",
+          "-DBUILD_TOOLS=OFF",
+          "-DBUILD_PANGOLIN_PYTHON=OFF"
+        ],
+        "cwd": "/home/yxy/src/lio_ws",
+        "exit_code": 0
+      },
+      {
+        "command": [
+          "cmake",
+          "--build",
+          "/home/yxy/src/lio_ws/upstream/build/pangolin",
+          "--parallel",
+          "2"
+        ],
+        "cwd": "/home/yxy/src/lio_ws",
+        "exit_code": 0
+      },
+      {
+        "command": [
+          "cmake",
+          "-S",
+          "/home/yxy/src/lio_ws/upstream/Surfel-LIO",
+          "-B",
+          "/home/yxy/src/lio_ws/upstream/build/Surfel-LIO",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_FIND_USE_PACKAGE_REGISTRY=OFF",
+          "-DEigen3_DIR=/home/yxy/src/lio_ws/.workspace-deps/share/eigen3/cmake",
+          "-DPANGOLIN_BUILD_DIR=/home/yxy/src/lio_ws/upstream/build/pangolin"
+        ],
+        "cwd": "/home/yxy/src/lio_ws",
+        "exit_code": 0
+      },
+      {
+        "command": [
+          "cmake",
+          "--build",
+          "/home/yxy/src/lio_ws/upstream/build/Surfel-LIO",
+          "--parallel",
+          "2"
+        ],
+        "cwd": "/home/yxy/src/lio_ws",
+        "exit_code": 0
+      }
+    ]
+  },
+  {
+    "project": "i-Octree",
+    "exit_code": 0,
+    "log": "/home/yxy/src/lio_ws/output/maintenance-20261114/upstream-sequential/i-Octree.log",
+    "steps": [
+      {
+        "command": [
+          "cmake",
+          "-S",
+          "/home/yxy/src/lio_ws/upstream/i-Octree",
+          "-B",
+          "/home/yxy/src/lio_ws/upstream/build/i-Octree",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_FIND_USE_PACKAGE_REGISTRY=OFF",
+          "-DEigen3_DIR=/home/yxy/src/lio_ws/.workspace-deps/share/eigen3/cmake",
+          "-DIKD_TREE_ROOT=/home/yxy/src/lio_ws/upstream/deps/ikd-Tree"
+        ],
+        "cwd": "/home/yxy/src/lio_ws",
+        "exit_code": 0
+      },
+      {
+        "command": [
+          "cmake",
+          "--build",
+          "/home/yxy/src/lio_ws/upstream/build/i-Octree",
+          "--parallel",
+          "2"
+        ],
+        "cwd": "/home/yxy/src/lio_ws",
+        "exit_code": 0
+      }
+    ]
+  },
+  {
+    "project": "kiss-icp",
+    "exit_code": 0,
+    "log": "/home/yxy/src/lio_ws/output/maintenance-20261114/upstream-sequential/kiss-icp.log",
+    "steps": [
+      {
+        "command": [
+          "/home/yxy/src/lio_ws/.workspace-tools/python/cmake/data/bin/cmake",
+          "-S",
+          "/home/yxy/src/lio_ws/upstream/kiss-icp/cpp/kiss_icp",
+          "-B",
+          "/home/yxy/src/lio_ws/upstream/build/kiss-icp",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_FIND_USE_PACKAGE_REGISTRY=OFF",
+          "-DEigen3_DIR=/home/yxy/src/lio_ws/.workspace-deps/share/eigen3/cmake",
+          "-DFETCHCONTENT_FULLY_DISCONNECTED=ON",
+          "-DFETCHCONTENT_SOURCE_DIR_SOPHUS=/home/yxy/src/lio_ws/upstream/deps/Sophus",
+          "-DFETCHCONTENT_SOURCE_DIR_TESSIL=/home/yxy/src/lio_ws/upstream/deps/robin-map"
+        ],
+        "cwd": "/home/yxy/src/lio_ws",
+        "exit_code": 0
+      },
+      {
+        "command": [
+          "/home/yxy/src/lio_ws/.workspace-tools/python/cmake/data/bin/cmake",
+          "--build",
+          "/home/yxy/src/lio_ws/upstream/build/kiss-icp",
+          "--parallel",
+          "2"
+        ],
+        "cwd": "/home/yxy/src/lio_ws",
+        "exit_code": 0
+      }
+    ]
+  },
+  {
+    "project": "lio_gvm",
+    "exit_code": 1,
+    "log": "/home/yxy/src/lio_ws/output/maintenance-20261114/upstream-sequential/lio_gvm.log",
+    "steps": [
+      {
+        "command": [
+          "bash",
+          "-c",
+          "source /opt/ros/noetic/setup.bash\nexec \"$@\"",
+          "build-upstream",
+          "catkin_make",
+          "-j2",
+          "-DCMAKE_BUILD_TYPE=Release",
+          "-DCMAKE_FIND_USE_PACKAGE_REGISTRY=OFF",
+          "-DEigen3_DIR=/home/yxy/src/lio_ws/.workspace-deps/share/eigen3/cmake",
+          "-DCMAKE_PREFIX_PATH=/home/yxy/src/lio_ws/.workspace-deps;/opt/ros/noetic",
+          "-DCeres_DIR=/home/yxy/src/lio_ws/.workspace-deps/lib/cmake/Ceres"
+        ],
+        "cwd": "/home/yxy/src/lio_ws/upstream/build/lio_gvm_ws",
+        "exit_code": 1
+      }
+    ]
+  }
+]
