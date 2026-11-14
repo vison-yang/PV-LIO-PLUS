@@ -1,0 +1,3 @@
+	libceres.so.4 => /home/yxy/src/lio_ws/.workspace-deps/lib/libceres.so.4 (0x000071e31e800000)
+Eigen 3.4.0; Ceres 2.2.0; x=10; usable=1
+local_deps_consumer_exit_status=0

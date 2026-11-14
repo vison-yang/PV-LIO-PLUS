@@ -1,0 +1,8 @@
+voxelmap: 28 symbol entries containing voxel_map_ns::OctoTree
+voxelmap_plus: 54 symbol entries containing voxel_map_plus_ns::
+ikdtree: 77 symbol entries containing KD_TREE<pcl::PointXYZINormal>
+ivox: 5 symbol entries containing faster_lio::IVox<
+c3p_voxelmap: 38 symbol entries containing c3p_map_ns::OctoTree
+octvox: 5 symbol entries containing octvox_ns::OctVoxMap<
+all six native backend symbol groups present: True
+pv_six_backends_elf_exit_status=0

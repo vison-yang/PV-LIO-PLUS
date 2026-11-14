@@ -1,0 +1,5 @@
+compile commands: 87
+commands with explicit Eigen headers: 87
+per project: {'': 4, 'FAST_LIO': 3, 'GenZ-LIO': 36, 'Hybrid-VoxelMap': 2, 'PV-LIO': 4, 'PV_LIO_PLUS': 6, 'R-VoxelMap': 4, 'Super-LIO': 9, 'VoxelMap': 2, 'VoxelMapPlus_Public': 2, 'c3p_voxelmap': 2, 'faster_lio': 6, 'ig_lio': 7}
+wrong first Eigen paths: 0
+eigen_include_audit_exit_status=0

@@ -1,0 +1,31 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9754b1c..fb8c601 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -7,15 +7,23 @@ add_compile_options(-std=c++14 )
+ set(CMAKE_CXX_FLAGS "-std=c++14 -pthread -O3") 
+ add_definitions(-w)
+ find_package(PCL 1.8 REQUIRED)
++find_package(Threads REQUIRED)
++
++# Keep the comparison dependency outside this source tree when desired.
++set(IKD_TREE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/ikd-Tree" CACHE PATH
++    "Path to the official hku-mars/ikd-Tree checkout")
++if(NOT EXISTS "${IKD_TREE_ROOT}/ikd-Tree/ikd_Tree.cpp")
++    message(FATAL_ERROR "Set IKD_TREE_ROOT to a complete ikd-Tree checkout")
++endif()
+ 
+ 
+ include_directories(
+     ${PCL_INCLUDE_DIRS}
+-    ikd-Tree/ikd-Tree
++    ${IKD_TREE_ROOT}/ikd-Tree
+     octree2
+ )
+ 
+ 
+-add_executable(time_compare examples/time_compare.cpp ikd-Tree/ikd-Tree/ikd_Tree.cpp)
+-target_link_libraries(time_compare ${PCL_LIBRARIES} )
++add_executable(time_compare examples/time_compare.cpp ${IKD_TREE_ROOT}/ikd-Tree/ikd_Tree.cpp)
++target_link_libraries(time_compare ${PCL_LIBRARIES} Threads::Threads)
+ 

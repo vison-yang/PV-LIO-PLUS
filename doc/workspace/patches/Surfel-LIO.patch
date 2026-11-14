@@ -1,0 +1,31 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index faa594f..ddf1b20 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -14,6 +14,8 @@ find_package(OpenMP REQUIRED)
+ 
+ # Use Pangolin from thirdparty
+ set(Pangolin_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/pangolin)
++set(PANGOLIN_BUILD_DIR "${Pangolin_DIR}/build" CACHE PATH
++    "Build directory of the bundled Pangolin dependency")
+ include_directories(${Pangolin_DIR}/components/pango_core/include)
+ include_directories(${Pangolin_DIR}/components/pango_display/include)
+ include_directories(${Pangolin_DIR}/components/pango_opengl/include)
+@@ -23,8 +25,8 @@ include_directories(${Pangolin_DIR}/components/pango_vars/include)
+ include_directories(${Pangolin_DIR}/components/pango_plot/include)
+ include_directories(${Pangolin_DIR}/components/pango_geometry/include)
+ include_directories(${Pangolin_DIR}/components/pango_glgeometry/include)
+-include_directories(${Pangolin_DIR}/build/include)
+-link_directories(${Pangolin_DIR}/build)
++include_directories(${PANGOLIN_BUILD_DIR}/include)
++link_directories(${PANGOLIN_BUILD_DIR})
+ 
+ # Use spdlog from thirdparty (header-only)
+ set(spdlog_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/spdlog/include)
+@@ -86,4 +88,4 @@ target_link_libraries(lio_player
+     pthread
+ )
+ 
+-target_compile_options(lio_player PRIVATE -Wall -Wextra -O2)
+\ No newline at end of file
++target_compile_options(lio_player PRIVATE -Wall -Wextra -O2)

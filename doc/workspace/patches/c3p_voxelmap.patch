@@ -1,0 +1,13 @@
+diff --git a/src/voxelMapping.cpp b/src/voxelMapping.cpp
+index 424e2d9..db6abfe 100644
+--- a/src/voxelMapping.cpp
++++ b/src/voxelMapping.cpp
+@@ -537,7 +537,7 @@ size_t get_voxel_map_point_size(std::unordered_map<VOXEL_LOC, OctoTree*>& voxel_
+ }
+ 
+ int main(int argc, char** argv) {
+-  ros::init(argc, argv, "voxelMapping");
++  ros::init(argc, argv, "c3p_voxelmap_mapping");
+   ros::NodeHandle nh;
+ 
+   double ranging_cov = 0.0;

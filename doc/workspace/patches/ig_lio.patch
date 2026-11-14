@@ -1,0 +1,74 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index cf189a5..99ce546 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -16,7 +16,12 @@ find_package(catkin REQUIRED COMPONENTS
+   rospy
+   std_msgs
+   roslib
++  geometry_msgs
++  nav_msgs
++  sensor_msgs
++  tf
+   pcl_ros
++  pcl_conversions
+   livox_ros_driver
+ )
+ 
+@@ -32,14 +37,14 @@ include(cmake/glog.cmake)
+ include_directories(${PROJECT_SOURCE_DIR}/thirdparty/sophus)
+ 
+ catkin_package(
+-#  INCLUDE_DIRS include
+-#  LIBRARIES gicp_lio
+-#  CATKIN_DEPENDS roscpp rospy std_msgs
+-#  DEPENDS system_lib
++  CATKIN_DEPENDS roscpp rospy std_msgs roslib geometry_msgs nav_msgs sensor_msgs
++                 tf pcl_ros pcl_conversions livox_ros_driver
+ )
+ 
+ include_directories(
+-  include 
++  include
++  ${EIGEN3_INCLUDE_DIRS}
++  ${PCL_INCLUDE_DIRS}
+ )
+ 
+ include_directories(SYSTEM
+@@ -55,9 +60,13 @@ add_executable(${PROJECT_NAME}_node
+   src/timer.cpp
+   src/faster_voxel_grid.cpp
+ )
++if(catkin_EXPORTED_TARGETS)
++  add_dependencies(${PROJECT_NAME}_node ${catkin_EXPORTED_TARGETS})
++endif()
+ 
+ target_link_libraries(${PROJECT_NAME}_node
+   ${catkin_LIBRARIES}
++  ${PCL_LIBRARIES}
+   glog
+   gflags
+   TBB::tbb
+diff --git a/package.xml b/package.xml
+index 4727cbc..c37617c 100644
+--- a/package.xml
++++ b/package.xml
+@@ -59,6 +59,18 @@
+   <exec_depend>rospy</exec_depend>
+   <exec_depend>std_msgs</exec_depend>
+ 
++  <depend>roslib</depend>
++  <depend>geometry_msgs</depend>
++  <depend>nav_msgs</depend>
++  <depend>sensor_msgs</depend>
++  <depend>tf</depend>
++  <depend>pcl_ros</depend>
++  <depend>pcl_conversions</depend>
++  <depend>eigen</depend>
++  <depend>libgoogle-glog-dev</depend>
++  <depend>libgflags-dev</depend>
++  <depend>libtbb-dev</depend>
++
+   <build_depend>livox_ros_driver</build_depend>
+   <build_export_depend>livox_ros_driver</build_export_depend>
+   <exec_depend>livox_ros_driver</exec_depend>

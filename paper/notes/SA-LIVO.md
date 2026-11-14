@@ -1,6 +1,8 @@
 # SA-LIVO
 
-论文：[`SA-LIVO.pdf`](../SA-LIVO.pdf)，题目为 *SA-LIVO: Efficient LiDAR-Inertial-Visual Odometry with Subspace-Aware Degeneracy Handling*。
+本文的推导、实验数字和配图基于论文 **v2**：[`SA-LIVO-v2.pdf`](../SA-LIVO-v2.pdf)，题目为 *SA-LIVO: Efficient LiDAR-Inertial-Visual Odometry with Subspace-Aware Degeneracy Handling*。
+
+最新论文为 **v3**：[`SA-LIVO.pdf`](../SA-LIVO.pdf)，题目已改为 *SA-LIVO: Efficient LiDAR-Inertial-Visual Odometry with Subspace-Aware Information Fusion*。v3 的方法与实验内容均有变化；下文主体总结 v2，文末另附 v3 独立摘要；旧推导、表格和配图不代表 v3，两个版本的结论不可混用。
 
 ## 背景和相关研究
 
@@ -115,3 +117,22 @@ HILTI 的 15 个序列中，只有 SA-LIVO 和 FAST-LIVO2 完成全部序列；�
 SA-LIVO 的关键贡献不是再设计一个视觉或 LiDAR 前端，而是把“传感器是否可靠”细化为“哪些状态方向可靠”。这比模态级开关更充分地利用互补信息，但实现必须维护信息矩阵的单位、块结构和数值稳定性；论文结果主要验证了所选数据集和平台，尚不能直接等价为所有传感器组合下的实时性。
 
 ---
+
+## 2026-11-14 地图替换边界
+
+- 范围审查将 SA-LIVO 移出直接地图候选：主要贡献在视觉观测误差模型、重用观测相关性和子空间信息融合。
+- 多尺度平面地图服务 LiDAR-视觉联合估计，单独复用地图不能带入 SAIF、Schmidt 过滤或论文完整系统表现。
+- 本轮固定 LiDAR 点面适配器和滤波观测策略，不引入图像残差或联合信息权重。
+- 本文原有推导、数字和图片仍属 v2；v3 独立摘要在后文。详见[范围审查](MAP_BACKEND_SCOPE_REVIEW.md)。
+
+## SA-LIVO v3 独立摘要（2026-11-14）
+
+本节依据默认 [SA-LIVO.pdf](../SA-LIVO.pdf)，arXiv v3（2606.25699v3），标题为 *SA-LIVO: Efficient LiDAR-Inertial-Visual Odometry with Subspace-Aware Information Fusion*。上文推导、数字和图片标签仍仅属于 SA-LIVO v2，不能与本节结果合并。
+
+v3 将视觉异常从简单的弱信息/阈值门控，改为在线建模的观测误差。帧级噪声尺度通过协方差匹配估计，用于吸收整帧相关误差；Schmidt 过滤处理滑动窗口中重复使用视觉观测造成的相关性。子空间信息融合把一帧共享误差表示为位姿偏移，并按方向限制可接纳的视觉信息量；当视觉误差模型一致时，融合退化为普通信息相加（摘要 p. 1，方法 pp. 5–8）。
+
+LiDAR 路径仍使用平面点面残差和体素地图；视觉路径以 LiDAR 地图点作为深度锚点构造直接光度残差。两类信息进入统一的不变 EKF 更新，而不是先后分开的两次更新（pp. 3–8）。补充材料给出点面/平面不确定性、视觉残差、相关模板处理和联合更新细节（pp. 12–15）。
+
+v3 在 HILTI’22 的 15 个手持序列和 MARS-LVIG 的 9 个空中序列上评估，共 24 个序列，在 22 个序列最优或并列最优。摘要与时间分解报告 HILTI’22 平均 13.4 ms/frame；在所有比较方法均成功的 **7 个 HILTI’22 序列共同子集**上，笔记本 CPU 平均为 **17.2 ms/frame**，序列结束时 RSS 相较 FAST-LIVO2、R3LIVE、SR-LIVO 分别低 2.0、4.1、6.2 倍。该内存指标是结束时 RSS，**不是峰值**，不同统计子集不能合成一次整体比较（p. 1 摘要；p. 8 §VIII-A；p. 10 §VIII-E、Table IV）。这些均为 v3 作者结果，不替代上文 v2 表格。
+
+**版本和移植边界：** v3 的噪声估计、视觉锚点、Schmidt 相关性和子空间融合与 v2 方法及数字不同。按[范围审查](MAP_BACKEND_SCOPE_REVIEW.md)，SA-LIVO 属于视觉/估计方法资料，不是本轮地图替换候选；不移植光度残差、视觉权重或联合滤波流程。

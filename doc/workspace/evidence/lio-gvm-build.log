@@ -1,0 +1,153 @@
+{"command": ["bash", "-c", "source /opt/ros/noetic/setup.bash\nexec \"$@\"", "build-upstream", "catkin_make", "-j2", "-DCMAKE_BUILD_TYPE=Release", "-DCMAKE_FIND_USE_PACKAGE_REGISTRY=OFF", "-DEigen3_DIR=/home/yxy/src/lio_ws/.workspace-deps/share/eigen3/cmake", "-DCMAKE_PREFIX_PATH=/home/yxy/src/lio_ws/.workspace-deps;/opt/ros/noetic", "-DCeres_DIR=/home/yxy/src/lio_ws/.workspace-deps/lib/cmake/Ceres"], "cwd": "/home/yxy/src/lio_ws/upstream/build/lio_gvm_ws"}
+-- Using CATKIN_DEVEL_PREFIX: /home/yxy/src/lio_ws/upstream/build/lio_gvm_ws/devel
+-- Using CMAKE_PREFIX_PATH: /home/yxy/src/lio_ws/.workspace-deps;/opt/ros/noetic
+-- This workspace overlays: /opt/ros/noetic
+-- Found PythonInterp: /usr/bin/python3 (found suitable version "3.8.10", minimum required is "3") 
+-- Using PYTHON_EXECUTABLE: /usr/bin/python3
+-- Using Debian Python package layout
+-- Using empy: /usr/lib/python3/dist-packages/em.py
+-- Using CATKIN_ENABLE_TESTING: ON
+-- Call enable_testing()
+-- Using CATKIN_TEST_RESULTS_DIR: /home/yxy/src/lio_ws/upstream/build/lio_gvm_ws/build/test_results
+-- Forcing gtest/gmock from source, though one was otherwise available.
+-- Found gtest sources under '/usr/src/googletest': gtests will be built
+-- Found gmock sources under '/usr/src/googletest': gmock will be built
+-- Found PythonInterp: /usr/bin/python3 (found version "3.8.10") 
+-- Using Python nosetests: /usr/bin/nosetests3
+-- catkin 0.8.12
+-- BUILD_SHARED_LIBS is on
+-- BUILD_SHARED_LIBS is on
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- ~~  traversing 2 packages in topological order:
+-- ~~  - livox_ros_driver
+-- ~~  - fast_lio
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-- +++ processing catkin package: 'livox_ros_driver'
+-- ==> add_subdirectory(livox_ros_driver)
+-- Using these message generators: gencpp;geneus;genlisp;gennodejs;genpy
+-- livox_ros_driver: 2 messages, 0 services
+-- +++ processing catkin package: 'fast_lio'
+-- ==> add_subdirectory(lio_gvm)
+Current CPU archtecture: x86_64
+Processer number:  12
+core for MP: 3
+-- Using these message generators: gencpp;geneus;genlisp;gennodejs;genpy
+-- Eigen found (include: /home/yxy/src/lio_ws/.workspace-deps/include/eigen3, version: 3.4.0)
+-- The imported target "vtkParseOGLExt" references the file
+   "/usr/bin/vtkParseOGLExt-7.1"
+but this file does not exist.  Possible reasons include:
+* The file was deleted, renamed, or moved to another location.
+* An install or uninstall procedure did not complete successfully.
+* The installation package was faulty and contained
+   "/usr/lib/cmake/vtk-7.1/VTKTargets.cmake"
+but not all the files it references.
+
+-- The imported target "vtkRenderingPythonTkWidgets" references the file
+   "/usr/lib/x86_64-linux-gnu/libvtkRenderingPythonTkWidgets.so"
+but this file does not exist.  Possible reasons include:
+* The file was deleted, renamed, or moved to another location.
+* An install or uninstall procedure did not complete successfully.
+* The installation package was faulty and contained
+   "/usr/lib/cmake/vtk-7.1/VTKTargets.cmake"
+but not all the files it references.
+
+-- The imported target "vtk" references the file
+   "/usr/bin/vtk"
+but this file does not exist.  Possible reasons include:
+* The file was deleted, renamed, or moved to another location.
+* An install or uninstall procedure did not complete successfully.
+* The installation package was faulty and contained
+   "/usr/lib/cmake/vtk-7.1/VTKTargets.cmake"
+but not all the files it references.
+
+-- The imported target "pvtk" references the file
+   "/usr/bin/pvtk"
+but this file does not exist.  Possible reasons include:
+* The file was deleted, renamed, or moved to another location.
+* An install or uninstall procedure did not complete successfully.
+* The installation package was faulty and contained
+   "/usr/lib/cmake/vtk-7.1/VTKTargets.cmake"
+but not all the files it references.
+
+-- OpenNI found (include: /usr/include/ni, lib: /usr/lib/libOpenNI.so)
+-- OpenNI2 found (include: /usr/include/openni2, lib: /usr/lib/libOpenNI2.so)
+** WARNING ** io features related to pcap will be disabled
+** WARNING ** io features related to png will be disabled
+** WARNING ** io features related to libusb-1.0 will be disabled
+-- OpenNI found (include: /usr/include/ni, lib: /usr/lib/libOpenNI.so)
+-- OpenNI2 found (include: /usr/include/openni2, lib: /usr/lib/libOpenNI2.so)
+-- QHULL found (include: /usr/include, lib: optimized;/usr/lib/x86_64-linux-gnu/libqhull.so;debug;/usr/lib/x86_64-linux-gnu/libqhull.so)
+-- OpenNI found (include: /usr/include/ni, lib: /usr/lib/libOpenNI.so)
+-- looking for PCL_COMMON
+-- looking for PCL_KDTREE
+-- looking for PCL_OCTREE
+-- looking for PCL_SEARCH
+-- looking for PCL_SAMPLE_CONSENSUS
+-- looking for PCL_FILTERS
+-- looking for PCL_2D
+-- looking for PCL_GEOMETRY
+-- looking for PCL_IO
+-- looking for PCL_FEATURES
+-- looking for PCL_ML
+-- looking for PCL_SEGMENTATION
+-- looking for PCL_VISUALIZATION
+-- looking for PCL_SURFACE
+-- looking for PCL_REGISTRATION
+-- looking for PCL_KEYPOINTS
+-- looking for PCL_TRACKING
+-- looking for PCL_RECOGNITION
+-- looking for PCL_STEREO
+-- looking for PCL_APPS
+-- looking for PCL_IN_HAND_SCANNER
+-- looking for PCL_POINT_CLOUD_EDITOR
+-- looking for PCL_OUTOFCORE
+-- looking for PCL_PEOPLE
+-- Found AMD headers in: /usr/include/suitesparse
+-- Found AMD library: /usr/lib/x86_64-linux-gnu/libamd.so
+-- Found CAMD headers in: /usr/include/suitesparse
+-- Found CAMD library: /usr/lib/x86_64-linux-gnu/libcamd.so
+-- Found CCOLAMD headers in: /usr/include/suitesparse
+-- Found CCOLAMD library: /usr/lib/x86_64-linux-gnu/libccolamd.so
+-- Found CHOLMOD headers in: /usr/include/suitesparse
+-- Found CHOLMOD library: /usr/lib/x86_64-linux-gnu/libcholmod.so
+-- Found COLAMD headers in: /usr/include/suitesparse
+-- Found COLAMD library: /usr/lib/x86_64-linux-gnu/libcolamd.so
+-- Found SPQR headers in: /usr/include/suitesparse
+-- Found SPQR library: /usr/lib/x86_64-linux-gnu/libspqr.so
+-- Found Config headers in: /usr/include/suitesparse
+-- Found Config library: /usr/lib/x86_64-linux-gnu/libsuitesparseconfig.so
+-- Found Intel Thread Building Blocks (TBB) library (2020.1 / 11101) include location: . Assuming SuiteSparseQR was compiled with TBB.
+-- Adding librt to SuiteSparse_config libraries (required on Linux & Unix [not OSX] if SuiteSparse is compiled with timing).
+-- Could NOT find METIS (missing: METIS_INCLUDE_DIR METIS_LIBRARY) 
+-- Found required Ceres dependency: Eigen version 3.4.0 in /home/yxy/src/lio_ws/.workspace-deps/share/eigen3/cmake
+-- Found required Ceres dependency: glog
+-- Found required Ceres dependency: gflags
+-- Found Ceres version: 2.2.0 installed in: /home/yxy/src/lio_ws/.workspace-deps with components: [EigenSparse, SparseLinearAlgebraLibrary, LAPACK, SuiteSparse, SchurSpecializations]
+Eigen:/home/yxy/src/lio_ws/.workspace-deps/include/eigen3
+-- fast_lio: 1 messages, 0 services
+-- Configuring done
+CMake Error at lio_gvm/CMakeLists.txt:106 (add_executable):
+  Cannot find source file:
+
+    include/ikd-Tree/ikd_Tree.cpp
+
+  Tried extensions .c .C .c++ .cc .cpp .cxx .cu .m .M .mm .h .hh .h++ .hm
+  .hpp .hxx .in .txx
+
+
+CMake Error at lio_gvm/CMakeLists.txt:106 (add_executable):
+  No SOURCES given to target: fastlio_mapping
+
+
+CMake Generate step failed.  Build files cannot be regenerated correctly.
+Base path: /home/yxy/src/lio_ws/upstream/build/lio_gvm_ws
+Source space: /home/yxy/src/lio_ws/upstream/build/lio_gvm_ws/src
+Build space: /home/yxy/src/lio_ws/upstream/build/lio_gvm_ws/build
+Devel space: /home/yxy/src/lio_ws/upstream/build/lio_gvm_ws/devel
+Install space: /home/yxy/src/lio_ws/upstream/build/lio_gvm_ws/install
+####
+#### Running command: "cmake /home/yxy/src/lio_ws/upstream/build/lio_gvm_ws/src -DCMAKE_BUILD_TYPE=Release -DCMAKE_FIND_USE_PACKAGE_REGISTRY=OFF -DEigen3_DIR=/home/yxy/src/lio_ws/.workspace-deps/share/eigen3/cmake -DCMAKE_PREFIX_PATH=/home/yxy/src/lio_ws/.workspace-deps;/opt/ros/noetic -DCeres_DIR=/home/yxy/src/lio_ws/.workspace-deps/lib/cmake/Ceres -DCATKIN_DEVEL_PREFIX=/home/yxy/src/lio_ws/upstream/build/lio_gvm_ws/devel -DCMAKE_INSTALL_PREFIX=/home/yxy/src/lio_ws/upstream/build/lio_gvm_ws/install -G Unix Makefiles" in "/home/yxy/src/lio_ws/upstream/build/lio_gvm_ws/build"
+####
+Invoking "cmake" failed
+
+exit_code=1

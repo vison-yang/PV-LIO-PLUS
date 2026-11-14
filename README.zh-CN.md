@@ -12,7 +12,7 @@ PV-LIO-PLUS 是一个 ROS1 激光-惯性里程计（LIO）框架，使用相同�
 - 保留原 PV-LIO 观测流程和残差权重相关修复。
 - 保留 VoxelMap 的概率自适应体素平面，以及 VoxelMap++ 的局部地图和残差优化。
 - 增加 `MapManager`，提供统一的搜索、插入、删除、局部窗口和发布接口，同时保留各地图的原有逻辑。
-- 合入 VoxelMap、VoxelMap++、FAST-LIO2 ikd-tree、Faster-LIO iVox 和 C3P-VoxelMap，并支持配置切换。
+- 合入 VoxelMap、VoxelMap++、FAST-LIO2 ikd-tree、Faster-LIO iVox、C3P-VoxelMap 和 Super-LIO OctVox，并支持配置切换。
 - 增加明确的轨迹和世界坐标系地图点云输出，便于对比实验。
 - 升级为 C++17，并将已合入的局部地图实现放在本包内部。
 
@@ -35,21 +35,25 @@ PV-LIO-PLUS 是一个 ROS1 激光-惯性里程计（LIO）框架，使用相同�
 
 ### 候选局部地图后端
 
-以下公开项目是未来 `MapManager` 后端的候选项，不随 PV-LIO-PLUS 发布，也不是本包的构建依赖。
+候选项必须能拆出独立的几何地图或索引，只把该部分接入 `MapManager`；PV-LIO 的 IMU 传播、去畸变、状态量、迭代时序、扫描采样及点面观测约定保持一致。有完整作者源码并不表示整个方法符合地图替换实验。
 
-| 算法 | 上游项目 | 当前状态 / 特点 |
+以下结果于 **2026-11-14** 对照本地源码版本、作者论文和仓库核验。具体代码符号、移除理由和抽取边界见[范围审查](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)。下表均为**研究候选，尚未新增可选后端**。
+
+| 地图组件 | 作者源码 | 仅移植地图的边界与待办 |
 | --- | --- | --- |
-| Hybrid-VoxelMap | [Hybrid-VoxelMap](https://github.com/haiyang2022/Hybrid-VoxelMap) | 候选；混合体素/平面表示。 |
-| R-VoxelMap | [R-VoxelMap](https://github.com/NKU-MobFly-Robotics/R-VoxelMap) | 候选；鲁棒递归体素平面估计。 |
-| BIEVR-LIO | [BIEVR-LIO](https://github.com/ethz-asl/BIEVR-LIO) | 候选；体素化地图、地图引导采样和几何统计。 |
-| Surfel-LIO / hVox | [Surfel-LIO](https://github.com/93won/lidar_inertial_odometry) | 候选；层次化体素哈希和预计算 surfel。 |
-| LIO-GVM | [LIO-GVM](https://github.com/Ji1Xingyu/lio_gvm) | 候选；高斯体素地图和基于高斯的点云匹配。 |
-| [FR-LIO](https://arxiv.org/abs/2302.04031) | — | 论文已有；当前未发现公开源码，等待开源或自行实现。 |
-| [CT-VoxelMap](https://arxiv.org/abs/2604.03747) | — | 论文已有；当前未发现公开源码，等待开源或自行实现。 |
-| [GenZ-LIO](https://arxiv.org/abs/2603.16273) | [GenZ-ICP](https://github.com/cocel-postech/genz-icp)（相关项目） | 论文已有；相关仓库目前未释放 GenZ-LIO 源码，等待开源或自行实现。 |
-| [SA-LIVO](https://arxiv.org/abs/2606.25699) | — | 论文已有；作者声明将开源，但当前尚未释放源码，等待开源或自行实现。 |
-| [SV-LIO](https://doi.org/10.3390/electronics15081744) | — | 论文已有；当前未发现公开源码，等待开源或自行实现。 |
-| [Environment-Adaptive Solid-State LiDAR-Inertial Odometry](https://arxiv.org/abs/2604.15864) | — | 论文已有；当前未发现公开源码，等待开源或自行实现。 |
+| R-VoxelMap 递归平面 | [R-VoxelMap](https://github.com/NKU-MobFly-Robotics/R-VoxelMap) | 只提取鲁棒体素平面构建与查询；固定估计器、扫描采样和观测权重。 |
+| Surfel-LIO / hVox | [Surfel-LIO](https://github.com/93won/lidar_inertial_odometry) | 固定本地 `73348c1`，抽取预计算 L1 surfel 及 `GetSurfelAtPoint` 查询；作者较新 HEAD 已改用 KD-tree/PCA 路径，不能静默更新替代此快照。 |
+| FR-LIO / RC-Vox | [论文](https://arxiv.org/abs/2302.04031v3) | 仅作地图组件储备，官方源码仍未确认；排除自适应子帧和迭代平滑器。 |
+| GenZ-LIO 体素地图及查询 | [genz-lio](https://github.com/cocel-postech/genz-lio) | 只提取纯平面地图与查询分支，并固定尺度；排除自适应扫描降采样及点点观测回退。 |
+| **i-Octree** | [i-octree](https://github.com/zhujun3753/i-octree) | 新增：支持插入、kNN/半径搜索和盒删除的动态八叉树，复用 PV-LIO 点面适配层。 |
+| **KISS-ICP / VoxelHashMap** | [kiss-icp](https://github.com/PRBonn/kiss-icp) | 新增：来自纯激光里程计的地图组件，使用体素哈希、体素点数上限和距离淘汰；原生最近一点查询需扩展为 kNN，排除点点 ICP、运动补偿和阈值流程。 |
+| **iG-LIO 增量体素地图** | [ig_lio](https://github.com/zijiechenrobotics/ig_lio) | 新增：只提取 `VoxelMap::AddCloud` / `KNNByCondition` 及点存储；排除 GICP、扫描协方差估计与上游优化器。 |
+
+Hybrid-VoxelMap、BIEVR-LIO、LIO-GVM、CT-VoxelMap、SA-LIVO、SV-LIO 和 Environment-Adaptive Solid-State LIO 已从候选列表移除：其论文区别于现有方法的主要机制依赖语义输入、新观测或估计器/预处理修改。论文、笔记仍作为相关研究保留在[论文清单](paper/README.md)；若以后能证明其中有独立且不同于现有后端的几何地图贡献，再另行评估。
+
+### 对照实验约束
+
+现有六个后端共享估计循环，但仍保留各自的平面门限、噪声/信息权重及淘汰策略。例如 OctVox 使用固定观测信息量，因此目前**还不能声称是严格只改变地图表示的消融实验**。每次结果都需要记录这些设置。严格地图对照还应固定残差雅可比、观测方差、对应门限、保留扫描点和地图预算；对其中任何一项的改变都应单独作为消融。统一观测约定的要求见范围审查。
 
 ## 结构
 
@@ -69,7 +73,7 @@ MapManager
   `-- OctVox
 ```
 
-VoxelMap 和 VoxelMap++ 保留原生平面地图匹配；ikd-tree 和 iVox 保留点地图搜索，并使用管理器中的平面拟合适配层；C3P-VoxelMap 使用原生平面地图实现；OctVox 保留其原生有序 TopK、平面门限和固定信息观测，不复用 iVox 的协方差加权路径。这样可以在不改变 LIO 状态估计循环的情况下进行局部地图对比。
+VoxelMap 和 VoxelMap++ 保留原生平面地图匹配；ikd-tree 和 iVox 保留点地图搜索，并使用管理器中的平面拟合适配层；C3P-VoxelMap 使用原生平面地图实现；OctVox 保留其原生有序 TopK、平面门限和固定信息观测，不复用 iVox 的协方差加权路径。状态估计循环保持共用，但原生权重和门限仍不同，实验需遵守上文的对照约束。
 
 ## 环境与编译
 
@@ -149,3 +153,24 @@ C3P-VoxelMap 的上游许可证声明仍需进一步确认，在确认前不应�
 - [BIEVR-LIO](https://github.com/ethz-asl/BIEVR-LIO)
 - [Surfel-LIO](https://github.com/93won/lidar_inertial_odometry)
 - [LIO-GVM](https://github.com/Ji1Xingyu/lio_gvm)
+- [GenZ-LIO](https://github.com/cocel-postech/genz-lio)
+- [i-Octree](https://github.com/zhujun3753/i-octree)
+- [KISS-ICP / VoxelHashMap](https://github.com/PRBonn/kiss-icp)
+- [iG-LIO](https://github.com/zijiechenrobotics/ig_lio)
+
+## 工作空间源码与编译记录
+
+本工作空间由多个独立 Git 仓库组成，固定来源见[源码清单](doc/workspace/SOURCE_MANIFEST.json)，结果见[编译报告](doc/workspace/BUILD_REPORT.md)。可共同编译的 ROS1 包位于工作空间 `src/`；独立 CMake、ROS2/混合构建、包名冲突或源码不完整的项目放在 `upstream/`，逐个独立编译。已从地图候选列表移除的相关研究仍保留源码和编译结果。依赖前缀放在工作空间内。
+
+现有多项目工作空间应使用本地 Eigen/Ceres 前缀与明确的头文件顺序：
+
+```bash
+bash src/PV_LIO_PLUS/scripts/prepare_workspace_deps.sh
+bash src/PV_LIO_PLUS/scripts/build_workspace.sh \
+  --build-dir build/maintenance-20261114-unified \
+  --devel-dir devel/maintenance-20261114-unified --jobs 2
+source devel/maintenance-20261114-unified/setup.bash
+python3 src/PV_LIO_PLUS/scripts/build_upstream.py --jobs 2
+```
+
+独立构建脚本逐项保存并继续处理失败项；LIO-GVM 仍需作者补齐源码。编译结果不等同地图精度结论。

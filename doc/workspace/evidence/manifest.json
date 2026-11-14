@@ -1,0 +1,52 @@
+[
+  {
+    "file": "eigen-include-audit.log",
+    "bytes": 351,
+    "sha256": "1aec8427eca4c0e0768cd6a95c48e87e3c2b29a886096574c423e6954ca72ece"
+  },
+  {
+    "file": "eigen-preprocessor-versions.log",
+    "bytes": 1468,
+    "sha256": "1d5dc29c353f3f015fa0d42a52ac487288baaa507db367ec7e333e7e78edd1b5"
+  },
+  {
+    "file": "elf-ldd-audit.log",
+    "bytes": 1599,
+    "sha256": "358427d412a9a322dc38a4706cd6e1af145ca128057226f51888bccd6a8c7a3c"
+  },
+  {
+    "file": "genz-ctest.log",
+    "bytes": 2321,
+    "sha256": "733b2fcf6eff8a175bd0a26db91bf81a670601ff475885ca84afd23dcaa256c1"
+  },
+  {
+    "file": "lio-gvm-build.log",
+    "bytes": 8210,
+    "sha256": "287e26d068cc94216c7999e9d6daa662b368dbf051753fce97c657f8ed68426f"
+  },
+  {
+    "file": "local-deps-consumer.log",
+    "bytes": 169,
+    "sha256": "e50c90d354164215b67a858f960a2c64054adb2ffca414525afcbfc454388892"
+  },
+  {
+    "file": "pv-six-backends-elf.log",
+    "bytes": 453,
+    "sha256": "e4863cb3abd5baefd00633f52e6175515e40ba345f3b97643240149206938eca"
+  },
+  {
+    "file": "ros-package-resolution.log",
+    "bytes": 962,
+    "sha256": "c2e297023e9841893e217398630b610914f5accc3e232ce7d45bc92ce4421c4d"
+  },
+  {
+    "file": "upstream-commands.json",
+    "bytes": 5537,
+    "sha256": "f56301d9285488a9e61f62046ef8421de1ef35f932471b8ad776bbaeed14a377"
+  },
+  {
+    "file": "final-artifact-validation.json",
+    "bytes": 135,
+    "sha256": "380f3b4a54b5e7991d35e97df38c83997b90657604c2430a9ad29710415e09b4"
+  }
+]

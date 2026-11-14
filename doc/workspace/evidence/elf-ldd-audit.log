@@ -1,0 +1,26 @@
+lib/c3p_voxelmap/c3p_voxelmap: ELF, ldd -r exit=0, unresolved=0
+lib/fast_lio/fastlio_mapping: ELF, ldd -r exit=0, unresolved=0
+lib/faster_lio/run_mapping_offline: ELF, ldd -r exit=0, unresolved=0
+lib/faster_lio/run_mapping_online: ELF, ldd -r exit=0, unresolved=0
+lib/genz_lio/genz_lio_node: ELF, ldd -r exit=0, unresolved=0
+lib/genz_lio/test_input_timing: ELF, ldd -r exit=0, unresolved=0
+lib/genz_lio/test_terminal_status: ELF, ldd -r exit=0, unresolved=0
+lib/hybrid_voxel_map/hybrid_voxel_mapping_odom: ELF, ldd -r exit=0, unresolved=0
+lib/ig_lio/ig_lio_node: ELF, ldd -r exit=0, unresolved=0
+lib/libbasic.so: ELF, ldd -r exit=0, unresolved=0
+lib/libfaster_lio.so: ELF, ldd -r exit=0, unresolved=0
+lib/liblio.so: ELF, ldd -r exit=0, unresolved=0
+lib/pv_lio/pandar_to_velodyne: ELF, ldd -r exit=0, unresolved=0
+lib/pv_lio/pv_lio_node: ELF, ldd -r exit=0, unresolved=0
+lib/pv_lio/rs_to_velodyne: ELF, ldd -r exit=0, unresolved=0
+lib/pv_lio_plus/pv_lio_plus_node: ELF, ldd -r exit=0, unresolved=0
+lib/rvoxelmap/map_test: ELF, ldd -r exit=0, unresolved=0
+lib/rvoxelmap/map_update_test: ELF, ldd -r exit=0, unresolved=0
+lib/rvoxelmap/rvoxelmap_mapping_odom: ELF, ldd -r exit=0, unresolved=0
+lib/super_lio/relocation_node: ELF, ldd -r exit=0, unresolved=0
+lib/super_lio/super_lio_node: ELF, ldd -r exit=0, unresolved=0
+lib/voxel_map/voxel_mapping_odom: ELF, ldd -r exit=0, unresolved=0
+lib/voxel_map_plus/voxel_mapping_plus_odom: ELF, ldd -r exit=0, unresolved=0
+ELF files checked: 23; required executables/libraries: 15; Livox generated headers: 2
+unresolved or missing: 0
+elf_ldd_audit_exit_status=0
