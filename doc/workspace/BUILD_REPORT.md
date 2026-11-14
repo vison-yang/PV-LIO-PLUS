@@ -11,7 +11,7 @@
 - `upstream/deps/`：i-Octree 比较示例所需的官方 ikd-Tree，以及 KISS 固定版本的 Sophus 1.24.6、robin-map 1.4.0。
 - `.workspace-deps/`：工作空间内的 Eigen 3.4.0 和 Ceres 2.2.0 前缀，不修改系统库。
 - `.workspace-tools/`：工作空间内的 CMake 3.28.4；KISS 所用 Sophus 要求 CMake >= 3.24。安装命令：`python3 -m pip install --target .workspace-tools/python cmake==3.28.4`。
-- `research/deps/`、`research/build/`：保留的历史依赖与构建产物。本轮未删除它们；其中旧路径不能作为当前源码位置或新构建证据。
+- `research/`：后续核验无现用依赖，已整体删除旧构建和重复 Ceres 源码/构建/安装副本，清理约 131 MiB。两份唯一历史 Markdown 已存入 `output/maintenance-20261114/history/research/`。删除后共享增量构建与 BIEVR 链接检查通过，详见 [RESEARCH_CLEANUP.json](RESEARCH_CLEANUP.json)。
 
 固定版本与来源见 [SOURCE_MANIFEST.json](SOURCE_MANIFEST.json)。旧 `research/BIEVR-LIO`、`research/Surfel-LIO`、`research/lio_gvm` 已移到 `upstream/`，没有再复制第二份工作树。
 

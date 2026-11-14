@@ -1,0 +1,75 @@
+{
+  "checked_on": "2026-11-14",
+  "target": "research",
+  "status": "removed",
+  "removed_contents": [
+    "obsolete BIEVR/Surfel build spaces",
+    "superseded Ceres 2.2 source/build/install copies"
+  ],
+  "retained_history": [
+    {
+      "original": "research/SOURCE_INVENTORY.md",
+      "retained": "output/maintenance-20261114/history/research/SOURCE_INVENTORY.md",
+      "bytes": 4834,
+      "sha256": "931974bac515ac05f71b2c5026049f284135b0bbc61aba833025096c3c414e9a"
+    },
+    {
+      "original": "research/build/BUILD_REPORT.md",
+      "retained": "output/maintenance-20261114/history/research/build/BUILD_REPORT.md",
+      "bytes": 10784,
+      "sha256": "7addf415928e44ae8cbc92968e39bf726a94aa2959a20c1b827e7b756e512f8e"
+    }
+  ],
+  "size": {
+    "apparent_bytes": 132916335,
+    "allocated_bytes": 137715712,
+    "files": 1894,
+    "directories": 298,
+    "symlinks": 4
+  },
+  "source_provenance": {
+    "old_ceres_commit": "85331393dc0dff09f6fb9903ab0c4bfa3e134b01",
+    "canonical_ceres_source": "/home/yxy/srcv/thirdparty/ceres-2.2-src",
+    "canonical_ceres_commit": "85331393dc0dff09f6fb9903ab0c4bfa3e134b01"
+  },
+  "active_replacements": [
+    ".workspace-deps",
+    "upstream/build",
+    "build/maintenance-20261114-unified",
+    "devel/maintenance-20261114-unified"
+  ],
+  "research_exists": false,
+  "dependency_audit_summary": {
+    "regular_files_enumerated": 4271,
+    "symbolic_links_checked": 8,
+    "links_to_research": 0,
+    "dynamic_elf_checked": 105,
+    "elf_research_dynamic_entries": 0,
+    "elf_resolutions_to_research": 0,
+    "elf_with_missing_libraries": 0,
+    "elf_with_research_path_string": 0,
+    "research_text_hit_lines": 20,
+    "research_path_text_hit_lines": 0,
+    "pv_script_files": 5,
+    "scan_errors": 0,
+    "rg_exit_code": 0
+  },
+  "bievr_setup_verified": true,
+  "active_ceres_sha256": "584bc0b9833d962490e4dc7d6f83d5c3167899a34e5233ebc0524f550680267c",
+  "post_cleanup_verification": {
+    "active_ceres_unchanged": true,
+    "incremental_shared_build": {
+      "exit_code": 0,
+      "log": "output/maintenance-20261114/logs/post-research-cleanup-build.log"
+    },
+    "bievr_setup_linkage": {
+      "exit_code": 0,
+      "missing_libraries": 0,
+      "research_resolutions": 0,
+      "ceres_from_workspace_prefix": true,
+      "log": "output/maintenance-20261114/logs/post-research-cleanup-bievr-ldd.log"
+    }
+  },
+  "dependency_audit_record": "output/maintenance-20261114/research-cleanup-dependency-audit.json",
+  "note": "Old build products and the redundant clean Ceres source/build/install were deleted. Only two unique historical Markdown files were preserved and hash-verified. Current sources, .workspace-deps, upstream/build, and the validated unified build/devel were retained."
+}
