@@ -1,0 +1,47 @@
+{
+  "checked_at_local": "2026-11-15T23:15:37.193666+08:00",
+  "requested_deadline_local": "2026-11-15T23:20:00+08:00",
+  "completed_stage": "i-Octree integration and source/documentation validation",
+  "integrated_selectors": [
+    "voxelmap",
+    "voxelmap_plus",
+    "ikdtree",
+    "ivox",
+    "c3p_voxelmap",
+    "octvox",
+    "r_voxelmap",
+    "hvox",
+    "i_octree"
+  ],
+  "validated_code_commit": "6876a8ec42bc8a1497b5f6cb249a7d4dff85d11e",
+  "stage_docs_pushed": "f28b409885a73e19e93184866cab885b99678691",
+  "main_regular_ctest": {
+    "passed": 7,
+    "total": 7,
+    "gtest_cases": 49
+  },
+  "isolated_ctest": {
+    "passed": 9,
+    "total": 9,
+    "gtest_executions_including_sanitizer_repeats": 60
+  },
+  "real_replays": {
+    "feature_short_rows": 288,
+    "feature_full_rows": 1402,
+    "main_short_rows": 288,
+    "complete_input_verified": true
+  },
+  "inserted_tasks": {
+    "MapManager_class_split": "assessment and phased plan complete; no refactor implementation",
+    "BIEVR_to_IKFoM": "source-based design draft complete; no selector/implementation; noise,paper correspondence and native edge conditions pending"
+  },
+  "temporary_linked_worktrees": 0,
+  "workspace_root_repository": false,
+  "matching_build_or_replay_processes": [],
+  "runtime_evidence": "doc/workspace/evidence/I_OCTREE_RESULTS.json",
+  "limitations": [
+    "No ground-truth accuracy or controlled performance conclusion",
+    "LeakSanitizer was disabled",
+    "BIEVR design is not validated implementation"
+  ]
+}

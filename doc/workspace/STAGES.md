@@ -62,3 +62,7 @@
 ## 工作树与仓库体积审查（2026-11-15）
 
 工作空间根目录保持不建仓。对远端 `d2d17bc` 的41个可达提交逐树核验，均无 `experiments/`、build/devel/output、bag/PCD或编译产物。分阶段验证目录是共享对象库的 linked worktree；R-VoxelMap 与 hVox 的两个已完成检出已移除，11份未提交文档均先以SHA核验备份。i-Octree 随后完成验收，其干净工作树也已移除；当前 `git worktree list` 仅列主项目。本轮相对 `084af65` 的当前树净增401736字节；已有论文及GIF合计约250MB。原始数据、构建和运行产物保留在仓库外；精确口径和清理记录见[审查结果](evidence/WORKTREE_AUDIT.json)。
+
+## 23:20 前阶段性收尾
+
+九后端代码、主线构建/测试、i-Octree 长短回放和全部 linked worktree 清理已完成。新增[MapManager 类职责拆分评估](../MAP_MANAGER_REFACTOR_PLAN.md)及[BIEVR 共同 IKFoM 移植设计草稿](../BIEVR_IKFOM_PORT.md)；两项均为设计文档，没有在收尾前启动源码重构或 BIEVR 实现。下一步先评审并试点后端职责分离，以及关闭 BIEVR 像素/索引/分组与噪声尺度前置项，再继续候选集成。关机前状态见[收尾记录](evidence/CLOSEOUT_20261115.json)。
