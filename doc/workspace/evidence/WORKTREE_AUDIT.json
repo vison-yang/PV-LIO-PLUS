@@ -1,0 +1,30 @@
+{
+  "root_is_git_repository": false,
+  "root_dotgit_directory_empty": true,
+  "remote_verified": "d2d17bcb9721cdae220977b1692c1311167229f2",
+  "reachable_remote_commits_checked": 41,
+  "artifact_paths_in_any_remote_commit": {},
+  "current_tree_files": 190,
+  "current_tree_blob_bytes": 252144708,
+  "baseline_084af65_tree_blob_bytes": 251742972,
+  "net_current_tree_increase_bytes": 401736,
+  "new_unique_blob_bytes_since_084af65": 1438583,
+  "existing_paper_bytes": 198555150,
+  "existing_gif_bytes": 51433186,
+  "explanation": "experiments/pv_lio_plus_* are linked working trees; shared git object store; not paths tracked in main repository tree",
+  "checked_on": "2026-11-15",
+  "completed_worktrees_removed": [
+    "experiments/pv_lio_plus_stage2",
+    "experiments/pv_lio_plus_hvox"
+  ],
+  "active_worktree_retained": "experiments/pv_lio_plus_i_octree",
+  "backup": "output/integration-20261115/worktree-audit/hvox-uncommitted + patch and SHA256 manifest",
+  "backed_up_owned_documentation_files": 11,
+  "main_equivalence_checked_for_removed_maps": true,
+  "local_worktree_checkout_du_before_removal_mib": {
+    "r_voxelmap": 241,
+    "hvox": 241
+  },
+  "workspace_root_policy": "No repository initialization at workspace root; keep project repositories separate.",
+  "scope": "Git reachable history and tracked-path audit; no history rewrite or paper/media removal performed."
+}
