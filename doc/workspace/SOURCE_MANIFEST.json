@@ -27,7 +27,7 @@
       "local_commit": "24dce4f497df127f695f5fdf3392cc5f9e7fa4c3",
       "branch": "master",
       "build_group": "catkin-src",
-      "scope": "candidate pure-plane map component; full hybrid estimator excluded",
+      "scope": "excluded from map integration: contributions are adaptive scan voxelization, hybrid state update and pruned search on an inherited VoxelMap; retained source/build provenance and independent system baseline",
       "local_changes": [],
       "compatibility_patch": "patches/GenZ-LIO.patch",
       "patch_base_commit": "bf444f7a747ed3da8548b56b49c14f207e8d49bb",
@@ -41,7 +41,7 @@
       "local_commit": "917ff8020be428a1cfe52798641b61b2b05ea54a",
       "branch": "main",
       "build_group": "catkin-src",
-      "scope": "related work; semantic/hybrid residual excluded",
+      "scope": "conditional candidate semantic plane/NDT map and corresponding residuals; semantic input and typed observation contracts required",
       "local_changes": [],
       "compatibility_patch": "patches/Hybrid-VoxelMap.patch",
       "patch_base_commit": "89ed71c2bff47b11a78dabbf244afbed6d311c5d",
@@ -66,10 +66,11 @@
       "path": "src/PV_LIO_PLUS",
       "repository": "git@github.com:vison-yang/PV-LIO-PLUS.git",
       "upstream_commit": "b85f535b2c06a885bdf9e24bc8ba43293357910a",
-      "branch": "local",
+      "branch": "master",
       "build_group": "catkin-src",
       "scope": "comparison framework",
-      "tracking_note": "Framework commits are recorded in STAGES.md; the manifest does not recursively pin its own containing commit."
+      "tracking_note": "upstream_commit retains the historical framework baseline. source_reference_commit records the code/config HEAD inspected before the 2026-11-15 documentation update; it does not pin the future commit containing this manifest. STAGES.md retains earlier local stage records.",
+      "source_reference_commit": "985fd799fa6187b8034d8c4b38e05ce010fec643"
     },
     {
       "name": "R-VoxelMap",
@@ -79,7 +80,7 @@
       "local_commit": "5166480ebec04e348fe3d2aad80a72450ac60ffc",
       "branch": "main",
       "build_group": "catkin-src",
-      "scope": "candidate geometric plane map",
+      "scope": "candidate recursive probabilistic plane map and corresponding residuals; source collected and upstream ROS1 build recorded",
       "local_changes": [],
       "compatibility_patch": "patches/R-VoxelMap.patch",
       "patch_base_commit": "50ffbbab3626e384d77f0da91a7e51d5e4b14ff7",
@@ -161,7 +162,7 @@
       "local_commit": "a75b362f085271505351b1fdc592f46d77d1f5aa",
       "branch": "main",
       "build_group": "catkin-src",
-      "scope": "candidate incremental point-map component; full GICP excluded",
+      "scope": "eligible candidate incremental voxel map with sufficient statistics and native maintenance retained; point-plane adapter variant first, GICP residual/full covariance adaptation requires separate design and validation",
       "local_changes": [],
       "compatibility_patch": "patches/ig_lio.patch",
       "patch_base_commit": "2d79259e3aaa5bbb10d6b13234398760bbacf8f5",
@@ -175,7 +176,7 @@
       "local_commit": "38f98b900dad0e562cddfff16f85f681288a95ed",
       "branch": "main",
       "build_group": "isolated-upstream",
-      "scope": "related work; bump-image residual excluded",
+      "scope": "conditional candidate voxel bump-image map and height residuals; common-filter adapter required, map-guided sampling evaluated separately",
       "local_changes": [],
       "compatibility_patch": null
     },
@@ -187,7 +188,7 @@
       "local_commit": "2ed04104a3e166582e9c7560640c919c4e7bb93b",
       "branch": "master",
       "build_group": "isolated-upstream",
-      "scope": "candidate precomputed L1 surfel map; fixed local snapshot",
+      "scope": "candidate precomputed L1 surfel map and corresponding residuals; fixed author snapshot 73348c1",
       "local_changes": [],
       "compatibility_patch": "patches/Surfel-LIO.patch",
       "patch_base_commit": "73348c1e5560eccd2df1ff9f87683b2326a396d4",
@@ -201,7 +202,7 @@
       "local_commit": "25903a33dd7a47b1de111a4cc7a756ead3a343ce",
       "branch": "main",
       "build_group": "isolated-upstream",
-      "scope": "candidate dynamic octree index",
+      "scope": "candidate dynamic octree index with shared point-to-plane observation adapter",
       "local_changes": [],
       "compatibility_patch": "patches/i-Octree.patch",
       "patch_base_commit": "5b640e05dab23230207dd849eb1549b5074d1a0e",
@@ -215,7 +216,7 @@
       "local_commit": "1ffa7d7512f10bfc8b1185095011fa31184019e3",
       "branch": "main",
       "build_group": "isolated-upstream",
-      "scope": "candidate VoxelHashMap; full point-to-point ICP excluded",
+      "scope": "excluded from map integration: existing voxel/hash map is used without an established map-data-structure contribution; retained source/build provenance and independent system baseline",
       "local_changes": [],
       "compatibility_patch": null
     },
@@ -227,7 +228,7 @@
       "local_commit": "c80c968ed7ffe61af0a02a1b3c72fe03149c5c3e",
       "branch": "main",
       "build_group": "isolated-upstream",
-      "scope": "related work; missing author map headers and Gaussian residual excluded",
+      "scope": "Gaussian map/residual research reserve; implementation blocked by missing author-specific map/Fast-VGICP/IKFoM sources",
       "local_changes": [],
       "compatibility_patch": null
     },
@@ -284,5 +285,8 @@
     "cmake_install_command": "python3 -m pip install --target .workspace-tools/python cmake==3.28.4",
     "system_modified": false
   },
-  "patches_note": "Patches are full worktree deltas against the pinned author commit, including relevant compatibility edits already present when this task began. They do not replace the source repositories. Apply only to the matching clean author baseline."
+  "patches_note": "Patches are full worktree deltas against the pinned author commit, including relevant compatibility edits already present when this task began. They do not replace the source repositories. Apply only to the matching clean author baseline.",
+  "scope_reviewed_on": "2026-11-15",
+  "scope_note": "Active integration scope requires a new or improved map data structure among the method contributions; qualifying maps and their corresponding residual models are compared in the shared framework. Source pins and build outcomes retain the 2026-11-14 snapshot. Scope classification was reviewed on 2026-11-15 and does not assert implemented selectors. See PLAN.md and paper/notes/MAP_BACKEND_SCOPE_REVIEW.md.",
+  "map_structure_eligibility_reviewed_on": "2026-11-15"
 }

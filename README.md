@@ -2,95 +2,135 @@
 
 [中文版本](README.zh-CN.md)
 
-PV-LIO-PLUS is a ROS1 LiDAR-inertial odometry (LIO) framework for comparing
-local-map models with the same point-to-plane estimation front end. It is
-mainly inherited from [PV-LIO](https://github.com/HViktorTsoi/PV-LIO.git),
-which follows the probabilistic voxel-map idea of
-[VoxelMap](https://github.com/hku-mars/VoxelMap.git) and the tightly coupled
-iterated-filter structure of FAST-LIO.
+PV-LIO-PLUS is a ROS1 LiDAR-inertial odometry (LIO) framework that integrates
+multiple map structures and their corresponding residual models to evaluate
+different maps within the same framework. LiDAR/IMU processing, state
+propagation, the iterated-filter loop, and result outputs are shared; each
+backend retains its map representation, matching rules, and observation model.
 
-The project keeps the original PV-LIO, VoxelMap, and VoxelMap++ fixes and
-optimizations, and adds a `MapManager` for selecting and comparing six local
-maps from one configuration file. All integrated map sources are kept inside
-this package; the full external LIO packages are not linked into PV-LIO-PLUS.
+The project originated from [PV-LIO](https://github.com/HViktorTsoi/PV-LIO),
+which replaced ikd-tree with the probabilistic
+[VoxelMap](https://github.com/hku-mars/VoxelMap) map in the **FAST-LIO2 source
+framework**. PV-LIO-PLUS first integrated
+[VoxelMapPlus (VoxelMap++)](https://github.com/uestc-icsp/VoxelMapPlus_Public),
+then substantially refactored and optimized the code framework, and subsequently
+incorporated more map structures and their corresponding residual models.
+
+`MapManager` currently selects six integrated backends from a common
+configuration. Their map implementations are bundled in this package. Official
+upstream projects collected in the surrounding workspace supply provenance and
+independent baselines; their complete estimation nodes are built separately.
 
 ## Main work
 
-- Preserve PV-LIO's tightly coupled LiDAR-IMU estimation and IKFoM iterated
-  filter.
-- Preserve the original PV-LIO observation-flow and residual-weighting fixes.
-- Retain VoxelMap's probabilistic adaptive voxel planes and VoxelMap++'s local
-  map and residual optimizations.
-- Add `MapManager` with common search, insertion, deletion, local-window, and
-  publication interfaces while preserving backend-specific behavior.
-- Integrate VoxelMap, VoxelMap++, FAST-LIO2 ikd-tree, Faster-LIO iVox,
-  C3P-VoxelMap, and Super-LIO OctVox as selectable backends.
-- Add explicit trajectory and world-frame map-cloud outputs for comparison.
-- Use C++17 and keep the integrated local-map implementations in this package.
+- Share PV-LIO's tightly coupled LiDAR-IMU estimation and IKFoM iterated filter.
+- Integrate VoxelMap and VoxelMap++ maps and their probabilistic plane residuals.
+- Refactor configuration, map management, observation dispatch, and result output
+  into a common C++17 framework.
+- Add ikd-tree, iVox, C3P-VoxelMap, and OctVox with their corresponding matching
+  and residual paths, giving six selectable backends.
+- Provide trajectory, world-frame map-cloud, and per-frame timing outputs for
+  reproducible comparisons.
+
+The [integration plan](PLAN.md) records source availability, extraction scope,
+implementation order, and validation gates. The
+[map and residual review](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md) records the
+current observation differences and the boundaries of future adapters.
 
 ## Algorithm inventory
 
-The inventory distinguishes a local-map backend from a complete LIO package.
-PV-LIO-PLUS integrates the map layer into its own estimation loop; it does not
-embed another package's complete state-estimation node. This repository only
-bundles the local-map layers under `include/map_manager/native/`.
+An integrated backend comprises a map and its corresponding matching/residual
+path inside PV-LIO-PLUS's estimation loop. The upstream map implementations
+live under `include/map_manager/native/`; observation dispatch lives in
+`src/mapping.cpp`. Source collection, upstream compilation, and integration are
+separate milestones.
+
+The active inventory requires a new map data structure or a substantive
+improvement to one to be among the method's stated contributions. Using an
+existing map, or changing only residuals, sampling, search policies, or
+estimation, does not meet this criterion. The [eligibility review](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)
+records paper pages and structural evidence for each decision. An adapter must
+preserve the qualifying structural contribution; a generic container extracted
+after removing that contribution cannot stand in for the original map.
 
 ### Integrated local-map backends
 
-| Algorithm / map | Source included in this repository | Selector | Note |
+All six map families below meet the structural-contribution criterion.
+FAST-LIO2 is represented by its ikd-tree contribution, not by FAST-LIO1.
+
+| Algorithm / map | Bundled map source | Selector | Map and residual model |
 | --- | --- | --- | --- |
-| VoxelMap | `include/map_manager/native/voxelmap` | `voxelmap` | Probabilistic adaptive voxel planes; the first core local map in the PV-LIO lineage. |
-| VoxelMap++ | `include/map_manager/native/voxelmap_plus` | `voxelmap_plus` | VoxelMap-derived map and residual optimizations. |
-| FAST-LIO2 / ikd-tree | `include/map_manager/native/ikdtree` | `ikdtree` | FAST-LIO2's incremental KD-tree map. |
-| Faster-LIO / iVox | `include/map_manager/native/ivox` | `ivox` | Faster-LIO's sparse incremental voxel map. |
-| C3P-VoxelMap | `include/map_manager/native/c3p_voxelmap` | `c3p_voxelmap` | Compact probabilistic voxel map with native plane matching and merging. |
-| Super-LIO / OctVox | `include/map_manager/native/octvox` | `octvox` | LRU octant-aggregated point map with native ordered TopK, 4/5-point plane fitting, and fixed observation information. |
+| VoxelMap | `include/map_manager/native/voxelmap` | `voxelmap` | Adaptive probabilistic planes; point-to-plane residual with plane and point uncertainty. |
+| VoxelMap++ | `include/map_manager/native/voxelmap_plus` | `voxelmap_plus` | VoxelMapPlus planes and merging; native plane parameterization and uncertainty propagation. |
+| FAST-LIO2 / ikd-tree | `include/map_manager/native/ikdtree` | `ikdtree` | Incremental KD-tree point map; neighborhood plane-fitting and point-uncertainty adapter. |
+| Faster-LIO / iVox | `include/map_manager/native/ivox` | `ivox` | Sparse incremental voxel point map; the same point-to-plane adapter as ikd-tree. |
+| C3P-VoxelMap | `include/map_manager/native/c3p_voxelmap` | `c3p_voxelmap` | Compact probabilistic planes and merging; native matching and uncertainty-weighted residual. |
+| Super-LIO / OctVox | `include/map_manager/native/octvox` | `octvox` | LRU octant-aggregated point map; ordered TopK, 4/5-point plane fitting, and fixed observation information. |
 
-FAST-LIO2 and Faster-LIO are therefore represented through ikd-tree and iVox.
-Their complete nodes are not included in this repository; obtain and build the
-upstream projects separately when an end-to-end baseline is needed.
+FAST-LIO2 and Faster-LIO are represented through ikd-tree and iVox, using this
+framework's observation adapter. Official full-system copies are collected in
+workspace `src/FAST_LIO` and `src/faster_lio` for independent baselines.
 
-### Candidate local-map backends
+### Collected sources and planned backends
 
-Candidates must expose a separable geometric map or index. Only that component
-may enter `MapManager`; the PV-LIO IMU propagation, deskew, state vector,
-iteration schedule, point selection, and point-to-plane observation contract
-must stay fixed. A public full-system implementation is evidence of available
-source, not evidence that the complete method is a valid map-only comparison.
+The following status was checked against local source snapshots on
+**2026-11-15**. Paths are relative to the workspace root. Pinned author commits
+and compatibility patches are in the [source manifest](doc/workspace/SOURCE_MANIFEST.json).
+Build outcomes below refer to the **2026-11-14**
+[build record](doc/workspace/BUILD_REPORT.md), not new experiments in this update.
+**None of these candidates has an implemented selector.**
 
-Reviewed on **2026-11-14** against the local source snapshots and author
-papers/repositories. The [scope review](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)
-records code symbols, rejected methods, and the limits of each extraction.
-All rows below are **research candidates, not implemented selectors**.
+| Map / method | Collected official source | Recorded build | Integration work |
+| --- | --- | --- | --- |
+| R-VoxelMap | `src/R-VoxelMap` | Shared ROS1 build passed | Source is ready for integration design: extract recursive planes, robust map updates, and corresponding probabilistic residuals. |
+| Surfel-LIO / hVox | `upstream/Surfel-LIO` | Standalone `lio_player` passed | Preserve precomputed L1 surfels and `GetSurfelAtPoint` from author snapshot `73348c1`; adapt surfel residuals and robust weighting. Re-audit before changing versions. |
+| i-Octree | `upstream/i-Octree` | C++ example passed | Adapt dynamic octree insertion, kNN/radius search, and box deletion; use the shared point-to-plane adapter. |
+| iG-LIO | `src/ig_lio` | Shared ROS1 build passed | Preserve incremental voxel sufficient statistics and native maintenance, then adapt matching/observations; review GICP information and covariance separately. A point-to-plane variant must retain the map contribution. |
+| Hybrid-VoxelMap | `src/Hybrid-VoxelMap` | Shared ROS1 build passed | Conditional candidate: define semantic-label inputs and typed Plane/NDT matches, then adapt both residuals. Identify plane-only or label-free variants explicitly. |
+| BIEVR-LIO | `upstream/BIEVR-LIO` | Isolated ROS1 targets passed | Conditional candidate: adapt voxel bump images and height residuals to the common state/filter; assess map-guided sampling separately. |
+| LIO-GVM | `upstream/lio_gvm` | Blocked by incomplete author release | Incremental Gaussian voxel map storing centroids/covariances; obtain missing author-specific Fast-VGICP/IKFoM and map source before implementing its map/residual adapter. |
 
-| Map component | Author source | Map-only extraction and remaining work |
-| --- | --- | --- |
-| R-VoxelMap recursive planes | [R-VoxelMap](https://github.com/NKU-MobFly-Robotics/R-VoxelMap) | Extract robust voxel-plane construction and query; freeze estimator, sampling, and observation weighting. |
-| Surfel-LIO / hVox | [Surfel-LIO](https://github.com/93won/lidar_inertial_odometry) | Extract precomputed L1 surfels from pinned local `73348c1`; keep its `GetSurfelAtPoint` query. A newer author HEAD uses a different KD-tree/PCA path, so do not silently replace this snapshot. |
-| FR-LIO / RC-Vox | [Paper](https://arxiv.org/abs/2302.04031v3) | Map-only research reserve; author code remains unverified. Exclude adaptive subframes and the iterated smoother. |
-| GenZ-LIO voxel map and search | [genz-lio](https://github.com/cocel-postech/genz-lio) | Extract the pure-plane map/search branch with fixed scale; exclude adaptive scan downsampling and point-to-point observation fallback. |
-| **i-Octree** | [i-octree](https://github.com/zhujun3753/i-octree) | New candidate: dynamic octree with insertion, kNN/radius search, and box deletion; reuse PV-LIO's point-plane adapter. |
-| **KISS-ICP / VoxelHashMap** | [kiss-icp](https://github.com/PRBonn/kiss-icp) | New candidate map component from LiDAR odometry: voxel hash, bounded point storage, and distance eviction. Extend native nearest-one search to kNN; exclude point-to-point ICP and its motion/threshold pipeline. |
-| **iG-LIO incremental voxel map** | [ig_lio](https://github.com/zijiechenrobotics/ig_lio) | New candidate: extract `VoxelMap::AddCloud` / `KNNByCondition` and point storage. Exclude GICP, scan covariance estimation, and the upstream optimizer. |
+FR-LIO/RC-Vox and SV-LIO also have paper evidence of map-structure contributions,
+but the local collection records do not establish official implementations.
+They remain paper reserves, pending source verification.
 
-Hybrid-VoxelMap, BIEVR-LIO, LIO-GVM, CT-VoxelMap, SA-LIVO, SV-LIO,
-and Environment-Adaptive Solid-State LIO have been removed from this candidate
-list: their published distinguishing behavior requires semantic inputs,
-different observations, or estimator/preprocessing changes. Their papers and
-notes remain in the [paper catalog](paper/README.md) as related work. A future
-isolated geometric component must demonstrate a distinct map contribution
-before being reconsidered.
+KISS-ICP and GenZ-LIO have been removed from the active inventory: their stated
+contributions use existing map structures rather than establish new ones.
+CT-VoxelMap and Environment-Adaptive Solid-State LIO lack sufficient evidence of
+a distinct map-data-structure contribution in the reviewed versions. SA-LIVO
+inherits VoxelMap and contributes primarily to visual/inertial estimation.
+These methods have no current map-integration schedule; their papers and any
+collected sources/build records remain background or independent baseline
+artifacts. See the [eligibility review](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)
+for individual decisions and the [plan](PLAN.md) for the retained work.
+Source-availability statements refer to the fixed local collection, without
+claiming that unverified official code does not exist or updating remote HEADs.
 
 ### Comparison controls
 
-The six existing backends share the estimator loop, but retain native plane
-gates, noise/information weights, and eviction policies. In particular OctVox
-uses fixed information; it is **not yet a pure map-representation ablation**.
-Report these settings with every result. A strict map-only experiment must
-also fix residual Jacobians, observation variance, correspondence gates,
-retained scan points, and the local-map budget; changing one is a separate
-ablation. The scope review describes the common observation contract needed
-before such a claim is valid.
+The main comparison evaluates each **map together with its corresponding
+residual model** in the shared framework. Use the same sensor calibration,
+input segment, IMU processing, state definition, filter schedule, and evaluation
+method. Record residual type, covariance/information, robust kernel, matching
+gates, scan sampling, and map budget/eviction with each result. Semantic inputs
+or map-guided sampling need explicit experiment profiles and ablations.
+
+The current six paths all use point-to-plane geometry, with different
+parameterizations, uncertainty models, and gates; OctVox uses fixed information.
+VoxelMap++ currently fixes the extrinsic Jacobian columns to zero while other
+paths honor the extrinsic-estimation switch, so use fixed extrinsics for their
+direct comparison until this difference is resolved. Details are in the
+[review](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md).
+
+Query-distance units also need normalization: ikd-tree compares a squared
+neighbor distance with `nearest_max_range`, while iVox treats that parameter
+as a distance and squares it internally. Equal YAML values therefore do not
+give equal physical search radii.
+
+A stricter index/map-representation ablation is an optional experiment: it
+must additionally align residuals, Jacobians, weights, gates, retained points,
+and map budgets. Complete upstream systems are independent end-to-end
+baselines. Report each experiment according to what it varies.
 
 ## Architecture
 
@@ -98,24 +138,28 @@ before such a claim is valid.
 LiDAR / IMU
     |
     v
-PV-LIO state estimation and point-to-plane residuals
+Shared preprocessing, deskew, and IMU state propagation
     |
     v
-MapManager
-    |-- VoxelMap
-    |-- VoxelMap++
-    |-- ikd-tree
-    |-- iVox
-    |-- C3P-VoxelMap
-    `-- OctVox
+MapManager: map storage, updates, matching
+    |-- VoxelMap       --> probabilistic plane observation
+    |-- VoxelMap++     --> native plane observation
+    |-- ikd-tree       --> shared point-to-plane adapter
+    |-- iVox           --> shared point-to-plane adapter
+    |-- C3P-VoxelMap   --> native probabilistic plane observation
+    `-- OctVox         --> plane observation with fixed information
+    |
+    v
+Backend observation dispatch --> shared IKFoM update
+    |
+    v
+Map update, trajectory / map / timing outputs
 ```
 
-VoxelMap and VoxelMap++ keep native plane-map matching. ikd-tree and iVox keep
-their point-map search and use the manager's plane-fitting adapter. C3P-VoxelMap
-uses its native plane-map implementation. OctVox keeps its native ordered TopK,
-plane gates, and fixed information observation rather than reusing the iVox
-weighting path. This separation keeps the state-estimation loop shared. Native observation
-weights and gates still differ; see the comparison controls above.
+Map storage and query are managed by `MapManager`; residuals, Jacobians, and
+information are constructed by the corresponding observation paths. Planned
+surfel, Gaussian, and height-image residuals require explicit adapters; they are
+not available through the current selectors.
 
 ## Requirements and build
 
@@ -222,9 +266,7 @@ clarification before public redistribution of those local copies.
 - [BIEVR-LIO](https://github.com/ethz-asl/BIEVR-LIO)
 - [Surfel-LIO](https://github.com/93won/lidar_inertial_odometry)
 - [LIO-GVM](https://github.com/Ji1Xingyu/lio_gvm)
-- [GenZ-LIO](https://github.com/cocel-postech/genz-lio)
 - [i-Octree](https://github.com/zhujun3753/i-octree)
-- [KISS-ICP / VoxelHashMap](https://github.com/PRBonn/kiss-icp)
 - [iG-LIO](https://github.com/zijiechenrobotics/ig_lio)
 
 ## Workspace source and build records
@@ -234,8 +276,9 @@ For this multi-repository workspace, see the pinned
 [build report](doc/workspace/BUILD_REPORT.md). ROS1 packages that can be built
 together live in workspace `src/`; standalone CMake, ROS2/mixed builds, and
 conflicting or incomplete source releases live in workspace `upstream/`.
-The latter are compiled separately, including related-work baselines removed
-from the map-only candidate list. Dependency prefixes stay inside the workspace.
+The latter are compiled separately. Collected sources support both backend
+development and independent full-system baselines. Dependency prefixes stay
+inside the workspace.
 
 For the existing multi-project workspace, build with the local Eigen/Ceres
 prefix and explicit include ordering:

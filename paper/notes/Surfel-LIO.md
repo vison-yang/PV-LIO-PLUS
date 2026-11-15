@@ -112,10 +112,8 @@ Surfel-LIO 是一个很明确的“预计算换查询”方案：如果地图几
 
 ---
 
-## 2026-11-14 地图替换边界
+## 2026-11-15 对 PV-LIO-PLUS 的范围说明
 
-- 本地上游版本固定为 Surfel-LIO 73348c1；该版本符合论文的预计算 L1 surfel 地图方向，是范围审查认可的地图层候选。
-- 本地更新期由 UpdateVoxelMap 汇集 L0 质心、SVD 并保存 L1 法向/中心；估计查询链为 Estimator::FindCorrespondences → VoxelMap::GetSurfelAtPoint，按 L1 key 读取已存平面。
-- GetL1Surfels 是 viewer 遍历接口，不是估计查询入口。本地查询没有 GetClosestSurfel/KNearest，也不在查询期做 kNN/PCA。
-- 抽取时只保留地图层并适配 PV 的公共点面观测和协方差语义；排除原 Estimator、预处理及滤波。
-- 远程 2cbfad9 改为 KD-tree/PCA，仅作为升级风险提示，不能据此描述当前本地 73348c1。详见[范围审查](MAP_BACKEND_SCOPE_REVIEW.md)。
+- 本地固定作者基线 `73348c1` 位于 `upstream/Surfel-LIO`；本地兼容构建有记录，但该地图尚未接入 PV-LIO-PLUS。
+- 移植须保留更新期预计算的 L1 surfel 与 `GetSurfelAtPoint` 查询，不能只以通用点容器替代；配套 surfel 观测、平面度、不确定性和 Huber 权重须独立定义。旧版本查询路径以本地快照为准。
+- 排除原 Estimator/滤波的隐式集成；论文指标不是本地复现结果。版本变化前需重审地图和消费者代码。详见[范围审查](MAP_BACKEND_SCOPE_REVIEW.md)。
