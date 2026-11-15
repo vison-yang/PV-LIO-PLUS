@@ -35,7 +35,7 @@ mapping:
     update_size_threshold: 5             # VoxelMap++ only
 
     nearest_point_count: 5
-    nearest_max_range: 1.75             # m for iVox; squared-distance path in ikd-tree
+    nearest_max_range: 1.75             # physical query radius in meters for ikd-tree and iVox
     plane_fit_threshold: 0.1
     point_map_downsample_size: 0.5       # m
 

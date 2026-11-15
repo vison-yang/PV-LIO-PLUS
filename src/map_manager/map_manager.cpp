@@ -116,6 +116,12 @@ MapManager::~MapManager()
  */
 void MapManager::configure(const MapManagerConfig &config)
 {
+    if ((config.type == MapType::IKDTree || config.type == MapType::IVox) &&
+        !ValidNearestMaxRange(config.nearest_max_range))
+    {
+        throw std::invalid_argument(
+            "mapping/nearest_max_range must be positive and finite in metres, with a finite nonzero square");
+    }
     if (config.type == MapType::OctVox && config.local_window_enabled)
     {
         throw std::invalid_argument(
@@ -1180,6 +1186,7 @@ void MapManager::search_ikd_tree(const MapPointList &points, PlaneMatchList &mat
     non_match.reserve(points.size());
 
     const int nearest_count = std::max(config_.nearest_point_count, NUM_MATCH_POINTS);
+    const double max_range_squared = config_.nearest_max_range * config_.nearest_max_range;
     for (const auto &point : points)
     {
         PointVector neighbors;
@@ -1191,7 +1198,7 @@ void MapManager::search_ikd_tree(const MapPointList &points, PlaneMatchList &mat
 
         if (neighbors.size() < NUM_MATCH_POINTS ||
             (point_search_sq_dist.size() >= NUM_MATCH_POINTS &&
-             point_search_sq_dist[NUM_MATCH_POINTS - 1] > config_.nearest_max_range))
+             point_search_sq_dist[NUM_MATCH_POINTS - 1] > max_range_squared))
         {
             non_match.emplace_back(point.point_world);
             continue;

@@ -21,6 +21,7 @@
 #include <visualization_msgs/MarkerArray.h>
 
 #include <Eigen/Core>
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -60,6 +61,13 @@ enum class MapType
 MapType ParseMapType(const std::string &name);
 
 const char *MapTypeName(MapType type);
+
+/** Point-map search radii must stay representable when squared. */
+inline bool ValidNearestMaxRange(double radius)
+{
+    const double squared_radius = radius * radius;
+    return std::isfinite(radius) && radius > 0.0 && std::isfinite(squared_radius) && squared_radius > 0.0;
+}
 
 /** @brief A map point represented in LiDAR and world frames. */
 struct MapPoint
@@ -145,7 +153,9 @@ struct MapManagerConfig
 
     /// Number of neighbors requested by point-map backends.
     int nearest_point_count = NUM_MATCH_POINTS;
-    /// Maximum accepted neighbor distance for point-map search.
+    /// Maximum neighbor distance in metres for ikd-tree and iVox searches.
+    /// ikd-tree includes the boundary; iVox uses a strict inequality and
+    /// additionally restricts candidates to its configured nearby grids.
     double nearest_max_range = 5.0;
     /// Plane-fit residual threshold for point-map backends.
     double plane_fit_threshold = 0.1;

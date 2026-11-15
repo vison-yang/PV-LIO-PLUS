@@ -81,3 +81,15 @@ add_executable(pv_lio_plus_node
 add_dependencies(pv_lio_plus_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(pv_lio_plus_node ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES})
 target_include_directories(pv_lio_plus_node PRIVATE ${PYTHON_INCLUDE_DIRS})
+
+if(CATKIN_ENABLE_TESTING)
+  catkin_add_gtest(pv_lio_plus_observation_tests tests/observation_tests.cpp)
+  catkin_add_gtest(pv_lio_plus_map_contract_tests tests/map_contract_tests.cpp)
+  if(TARGET pv_lio_plus_map_contract_tests)
+    # Native map headers define non-inline functions; the test includes the
+    # manager implementation in one translation unit, just as mapping.cpp does.
+    target_include_directories(pv_lio_plus_map_contract_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    add_dependencies(pv_lio_plus_map_contract_tests ${catkin_EXPORTED_TARGETS})
+    target_link_libraries(pv_lio_plus_map_contract_tests ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+  endif()
+endif()

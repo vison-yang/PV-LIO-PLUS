@@ -81,6 +81,7 @@
 
 #include "imu_processing.hpp"
 #include "map_manager/map_manager.h"
+#include "map_manager/point_plane_jacobian.h"
 #include "preprocess.h"
 #include "utils.hpp"
 // The native PV map headers define non-inline functions.  Keep the manager
@@ -394,21 +395,11 @@ void Mapping::ObservationModelVoxelMapPlus(state_ikfom& s, esekfom::dyn_share_da
         voxel_map_plus_ns::ptpl& ptpl_i = ptpl_list[i];  // note: modified
 
         //* 点坐标及其反对称矩阵、法向量
-        V3D point_this_be(ptpl_i.point);
-        V3D point_this = s.offset_R_L_I * point_this_be + s.offset_T_L_I;
-        M3D point_crossmat;
-        point_crossmat << SKEW_SYM_MATRX(point_this);
-
-        V3D norm_vec(ptpl_i.omega / ptpl_i.omega_norm);
-
-        //! 计算 Measuremnt Jacobian matrix H，即 h_x
-        /*** calculate the Measuremnt Jacobian matrix H ***/
-        V3D A(point_crossmat * s.rot.conjugate() * norm_vec);  // 与 voxelmap_plus 一致
-        {
-            // 不估计外参，不需要求后六位的导数
-            ekfom_data.h_x.block<1, 12>(i, 0) << norm_vec.x(), norm_vec.y(), norm_vec.z(), VEC_FROM_ARRAY(A), 0.0, 0.0,
-                0.0, 0.0, 0.0, 0.0;
-        }
+        const V3D norm_vec(ptpl_i.omega / ptpl_i.omega_norm);
+        // ptpl_i.point is in the LiDAR frame. IKFoM applies right rotation
+        // perturbations to both s.rot and s.offset_R_L_I.
+        ekfom_data.h_x.block<1, 12>(i, 0) = VoxelMapPlusPointPlaneJacobian(
+            ptpl_i.point, norm_vec, s.rot, s.offset_R_L_I, s.offset_T_L_I, config_.extrinsic_est_en_);
 
         //! 计算 estimate measurement，其几何意义是 distance to the closest surface/corner
         //! NOTE 赋值给 ekfom_data.h(i) 前需先强制转换为 float，否则误差会随着每次转角逐渐累积，导致最终漂移

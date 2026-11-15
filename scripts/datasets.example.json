@@ -4,7 +4,8 @@
     "voxelmap_plus",
     "ikdtree",
     "ivox",
-    "c3p_voxelmap"
+    "c3p_voxelmap",
+    "octvox"
   ],
   "datasets": [
     {

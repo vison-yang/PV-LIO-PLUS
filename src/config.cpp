@@ -68,6 +68,12 @@ bool Config::Load(ros::NodeHandle& nh)
     }
     nh.param<int>("mapping/nearest_point_count", map_manager_config_->nearest_point_count, NUM_MATCH_POINTS);
     nh.param<double>("mapping/nearest_max_range", map_manager_config_->nearest_max_range, 5.0);
+    if ((map_manager_config_->type == MapType::IKDTree || map_manager_config_->type == MapType::IVox) &&
+        !ValidNearestMaxRange(map_manager_config_->nearest_max_range))
+    {
+        ROS_FATAL("mapping/nearest_max_range must be positive and finite in metres, with a finite nonzero square");
+        return false;
+    }
     nh.param<double>("mapping/plane_fit_threshold", map_manager_config_->plane_fit_threshold, 0.1);
     nh.param<double>("mapping/point_map_downsample_size", map_manager_config_->point_map_downsample_size,
                      filter_size_surf_min_);
