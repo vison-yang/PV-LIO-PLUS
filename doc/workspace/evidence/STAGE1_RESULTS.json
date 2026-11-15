@@ -1,0 +1,136 @@
+{
+  "checked_on": "2026-11-15",
+  "stage": "1 - shared contract fixes and regression foundation",
+  "code_commit": "9fa3111654edb7479c0fa973ac69296f754c8e54",
+  "binary_sha256": "55f03ee5970125c124f00cabcd1a8a341c02969d67def35520756f95288b5fb7",
+  "node_build_exit_code": 0,
+  "node_ldd_missing_or_unresolved": 0,
+  "synthetic_tests": {
+    "ctest_passed": 2,
+    "ctest_total": 2,
+    "gtest_cases_passed": 11,
+    "gtest_failures": 0,
+    "targets": [
+      "pv_lio_plus_observation_tests",
+      "pv_lio_plus_map_contract_tests"
+    ]
+  },
+  "dataset": {
+    "file_name": "outdoor_Mainbuilding_10hz_2020-12-24-16-38-00.bag",
+    "bytes": 656040517,
+    "sha256": "e2a96b36a494360d61d1f066b6ac0a385aca346e614cd54b7fc5706a8e3d62e4"
+  },
+  "short_replay": {
+    "record_window_sec": 30,
+    "recorded_lidar_messages": 301,
+    "recorded_imu_messages": 6088,
+    "processable_lidar_messages": 300,
+    "initialization_scans_without_output": 12,
+    "expected_output_rows": 288,
+    "effective_scan_downsample_size_m": 0.1,
+    "per_frame_visualization": false,
+    "timing_csv": true,
+    "final_pcd_save": true,
+    "playback_rate": 1.0,
+    "cases": [
+      {
+        "backend": "voxelmap",
+        "success": true,
+        "complete_input_window": true,
+        "lidar_received": 301,
+        "imu_received": 6088,
+        "input_header_sequence_verified": true,
+        "output_rows": 288,
+        "first_output_stamp": 598.799257705,
+        "last_output_stamp": 627.499321885,
+        "pcd_points": 6077658,
+        "rosbag_exit_code": 0,
+        "finite_trajectory": true
+      },
+      {
+        "backend": "voxelmap_plus",
+        "success": true,
+        "complete_input_window": true,
+        "lidar_received": 301,
+        "imu_received": 6088,
+        "input_header_sequence_verified": true,
+        "output_rows": 288,
+        "first_output_stamp": 598.799257705,
+        "last_output_stamp": 627.499321885,
+        "pcd_points": 6077658,
+        "rosbag_exit_code": 0,
+        "finite_trajectory": true
+      },
+      {
+        "backend": "ikdtree",
+        "success": true,
+        "complete_input_window": true,
+        "lidar_received": 301,
+        "imu_received": 6088,
+        "input_header_sequence_verified": true,
+        "output_rows": 288,
+        "first_output_stamp": 598.799257705,
+        "last_output_stamp": 627.499321885,
+        "pcd_points": 6077658,
+        "rosbag_exit_code": 0,
+        "finite_trajectory": true
+      },
+      {
+        "backend": "ivox",
+        "success": true,
+        "complete_input_window": true,
+        "lidar_received": 301,
+        "imu_received": 6088,
+        "input_header_sequence_verified": true,
+        "output_rows": 288,
+        "first_output_stamp": 598.799257705,
+        "last_output_stamp": 627.499321885,
+        "pcd_points": 6077658,
+        "rosbag_exit_code": 0,
+        "finite_trajectory": true
+      },
+      {
+        "backend": "c3p_voxelmap",
+        "success": true,
+        "complete_input_window": true,
+        "lidar_received": 301,
+        "imu_received": 6088,
+        "input_header_sequence_verified": true,
+        "output_rows": 288,
+        "first_output_stamp": 598.799257705,
+        "last_output_stamp": 627.499321885,
+        "pcd_points": 6077658,
+        "rosbag_exit_code": 0,
+        "finite_trajectory": true
+      },
+      {
+        "backend": "octvox",
+        "success": true,
+        "complete_input_window": true,
+        "lidar_received": 301,
+        "imu_received": 6088,
+        "input_header_sequence_verified": true,
+        "output_rows": 288,
+        "first_output_stamp": 598.799257705,
+        "last_output_stamp": 627.499321885,
+        "pcd_points": 6077658,
+        "rosbag_exit_code": 0,
+        "finite_trajectory": true
+      }
+    ],
+    "configuration_correction": "The first batch directory included coarse in its name and an unused filter_size_surf overlay of 0.5; Config::Load actually read mapping/down_sample_size=0.1. Generated config and parameter dump were audited. Input/output coverage results remain valid."
+  },
+  "full_sequence_replay": {
+    "input_duration_sec": 141.29459,
+    "effective_scan_downsample_size_m": 0.5,
+    "status": "running; not yet accepted"
+  },
+  "limitations": [
+    "No independent ground truth; no ATE/RPE or accuracy improvement claim.",
+    "Build activity may overlap regression runs; timing CSVs are diagnostic, not a controlled performance ranking.",
+    "Legacy harness EOF/SIGINT smoke produced partial input coverage; those artifact-only results are excluded from complete-input claims."
+  ],
+  "local_evidence_root": "output/integration-20261115",
+  "raw_short_batch": "output/integration-20261115/stage1-complete-30s-coarse",
+  "independent_input_and_completion_oracle": "Exact per-topic header-sequence SHA-256; odometry reaches the final IMU-supported scan; saved trajectory row count, first/last stamps and monotonicity verified."
+}

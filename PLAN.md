@@ -32,6 +32,8 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 - 同一份报告记录 BIEVR-LIO、Surfel-LIO、i-Octree、KISS-ICP 独立目标构建通过；LIO-GVM 因作者发布缺少定制头文件而以退出码 1 阻塞。KISS 的记录只覆盖 C++ core/metrics/pipeline 静态库，不含 ROS2 包装器。
 - 这份构建报告**没有运行 rosbag 回放**，没有评估轨迹或地图精度。旧计划中“六后端最近均完成 30 秒回放”缺少此处可核对的运行清单，应待找到对应数据、命令、提交与产物记录后再恢复为可复现结论；不能把旧 PCD/轨迹文件作为精度证据。
 - 尚无此计划记录的六后端长序列复现结果。文档中的测试要求是后续工作，不表示已完成。
+- 2026-11-15 已修复 VoxelMap++ 外参 Jacobian 开关和点图查询半径契约，并完成两个合成 gtest 目标的实际构建与运行：CTest 2/2、共 11 个 GTest 条目。测试覆盖六后端生命周期、4.99/5/5.01 m 边界、两种 iVox 查询实现/有限格邻域、非法半径在清图前拒绝、OctVox 窗口拒绝，以及 12 列右扰动 Jacobian 在三组非单位姿态下的中心差分。精确覆盖与遗漏见[集成状态](doc/INTEGRATION_STATUS.md)。
+- 阶段1代码 `9fa3111` 的真实节点已构建并通过动态链接检查；六后端在同一30秒 Avia 片段均收到301个LiDAR/6088个IMU消息，精确输入序列核对通过，并各保存预期288帧有限轨迹与非空PCD。完整性检查包含启动连接、IMU支撑、初始化跳过、首末时间戳及单调/计数核验；证据见[阶段1结果](doc/workspace/evidence/STAGE1_RESULTS.json)。141秒完整序列的0.5米档案仍在运行；当前没有精度提升或受控性能排名结论。
 
 ## 3. 六个已集成后端
 
@@ -40,13 +42,13 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 | 后端 | 集成地图与观测 | 作者工程路径 / 作者版本 | 当前证据 |
 | --- | --- | --- | --- |
 | VoxelMap | `voxelmap`；概率体素平面及其点面不确定性观测 | `src/VoxelMap`，`c184a6c2` | selector/观测已集成；六组符号包含于 11-14 编译记录。 |
-| VoxelMap++ | `voxelmap_plus`；平面合并及其原生平面参数观测 | `src/VoxelMapPlus_Public`，`fe73d5c2` | 同上。本地兼容性提交为 `d0cf184d`；当前外参 Jacobian 后 6 列恒为零，跨后端回放应固定外参或单列审查。 |
+| VoxelMap++ | `voxelmap_plus`；平面合并及其原生平面参数观测 | `src/VoxelMapPlus_Public`，`fe73d5c2` | 同上。本地兼容性提交为 `d0cf184d`；`extrinsic_est_en_` 启用时现计算右扰动外参旋转/平移 Jacobian，关闭时外参列为零。`h=-float(dist)`、原生权重和面片门限未改。 |
 | FAST-LIO2 / ikd-tree | `ikdtree`；增量点树及 PV 点面拟合观测 | `src/FAST_LIO`，`d30656a5`；ikd-Tree 子模块 `e2e3f4e9` | 同上。 |
 | Faster-LIO / iVox | `ivox`；稀疏体素点图及 PV 点面拟合观测 | `src/faster_lio`，`ea0e0910` | 同上；本地兼容性提交 `1273553f`。 |
 | C3P-VoxelMap | `c3p_voxelmap`；概率体素平面及原生不确定性观测 | `src/c3p_voxelmap`，`ab4a8020` | 同上；本地兼容性提交 `69f84b88`。 |
 | Super-LIO / OctVox | `octvox`；八分体代表点、TopK 与固定信息量平面观测 | `src/Super-LIO`，`60b57aaa`（`ros1`） | 同上；本地兼容性提交 `9bd033b3`。 |
 
-共用滤波主循环不等于共用观测。VoxelMap++、点图适配层、C3P 和 OctVox 的残差、Jacobian、信息量及门限按实际路径分别记录。距离单位也须对齐：ikd-tree 按平方距离与 `nearest_max_range` 比较，iVox 按距离范围平方后比较；相同 YAML 数值不代表相同物理半径。细节见[地图与观测范围审查](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)。
+共用滤波主循环不等于共用观测。VoxelMap++、点图适配层、C3P 和 OctVox 的残差、Jacobian、信息量及门限按实际路径分别记录。`nearest_max_range` 对 ikd-tree/iVox 统一为米：ikd-tree 比较第五近邻平方距离与 `r²` 并接受边界，iVox 使用严格 `<r` 且仍受配置附近格域限制。旧 ikd-tree 设置 `v` 原来代表平方距离；要复现旧阈值，新半径应设 `sqrt(v)` 米。现有 iVox 数值不变。细节见[地图与观测范围审查](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)。
 
 ## 4. 已收集、结构资格通过的七项待集成作者源码
 
@@ -88,9 +90,11 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 
 ### 阶段 1：六个现有后端的契约与复现基线
 
+**状态：部分完成。** VoxelMap++ 外参 Jacobian 与点图物理半径契约已修复；两个合成 gtest 目标已构建并通过 CTest 2/2（11 个 GTest 条目）；`scripts/datasets.example.json` 已覆盖六个 selector。真实节点编译/链接检查及六后端30秒完整输入回归已通过（各288帧）；141秒完整序列仍在验收，故本阶段未完成。具体配置、输入计数及验证边界见[集成状态](doc/INTEGRATION_STATUS.md)和[结果记录](doc/workspace/evidence/STAGE1_RESULTS.json)。
+
 - 逐后端记录坐标系、长度/距离/平方距离单位、协方差语义、地图 `size` 口径、当前帧自匹配、插入时机、搜索域、门限、窗口/淘汰和观测模型。
-- 核实 VoxelMap++ 外参 Jacobian 的已知差异；统一物理查询半径并按底层接口正确转换距离或平方距离。门限、点集、采样、地图预算都记录在运行配置。
-- 补齐覆盖六个 selector 的合成几何测试后，再运行短 bag；`scripts/run_backend_tests.py` 能按清单构造运行与归档，但每个结论仍须引用实际 run manifest、输入/配置身份和产物检查。当前已有的 21 项 CTest 属于 GenZ-LIO，不是六后端合成测试。`scripts/datasets.example.json` 当前仅列五个后端，缺 `octvox`，须补齐模板覆盖后才可称六项均由该模板驱动。
+- 点图参数以米输入，并按 ikd-tree `r²`/含边界与 iVox 严格 `<r`/附近格域的原生约定查询；拒绝非正、非有限或平方后非有限/零的半径，配置检查必须先于已初始化地图的清理。
+- 已有合成测试包含六后端生命周期、半径边界和外参 Jacobian 数值核验；仍需按统一输入身份运行短 bag。`scripts/run_backend_tests.py` 可按清单构造运行与归档，但每个结果须引用实际 run manifest、输入/配置身份和产物检查。
 - 建立至少一个可复现短基线与一个长序列基线；完成条件是六个 selector 都有逐次构建、运行/退出、轨迹与地图质量检查记录。旧的 30 秒说法只有找到可核验记录后才可作为历史证据。
 
 ### 阶段 2：R-VoxelMap 与 Surfel-LIO / hVox
@@ -129,7 +133,7 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 
 ## 8. 共同契约与验证要求
 
-每个后端须明确回答：地图由何种点/统计表示、查询返回什么、输出坐标系和单位是什么、协方差描述哪个变量、搜索距离是米还是平方米、当前帧如何避免自匹配、地图何时更新、`size` 统计什么、窗口/淘汰规则是什么、失败时返回什么。
+每个后端的当前存储/查询/观测、`size`、窗口和未匹配返回口径见[集成状态](doc/INTEGRATION_STATUS.md)。逐帧契约仍须明确：协方差描述哪个变量、当前帧如何避免自匹配、地图何时更新、门限是什么以及失败时如何处理；native `non_match` 并非统一的逐点失败列表。
 
 | 文件 | 职责 |
 | --- | --- |

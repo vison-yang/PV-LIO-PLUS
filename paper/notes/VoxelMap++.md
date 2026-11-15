@@ -36,7 +36,7 @@ I–IV）。城市实验检查长路线精度，困难场景用于检验合并�
 ## 2026-11-15 对 PV-LIO-PLUS 的范围说明
 
 - VoxelMap++ 的平面合并地图和原生平面参数观测已集成，主路线按地图与配套观测组合解释。
-- 当前 `ObservationModelVoxelMapPlus` 的协方差传播和外参 Jacobian 与其它分支不同；外参 Jacobian 后 6 列恒为零。需记录该限制，并在未修正或定量评估前固定外参。
+- 当前 `ObservationModelVoxelMapPlus` 保留原生协方差传播和残差形式。外参 Jacobian 现遵循 `extrinsic_est_en_`：启用时包含右扰动外参旋转/平移导数，关闭时后 6 列为零。`h=-float(dist)`、原生权重和面片门限未改；数值核验范围见[集成状态](../../doc/INTEGRATION_STATUS.md)。
 - 统一点面/权重是单独可选的严格消融；不得把当前 selector 切换称为其余观测完全相同。详见[范围审查](MAP_BACKEND_SCOPE_REVIEW.md)。
 
 ## 局限

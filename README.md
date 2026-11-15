@@ -117,20 +117,39 @@ or map-guided sampling need explicit experiment profiles and ablations.
 
 The current six paths all use point-to-plane geometry, with different
 parameterizations, uncertainty models, and gates; OctVox uses fixed information.
-VoxelMap++ currently fixes the extrinsic Jacobian columns to zero while other
-paths honor the extrinsic-estimation switch, so use fixed extrinsics for their
-direct comparison until this difference is resolved. Details are in the
+VoxelMap++ now follows `extrinsic_est_en`: when enabled, its analytic Jacobian
+includes the right-perturbation extrinsic rotation and translation columns;
+when disabled, those columns are zero. Its `h = -float(dist)`, native weights,
+and plane gates are unchanged. Details and test limits are in the
+[integration status](doc/INTEGRATION_STATUS.md) and
 [review](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md).
 
-Query-distance units also need normalization: ikd-tree compares a squared
-neighbor distance with `nearest_max_range`, while iVox treats that parameter
-as a distance and squares it internally. Equal YAML values therefore do not
-give equal physical search radii.
+`nearest_max_range` is now specified in metres for ikd-tree and iVox. ikd-tree
+compares the fifth-neighbor squared distance with `r²` and accepts the boundary;
+iVox passes `r` to its native query, which uses a strict `< r` test and searches
+only the configured nearby voxel domain. Equal values therefore share a
+physical unit but do not imply identical boundary or search-domain behavior.
+To reproduce an old ikd-tree threshold configured as squared-distance value
+`v`, set the new radius to `sqrt(v)` metres; existing iVox values are unchanged.
+
+The six-backend example dataset manifest now includes all six selectors. Two
+synthetic gtest targets have been built and passed (CTest 2/2, 11 GTest cases);
+this covers lifecycle, the stated radius boundaries and analytic Jacobian
+finite differences, but is not a bag-replay result. See the
+[integration status](doc/INTEGRATION_STATUS.md) for coverage gaps and current
+build/replay evidence.
 
 A stricter index/map-representation ablation is an optional experiment: it
 must additionally align residuals, Jacobians, weights, gates, retained points,
 and map budgets. Complete upstream systems are independent end-to-end
 baselines. Report each experiment according to what it varies.
+
+The production node also built and passed dynamic-link verification. All six
+backends completed the same 30-second input window, each saving the expected
+288 finite poses and a nonempty PCD, with exact input sequences and output
+coverage checked. The complete 141-second sequence is still under validation.
+See the [stage record](doc/INTEGRATION_STATUS.md) for profiles and limitations;
+these are regression results, not accuracy or controlled performance rankings.
 
 ## Architecture
 

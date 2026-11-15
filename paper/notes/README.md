@@ -9,13 +9,15 @@
 | 方法 | 独立笔记 / 本地 PDF | 当前框架路径 |
 | --- | --- | --- |
 | VoxelMap | [笔记](VoxelMap.md) / [PDF](../VoxelMap.pdf) | 概率体素平面及其点面不确定性观测。 |
-| VoxelMap++ | [笔记](VoxelMap++.md) / [PDF](../VoxelMap++.pdf) | 概率平面合并及原生观测协方差传播；外参 Jacobian 有记录的差异。 |
+| VoxelMap++ | [笔记](VoxelMap++.md) / [PDF](../VoxelMap++.pdf) | 概率平面合并及原生观测协方差传播；外参 Jacobian 现按估计开关计算。 |
 | FAST-LIO2 / ikd-Tree | [FAST-LIO2](FAST-LIO2.md)、[ikd-Tree](ikd-Tree.md) / [PDF](../FAST-LIO2.pdf)、[PDF](../ikd-Tree.pdf) | 增量点图与本地拟平面观测适配。 |
 | Faster-LIO / iVox | [笔记](Faster-LIO.md) / [PDF](../Faster-LIO.pdf) | 稀疏增量点图与本地拟平面观测适配。 |
 | C3P-VoxelMap | [笔记](C3P-VoxelMap.md) / [PDF](../C3P-VoxelMap.pdf) | 概率体素平面及其原生不确定性观测。 |
 | Super-LIO / OctVox | [笔记](Super-LIO.md) / [PDF](../Super-LIO.pdf) | 八分体代表点图及 TopK 平面观测，使用固定信息量。 |
 
 六条分支共用状态估计循环，但其观测模型并不相同；本表不表示严格地图消融或已完成数据集精度复现。
+
+2026-11-15 已修正 VoxelMap++ 的外参 Jacobian 开关和点图距离单位；两个合成 gtest 目标 CTest 2/2 通过（11 个 GTest 条目）。这仍不表示真实节点构建或 rosbag 精度复现。存储/查询/观测、地图 `size`、窗口和未匹配返回语义以及测试覆盖边界见[集成状态](../../doc/INTEGRATION_STATUS.md)。
 
 ## 已收集、结构资格通过的七项待集成源码
 

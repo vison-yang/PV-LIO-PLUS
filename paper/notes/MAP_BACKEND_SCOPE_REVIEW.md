@@ -1,6 +1,6 @@
 # 地图数据结构资格与对应残差集成范围审核
 
-核验日期：**2026-11-15**。资格判定依据固定版本的本地论文及其分页全文、作者贡献陈述和本地作者源码；关键论文另经官方一手来源对照。未更新远程仓库或源码基线，本次没有重新编译或回放。下文的远程版本差异观察单独保留为 2026-11-14 历史证据。
+核验日期：**2026-11-15**。资格判定依据固定版本的本地论文及其分页全文、作者贡献陈述和本地作者源码；关键论文另经官方一手来源对照。未更新远程仓库或源码基线。阶段1两项合成测试及真实节点构建/链接检查已通过，六后端30秒完整输入回归各输出288帧，独立运行证据见[集成状态](../../doc/INTEGRATION_STATUS.md)；141秒序列仍在验收，未声称精度或受控性能结论。下文的远程版本差异观察单独保留为 2026-11-14 历史证据。
 
 ## 项目定位与硬准入条件
 
@@ -45,7 +45,7 @@
 | [Environment-Adaptive Solid-State LIO](../Environment-Adaptive-Solid-State-LIO.pdf) | **结构创新证据不足，移出当前候选** | p2 贡献 2 是退化感知更新策略；p4 §III-C2/式 (16)–(17)给出帧级门控及置信度 `q_v` 的 EMA，但未清楚规定它如何改变空间组织、层级融合或几何统计结构。持久置信度/更新门控本身不充分，作者源码也未核验。 |
 | [FAST-LIO](../FAST-LIO.pdf) | **框架来源，不单列地图候选** | p1 贡献为紧耦合滤波、去畸变与 Kalman gain 计算；不能把 FAST-LIO2/ikd-Tree 的结构创新回填给 FAST-LIO 原论文。 |
 
-PV-LIO 未收录独立论文，其项目说明证明它在 FAST-LIO2 框架采用 VoxelMap，不能据此另认定一项新地图结构。PV-LIO/FAST-LIO 可以作为框架来源或独立系统比较基线，须与合格地图清单分开。当前六个 selector 均通过资格筛选，**本轮不删除或新增 selector 代码**；KISS/GenZ 等退出候选也不等于删除已收集源码、论文或历史构建结果。
+PV-LIO 未收录独立论文，其项目说明证明它在 FAST-LIO2 框架采用 VoxelMap，不能据此另认定一项新地图结构。PV-LIO/FAST-LIO 可以作为框架来源或独立系统比较基线，须与合格地图清单分开。当前六个 selector 均通过资格筛选，**结构资格审核本身不增删 selector，后续代码集成按阶段单独验证**；KISS/GenZ 等退出候选也不等于删除已收集源码、论文或历史构建结果。
 
 ## 现有六后端：公共循环相同，观测并非完全相同
 
@@ -54,15 +54,19 @@ PV-LIO 未收录独立论文，其项目说明证明它在 FAST-LIO2 框架采�
 | 后端 | 地图与观测证据 | 当前适配行为与限制 |
 | --- | --- | --- |
 | VoxelMap | 自适应体素八叉树保存概率平面；[build_single_residual](../../include/map_manager/native/voxelmap/voxel_map_util.hpp#L848)使用平面范围、概率门限与 6 维平面协方差。[ObservationModelVoxelMap](../../src/mapping.cpp#L246)：`w=1/(JΣplaneJᵀ+nᵀΣpoint n)`。 | 信息分母没有点图路径的 `1e-9` 下限。 |
-| VoxelMap++ | UnionFind 平面地图及合并，按主方向使用 3 参数平面；[BuildSingleResidual](../../include/map_manager/native/voxelmap_plus/voxelmapplus_util.hpp#L719)与 [ObservationModelVoxelMapPlus](../../src/mapping.cpp#L346)传播 `J_abd` 协方差，残差为 `-float(dist)`。 | **当前外参 Jacobian 后 6 列仍恒零**，见 [mapping.cpp](../../src/mapping.cpp#L394)；其余观测分支遵循外参估计开关。 |
-| ikd-tree | 增量 KD-tree 查询点邻域；[fit_point_plane](../../src/map_manager/map_manager.cpp#L388)拟平面，[ObservationModelPointBackend](../../src/mapping.cpp#L449)构造观测。 | `plane_cov=0`，仅保留点协方差，总方差下限为 `1e-9`；是本项目观测适配器，不等同完整 FAST-LIO2 观测。 |
-| iVox | 稀疏增量体素与配置邻域；[search_ivox](../../src/map_manager/map_manager.cpp#L1218)复用上述拟平面及点协方差权重。 | ikd-tree score 与 iVox 的残差门限在实数运算下等价为 `range>81*r²`，搜索域、保留点与容量策略仍不同。 |
+| VoxelMap++ | UnionFind 平面地图及合并，按主方向使用 3 参数平面；[BuildSingleResidual](../../include/map_manager/native/voxelmap_plus/voxelmapplus_util.hpp#L719)与 [ObservationModelVoxelMapPlus](../../src/mapping.cpp)传播 `J_abd` 协方差，`h=-float(dist)`。 | 外参 Jacobian 现由 [`VoxelMapPlusPointPlaneJacobian`](../../include/map_manager/point_plane_jacobian.h)遵循 `extrinsic_est_en_`：启用时包含右扰动外参旋转/平移列，关闭时后 6 列为零。原生权重和面片门限未改；数值测试范围见[集成状态](../../doc/INTEGRATION_STATUS.md)。 |
+| ikd-tree | 增量 KD-tree 查询点邻域；[fit_point_plane](../../src/map_manager/map_manager.cpp#L388)拟平面，[ObservationModelPointBackend](../../src/mapping.cpp#L449)构造观测。 | `plane_cov=0`，仅保留点协方差，总方差下限为 `1e-9`；是本项目观测适配器，不等同完整 FAST-LIO2 观测。半径 `r` 以米输入，比较第五近邻距离平方 `<=r²`。 |
+| iVox | 稀疏增量体素与配置邻域；[`search_ivox`](../../src/map_manager/map_manager.cpp)复用上述拟平面及点协方差权重。 | `nearest_max_range=r` 以米传入，原生查询使用严格 `<r`，且只搜索选定的附近格域；不等同全图半径 kNN。 |
 | C3P-VoxelMap | 紧凑概率体素及可选合并；[search_c3p](../../src/map_manager/map_manager.cpp#L1249)调用原生残差生成，[ObservationModelC3P](../../src/mapping.cpp#L619)传播 6 维平面与点协方差。 | 使用独立 C3P 观测，没有点图路径的方差下限。 |
 | OctVox | 八分体代表点聚合、容量/LRU、有序 TopK；[search_octvox](../../src/map_manager/map_manager.cpp#L1281)执行 4/5 点拟平面、0.1 m 邻点平面与距离门限；[ObservationModelOctVox](../../src/mapping.cpp#L537)使用 `w=1000`。 | 固定信息量；LRU 不等于几何窗口，启用公共局部窗口会被配置检查拒绝。 |
 
 [calc_lidar_cov_for_backend](../../src/mapping.cpp#L227)还为 VoxelMap++ 选择单独的传感器协方差实现。这些差异属于当前地图与观测组合，应如实记录；现有结果不能直接称为严格地图表示消融。
 
-**距离单位：** [search_ikd_tree](../../src/map_manager/map_manager.cpp#L1192)将第 5 近邻平方距离与 `nearest_max_range` 比较；iVox 的 [KNNPointByCondition](../../include/map_manager/native/ivox/ivox3d_node.hpp#L158)与 `max_range²` 比较。同一 YAML 数值不意味着相同物理查询半径；残差门限等价不能推广为查询范围相同。
+**距离单位与迁移：** [`search_ikd_tree`](../../src/map_manager/map_manager.cpp)比较第 5 近邻平方距离与 `r²`，包含边界；iVox 的[原生查询](../../include/map_manager/native/ivox/ivox3d_node.hpp)采用严格 `<r`，并受 `ivox_nearby_type` 限制。`nearest_max_range` 现对两者统一以米配置。旧 ikd-tree 配置值 `v` 曾直接作为平方距离阈值，要复现旧门限应设置新半径 `r=sqrt(v)` 米；已有 iVox 数值不变。半径必须为正有限值，平方后也须有限且非零；MapManager 在清除既有地图前执行校验。ikd-tree 和 iVox 的点面残差门限都等价于严格条件 `range > 81 t²`（`t=plane_fit_threshold`），但这与查询半径无关，查询域也不相同。
+
+**未匹配返回：** `MapManager::search` 每次清空 `matches` 与 `non_match`。ikd-tree、iVox 和 OctVox 会把逐查询失败点写入 `non_match`；VoxelMap、VoxelMap++ 和 C3P 的原生 OMP residual builder 不保证逐点填充该列表。共同 API 只可依赖“无有效匹配时 `matches` 为空”，不可假定 `non_match` 与查询点逐项对应。
+
+**合成测试现状：** 两个 gtest 目标已实际构建，CTest 2/2 通过，共 11 个 GTest 条目。六后端各有空图/平面生命周期测试；半径测试覆盖 4.99/5/5.01 m、两种 iVox 实现、有限附近格域、非法值及 OctVox 窗口拒绝。VoxelMap++ Jacobian helper 对 12 列、三组非单位姿态做中心差分并检查外参开关。生产 `h=-float(dist)`、原生权重及门限仅作静态核对，未作自动集成测试；亚米级半径、负世界坐标和仅 1–4 个近邻的查询未专项覆盖。真实节点构建/链接及六后端30秒完整输入回归已有独立证据，141秒序列仍在验收；更多契约见[集成状态](../../doc/INTEGRATION_STATUS.md)。
 
 ## 本次所审源码版本（包含已移出候选者）
 
