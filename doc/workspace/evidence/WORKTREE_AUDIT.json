@@ -15,9 +15,10 @@
   "checked_on": "2026-11-15",
   "completed_worktrees_removed": [
     "experiments/pv_lio_plus_stage2",
-    "experiments/pv_lio_plus_hvox"
+    "experiments/pv_lio_plus_hvox",
+    "experiments/pv_lio_plus_i_octree"
   ],
-  "active_worktree_retained": "experiments/pv_lio_plus_i_octree",
+  "active_worktree_retained": null,
   "backup": "output/integration-20261115/worktree-audit/hvox-uncommitted + patch and SHA256 manifest",
   "backed_up_owned_documentation_files": 11,
   "main_equivalence_checked_for_removed_maps": true,
@@ -26,5 +27,9 @@
     "hvox": 241
   },
   "workspace_root_policy": "No repository initialization at workspace root; keep project repositories separate.",
-  "scope": "Git reachable history and tracked-path audit; no history rewrite or paper/media removal performed."
+  "scope": "Git reachable history and tracked-path audit; no history rewrite or paper/media removal performed.",
+  "i_octree_cleanup_after_validation": "feature5c27a79 and main6876a8e core identical;feature9/9 CTest60executions,30/141s replays;mainnode/link,7/7 CTest49cases,30s replay passed;worktree clean before removal",
+  "remaining_git_worktrees": [
+    "src/PV_LIO_PLUS"
+  ]
 }

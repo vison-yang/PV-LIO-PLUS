@@ -204,11 +204,12 @@
       "local_commit": "25903a33dd7a47b1de111a4cc7a756ead3a343ce",
       "branch": "main",
       "build_group": "isolated-upstream",
-      "scope": "candidate dynamic octree index with shared point-to-plane observation adapter",
+      "scope": "integrated structure-preserving dynamic octree adaptation with shared point-to-plane observation; uses actual-point AABBs and guarded binary64 query semantics",
       "local_changes": [],
       "compatibility_patch": "patches/i-Octree.patch",
       "patch_base_commit": "5b640e05dab23230207dd849eb1549b5074d1a0e",
-      "patch_sha256": "465d9e0a3c618e3e157de0ced22d5de425c6ab444c493eabc6d6df2b30662443"
+      "patch_sha256": "465d9e0a3c618e3e157de0ced22d5de425c6ab444c493eabc6d6df2b30662443",
+      "integration": "PV-LIO-PLUS feature 5c27a79 cherry-picked as 6876a8e; feature isolated CTest 9/9 (49 normal cases plus 11 sanitizer repetitions), numeric review and 30/141s replays passed; main node/link, CTest 7/7 (49 cases, ASan off) and 30s complete-input replay passed; doc/workspace/evidence/I_OCTREE_RESULTS.json"
     },
     {
       "name": "kiss-icp",
@@ -289,6 +290,6 @@
   },
   "patches_note": "Patches are full worktree deltas against the pinned author commit, including relevant compatibility edits already present when this task began. They do not replace the source repositories. Apply only to the matching clean author baseline.",
   "scope_reviewed_on": "2026-11-15",
-  "scope_note": "Active integration scope requires a new or improved map data structure among method contributions. Eight map selectors and their corresponding observation profiles are integrated; five source-available qualifying candidates remain. Original source pins and upstream build outcomes retain the 2026-11-14 snapshot; implementation builds, tests and complete-input replay evidence are recorded separately. See PLAN.md and paper/notes/MAP_BACKEND_SCOPE_REVIEW.md.",
+  "scope_note": "Active integration scope requires a new or improved map data structure among method contributions. Nine map selectors and their corresponding observation profiles are integrated; four source-available qualifying candidates remain. Original source pins and upstream build outcomes retain the 2026-11-14 snapshot; implementation builds, tests and complete-input replay evidence are recorded separately. See PLAN.md and paper/notes/MAP_BACKEND_SCOPE_REVIEW.md.",
   "map_structure_eligibility_reviewed_on": "2026-11-15"
 }

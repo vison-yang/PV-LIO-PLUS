@@ -54,9 +54,11 @@
 | hVox 运行验收 | [结果记录](evidence/HVOX_RESULTS.json) | 30秒/141秒完整回放通过；主线构建/链接、5/5 CTest（33用例）及30秒复测通过。 |
 | i-Octree 设计 | `8d5c040` | 单独记录结构接入审计、浮点包围盒反例及实点AABB/隔离距离核方案；尚未作为主线后端验收。 |
 | 诊断累加竞争 | `f6403f0`（feature `1672ee0`） | 三个观测分支的诊断求和移到并行循环后；真实节点编译及3分支30秒完整输入回归通过，见[结果](evidence/DIAGNOSTIC_RACE_RESULTS.json)。 |
+| i-Octree 核心 | `6876a8e`（feature `5c27a79`） | 保留动态八分路由/连续叶段/局部插删，增加实际AABB、double查询与严格距离核；隔离9/9 CTest、60次执行（含sanitizer重复）通过。 |
+| i-Octree 运行验收 | [结果](evidence/I_OCTREE_RESULTS.json) | feature30秒/141秒完整输入回放通过；主线节点/链接、7/7 CTest（49用例）及30秒复测通过。 |
 
-代码和运行记录分别提交；源代码/二进制/配置及输入身份均记录。R-VoxelMap 已成为主线第七个后端。hVox 在独立工作树通过数学审查、6/6 CTest（34用例）及30/141秒完整回放后，以 `c81f12f` 合入主线；主线节点构建/链接及30秒复测通过，主线常规 CTest 5/5（33用例）通过。hVox 是第八个 selector。ASan 泄漏检测未启用且有一次原因未知的挂起后重试通过；这些限制以及无真值/非受控计时的边界详见结果文件。
+代码和运行记录分别提交；源代码/二进制/配置及输入身份均记录。R-VoxelMap 已成为主线第七个后端。hVox 在独立工作树通过数学审查、6/6 CTest（34用例）及30/141秒完整回放后，以 `c81f12f` 合入主线；主线节点构建/链接及30秒复测通过，主线常规 CTest 5/5（33用例）通过。hVox 是第八个 selector，i-Octree 是第九个 selector。ASan 泄漏检测未启用且有一次原因未知的挂起后重试通过；这些限制以及无真值/非受控计时的边界详见结果文件。
 
 ## 工作树与仓库体积审查（2026-11-15）
 
-工作空间根目录保持不建仓。对远端 `d2d17bc` 的41个可达提交逐树核验，均无 `experiments/`、build/devel/output、bag/PCD或编译产物。分阶段验证目录是共享对象库的 linked worktree；R-VoxelMap 与 hVox 的两个已完成检出已移除，11份未提交文档均先以SHA核验备份。当前仅保留正在验收的i-Octree检出。本轮相对 `084af65` 的当前树净增401736字节；已有论文及GIF合计约250MB。原始数据、构建和运行产物保留在仓库外；精确口径和清理记录见[审查结果](evidence/WORKTREE_AUDIT.json)。
+工作空间根目录保持不建仓。对远端 `d2d17bc` 的41个可达提交逐树核验，均无 `experiments/`、build/devel/output、bag/PCD或编译产物。分阶段验证目录是共享对象库的 linked worktree；R-VoxelMap 与 hVox 的两个已完成检出已移除，11份未提交文档均先以SHA核验备份。i-Octree 随后完成验收，其干净工作树也已移除；当前 `git worktree list` 仅列主项目。本轮相对 `084af65` 的当前树净增401736字节；已有论文及GIF合计约250MB。原始数据、构建和运行产物保留在仓库外；精确口径和清理记录见[审查结果](evidence/WORKTREE_AUDIT.json)。

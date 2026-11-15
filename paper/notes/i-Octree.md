@@ -34,9 +34,9 @@ I–VI、Figs.
 
 ## 2026-11-15 对 PV-LIO-PLUS 的范围说明
 
-- 作者数据结构已收集在 `upstream/i-Octree`，独立 C++ 示例编译通过；目前没有 PV selector。
-- 移植须保留动态八叉树点存储结构，并评估插入、kNN/半径查询与盒删除；PV 点面适配只是一种明确观测变体，不能用通用点容器替代论文地图。
-- 核验空树/少于 k 点、返回计数、盒边界、删除后 ID 与生命周期。完整论文系统不由数据结构构建代替。
+- 当前 selector 为 `i_octree`，feature `5c27a79` 已以 `6876a8e` 合入主线。该适配保留动态八叉树、叶端连续点块、增删和树上降采样，并以实点 AABB、binary64 查询/距离及受控浮点模式检查修正数值边界；不能将它描述为未修改上游的性能复现。
+- 适配中的 kNN 按声明的 binary64 度量遍历全树；生产第五近邻门限接受 `d² <= R²`，native radius API 则使用严格 `< r²`。闭合局部窗口通过树上保留点实现，不重建整棵树；`size()`/`point_count()` 报告当前存活点，snapshot 为 XYZ。生产语义、异常保证及限制见[本地源码说明](../../include/map_manager/native/i_octree/SOURCE.md)。
+- Feature 隔离 CTest 9/9（49 个常规用例与 11 个 sanitizer 重复执行，共 60 次执行），独立数值审查、正向 ASan/UBSan、30/141 秒完整输入回归均通过；LeakSanitizer 未启用。主线节点/链接、CTest 7/7（49 个常规用例，ASan 关闭）及 30 秒完整输入回归通过。机器统计与验证限制见[集成状态](../../doc/INTEGRATION_STATUS.md)和[结果记录](../../doc/workspace/evidence/I_OCTREE_RESULTS.json)。这些回归不代表精度或受控性能结论。
 
 ## 局限
 

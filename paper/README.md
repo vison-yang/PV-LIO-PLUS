@@ -6,9 +6,9 @@
 
 表中的源码链接指向作者项目，不表示该算法已接入 PV-LIO-PLUS，也不表示已在本机完成编译或数据集复现。源码已收集、上游构建、框架集成和数据集精度复现是不同状态；本地路径、作者提交和构建证据见[源码清单](../doc/workspace/SOURCE_MANIFEST.json)与[构建报告](../doc/workspace/BUILD_REPORT.md)。未确认官方源码的项目保留论文入口，不以同名项目、相关算法或独立重实现替代；“本地未确认”不表示远程不存在。PDF 的具体版本、页数及 SHA-256 记录在 [catalog.json](catalog.json)。
 
-## 全量资料存档
+## 全量资料索引
 
-下表包含已移出候选的方法及框架来源，不代表当前集成清单；合格地图、论文储备与归档方法分别列在[笔记索引](notes/README.md)。
+下表汇总 22 篇论文对应的方法、固定版本和作者源码入口，包含已集成地图、当前候选、论文储备、归档方法及框架来源；它是资料索引，不单独代表当前实施状态。合格地图、论文储备与归档方法分别列在[笔记索引](notes/README.md)。
 
 | 方法 | 本地论文 / 版本 | 作者论文或出版社入口 | 官方源码 |
 | --- | --- | --- | --- |
@@ -32,7 +32,7 @@
 | SA-LIVO | [PDF](SA-LIVO.pdf)，arXiv v3，17 页 | [2606.25699v3](https://arxiv.org/abs/2606.25699v3) | 本地收集记录未确认独立作者地图源码；作为相关视觉/估计研究归档 |
 | SV-LIO | [PDF](SV-LIO.pdf)，Electronics 2026 正式版，22 页 | [10.3390/electronics15081744](https://doi.org/10.3390/electronics15081744) | 本地收集记录未确认作者官方源码 |
 | Environment-Adaptive Solid-State LIO | [PDF](Environment-Adaptive-Solid-State-LIO.pdf)，arXiv v2，6 页 | [2604.15864v2](https://arxiv.org/abs/2604.15864v2) | 本地收集记录未确认作者源码；作为地图维护研究归档，尚无空间/层级/几何结构改进证据 |
-| i-Octree | [PDF](i-Octree.pdf)，arXiv v2，7 页 | [2309.08315v2](https://arxiv.org/abs/2309.08315v2) | [i-octree](https://github.com/zhujun3753/i-octree)，仅抽动态八叉树；独立 CMake 示例 |
+| i-Octree | [PDF](i-Octree.pdf)，arXiv v2，7 页 | [2309.08315v2](https://arxiv.org/abs/2309.08315v2) | [i-octree](https://github.com/zhujun3753/i-octree)；已按结构保真方式适配到 `i_octree`，不是未修改上游性能复现 |
 | KISS-ICP / VoxelHashMap | [PDF](KISS-ICP.pdf)，RA-L 2023 作者预印本，8 页 | [10.1109/LRA.2023.3236571](https://doi.org/10.1109/LRA.2023.3236571) | [kiss-icp](https://github.com/PRBonn/kiss-icp)；沿用既有 voxel hash，源码/构建留作归档，不列当前地图候选 |
 | iG-LIO / incremental VoxelMap | [PDF](iG-LIO.pdf)，RA-L 2024 作者 early access，8 页 | [10.1109/LRA.2024.3349915](https://doi.org/10.1109/LRA.2024.3349915) | [ig_lio](https://github.com/zijiechenrobotics/ig_lio)，增量点图与 GICP 观测分阶段评估；不移植完整状态优化循环 |
 
@@ -44,8 +44,8 @@
 
 ## 本项目的集成与复现状态
 
-- 当前八个 selector 均集成地图及对应观测。R-VoxelMap 已进入主线 `b820b08` 并通过主线节点、测试和 30/141 秒回放验证。hVox feature `997c00a` 已以 `c81f12f` 合入主线；功能工作树构建、CTest 6/6（34 个 GTest 条目）、数学核验及 30/141 秒完整输入回放通过，主线构建和复测仍待完成。hVox 141 秒记录有 1402 行、每帧有效约束且耗时有限非负。见[R 结果记录](../doc/workspace/evidence/R_VOXELMAP_RESULTS.json)和[hVox 结果记录](../doc/workspace/evidence/HVOX_RESULTS.json)。这些回归不构成独立真值精度或受控性能结论。
-- 另有五项满足结构准入条件的本地作者源码待评估，其中 LIO-GVM 因作者发布缺少定制头文件而阻塞；两项结构合格论文（FR-LIO、SV-LIO）本地收集记录尚未确认作者源码。KISS-ICP、GenZ-LIO、CT-VoxelMap、SA-LIVO 和 Environment-Adaptive 的论文、源码或历史构建证据保留归档，不列当前候选。逐项状态见[集成计划](../PLAN.md)。
+- 当前九个 selector 均集成地图及对应观测。i-Octree feature `5c27a79` 已以 `6876a8e` 合入主线；feature 隔离测试、数值审查和 30/141 秒回放通过，主线构建/链接、CTest 7/7（49 个 GTest 条目，ASan 关闭）及 30 秒完整输入回放通过。详见[i-Octree 结果记录](../doc/workspace/evidence/I_OCTREE_RESULTS.json)。R-VoxelMap 与 hVox 的主线状态和证据见[集成状态](../doc/INTEGRATION_STATUS.md)、[R 结果记录](../doc/workspace/evidence/R_VOXELMAP_RESULTS.json)和[hVox 结果记录](../doc/workspace/evidence/HVOX_RESULTS.json)。这些回归不构成独立真值精度或受控性能结论。
+- 另有四项满足结构准入条件的本地作者源码待评估，其中 LIO-GVM 因作者发布缺少定制头文件而阻塞；两项结构合格论文（FR-LIO、SV-LIO）本地收集记录尚未确认作者源码。KISS-ICP、GenZ-LIO、CT-VoxelMap、SA-LIVO 和 Environment-Adaptive 的论文、源码或历史构建证据保留归档，不列当前候选。逐项状态见[集成计划](../PLAN.md)。
 - 本地构建退出 0 不等于数据集精度复现。作者论文中的精度、耗时和运行条件不代表本工作区的实验结果。
 
 ## 源码核查边界

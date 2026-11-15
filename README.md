@@ -16,7 +16,7 @@ framework**. PV-LIO-PLUS first integrated
 then substantially refactored and optimized the code framework, and subsequently
 incorporated more map structures and their corresponding residual models.
 
-`MapManager` currently selects eight integrated backends from a common
+`MapManager` currently selects nine integrated backends from a common
 configuration. Their map implementations are bundled in this package. Official
 upstream projects collected in the surrounding workspace supply provenance and
 independent baselines; their complete estimation nodes are built separately.
@@ -27,9 +27,9 @@ independent baselines; their complete estimation nodes are built separately.
 - Integrate VoxelMap and VoxelMap++ maps and their probabilistic plane residuals.
 - Refactor configuration, map management, observation dispatch, and result output
   into a common C++17 framework.
-- Add ikd-tree, iVox, C3P-VoxelMap, OctVox, R-VoxelMap, and hVox with their
-  corresponding matching and observation paths, giving eight selectable
-  backends.
+- Add ikd-tree, iVox, C3P-VoxelMap, OctVox, R-VoxelMap, hVox, and i-Octree
+  with their corresponding matching and observation paths, giving nine
+  selectable backends.
 - Provide trajectory, world-frame map-cloud, and per-frame timing outputs for
   reproducible comparisons.
 
@@ -56,7 +56,7 @@ after removing that contribution cannot stand in for the original map.
 
 ### Integrated local-map backends
 
-All eight map families below meet the structural-contribution criterion.
+All nine map families below meet the structural-contribution criterion.
 FAST-LIO2 is represented by its ikd-tree contribution, not by FAST-LIO1.
 
 | Algorithm / map | Bundled map source | Selector | Map and residual model |
@@ -69,6 +69,7 @@ FAST-LIO2 is represented by its ikd-tree contribution, not by FAST-LIO1.
 | Super-LIO / OctVox | `include/map_manager/native/octvox` | `octvox` | LRU octant-aggregated point map; ordered TopK, 4/5-point plane fitting, and fixed observation information. |
 | R-VoxelMap | `include/map_manager/native/r_voxelmap` | `r_voxelmap` | Recursive internal/child planes with outlier reuse, native root LRU, and covariance-aware probabilistic plane observation. |
 | Surfel-LIO / hVox | `include/map_manager/native/hvox` | `hvox` | Two-level L0-centroid/L1-precomputed-surfel map with native moving-box maintenance and a PKO-based signed plane observation adapted to the shared IKFoM loop. |
+| i-Octree | `include/map_manager/native/i_octree` | `i_octree` | Dynamic octree with contiguous RAII leaf blocks, data-AABB-pruned full-tree kNN, and the shared point-plane observation adapter. |
 
 FAST-LIO2 and Faster-LIO are represented through ikd-tree and iVox, using this
 framework's observation adapter. Official full-system copies are collected in
@@ -81,11 +82,10 @@ The following status was checked against local source snapshots on
 and compatibility patches are in the [source manifest](doc/workspace/SOURCE_MANIFEST.json).
 Build outcomes for the remaining candidates below refer to the **2026-11-14**
 [build record](doc/workspace/BUILD_REPORT.md). R-VoxelMap and hVox have since
-been integrated; five candidates remain without selectors.
+been integrated; four candidates remain without selectors.
 
 | Map / method | Collected official source | Recorded build | Integration work |
 | --- | --- | --- | --- |
-| i-Octree | `upstream/i-Octree` | C++ example passed | Adapt dynamic octree insertion, kNN/radius search, and box deletion; use the shared point-to-plane adapter. |
 | iG-LIO | `src/ig_lio` | Shared ROS1 build passed | Preserve incremental voxel sufficient statistics and native maintenance, then adapt matching/observations; review GICP information and covariance separately. A point-to-plane variant must retain the map contribution. |
 | Hybrid-VoxelMap | `src/Hybrid-VoxelMap` | Shared ROS1 build passed | Conditional candidate: define semantic-label inputs and typed Plane/NDT matches, then adapt both residuals. Identify plane-only or label-free variants explicitly. |
 | BIEVR-LIO | `upstream/BIEVR-LIO` | Isolated ROS1 targets passed | Conditional candidate: adapt voxel bump images and height residuals to the common state/filter; assess map-guided sampling separately. |
@@ -116,7 +116,7 @@ method. Record residual type, covariance/information, robust kernel, matching
 gates, scan sampling, and map budget/eviction with each result. Semantic inputs
 or map-guided sampling need explicit experiment profiles and ablations.
 
-The current eight paths use plane-based observations, with different
+The current nine paths use plane-based observations, with different
 parameterizations, uncertainty models, and gates; OctVox uses fixed information.
 R-VoxelMap uses its recursive probabilistic planes and native 3-sigma matching.
 hVox uses fixed L1 surfels within a correspondence group and PKO weighting
@@ -136,12 +136,14 @@ physical unit but do not imply identical boundary or search-domain behavior.
 To reproduce an old ikd-tree threshold configured as squared-distance value
 `v`, set the new radius to `sqrt(v)` metres; existing iVox values are unchanged.
 
-The example dataset manifest lists all eight selectors. The main-line node
-built and passed dynamic-link verification; its five CTest targets passed with
-33 GTest cases. hVox also passed independent mathematical review, the isolated
-6-target/34-case suite, and complete-input 30/141-second replays. Its main-line
-30-second replay passed after cherry-pick `c81f12f`. Coverage and limitations are
-in the [integration status](doc/INTEGRATION_STATUS.md).
+The example dataset manifest lists all nine selectors. The prior eight-selector
+baseline passed main-line build/link, CTest 5/5 (33 GTest cases), and the hVox
+30-second replay. i-Octree's feature build/link, independent numerical review,
+isolated tests, and complete-input 30/141-second replays passed. On main-line
+commit `6876a8e`, the node build/link, CTest 7/7 (49 regular GTest cases, ASan
+off), and 30-second complete-input replay passed. See the
+[integration status](doc/INTEGRATION_STATUS.md) for test counts, replay limits,
+and evidence.
 
 A stricter index/map-representation ablation is an optional experiment: it
 must additionally align residuals, Jacobians, weights, gates, retained points,
@@ -151,8 +153,10 @@ baselines. Report each experiment according to what it varies.
 After the monotonic-clock fix, the original six backends completed shared
 30-second and 141-second, 0.5 m input profiles. Each long run wrote 1402
 trajectory/timing rows with nonzero constraints in every frame and finite,
-nonnegative timing values. R-VoxelMap and hVox also passed their separate
-30/141-second complete-input checks. These are workflow regressions; no
+nonnegative timing values. R-VoxelMap, hVox, and i-Octree also passed their
+separate 30/141-second complete-input checks in their recorded feature runs.
+The i-Octree main-line node, regular tests, and short replay also passed.
+These are workflow regressions; no
 ground-truth accuracy or controlled performance ranking is claimed. See the
 [stage record](doc/INTEGRATION_STATUS.md), [R result record](doc/workspace/evidence/R_VOXELMAP_RESULTS.json), and [hVox result record](doc/workspace/evidence/HVOX_RESULTS.json).
 
@@ -173,7 +177,8 @@ MapManager: map storage, updates, matching
     |-- C3P-VoxelMap   --> native probabilistic plane observation
     |-- OctVox         --> plane observation with fixed information
     |-- R-VoxelMap     --> recursive probabilistic plane observation
-    `-- hVox          --> PKO-weighted precomputed-surfel observation
+    |-- hVox          --> PKO-weighted precomputed-surfel observation
+    `-- i-Octree      --> shared point-plane observation
     |
     v
 Backend observation dispatch --> shared IKFoM update
@@ -183,8 +188,8 @@ Map update, trajectory / map / timing outputs
 ```
 
 Map storage and query are managed by `MapManager`; residuals, Jacobians, and
-information are constructed by the corresponding observation paths. Planned
-`hvox` uses a dedicated surfel-to-`PlaneMatch` adapter. General typed `Surfel`,
+information are constructed by the corresponding observation paths. `hvox`
+uses a dedicated surfel-to-`PlaneMatch` adapter. General typed `Surfel`,
 `Gaussian`, and `HeightImage` observation interfaces remain future work.
 
 ## Requirements and build
@@ -212,14 +217,15 @@ Set the backend in the PV-LIO-PLUS YAML configuration:
 
 ```yaml
 mapping:
-  map_type: octvox    # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap, octvox, r_voxelmap, hvox
+  map_type: octvox    # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap, octvox, r_voxelmap, hvox, i_octree
 ```
 
 The local-window mode is selected with the existing `mapping` window
 parameters. Backend-specific parameters remain in the same configuration file
 and are ignored when another backend is selected. `octvox` retains Super-LIO's
 capacity/LRU eviction and rejects geometric local-window mode. `hvox` uses its
-native moving box and rejects the shared geometric-window option.
+native moving box and rejects the shared geometric-window option. `i_octree`
+physically retains points inside the closed common window by pruning its tree.
 
 ## Run
 
@@ -249,6 +255,7 @@ files are written under the configured output directory:
 | `octvox` | `pv_lio_octvox_pos.txt` | `pv_lio_octvox.pcd` |
 | `r_voxelmap` | `pv_lio_r_voxelmap_pos.txt` | `pv_lio_r_voxelmap.pcd` |
 | `hvox` | `pv_lio_hvox_pos.txt` | `pv_lio_hvox.pcd` |
+| `i_octree` | `pv_lio_i_octree_pos.txt` | `pv_lio_i_octree.pcd` |
 
 The trajectory is stored as timestamped pose records. Point-cloud chunks may
 also be written under `output/PCD/` according to the configured scan-saving

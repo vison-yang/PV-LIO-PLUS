@@ -1,8 +1,11 @@
 # Current Backend Contracts and Verification Status
 
-Updated: 2026-11-15. This document records eight integrated `MapManager`
+Updated: 2026-11-15. This document records nine integrated `MapManager`
 backends, contract fixes, separate synthetic test suites, and complete-input
-replays. hVox feature commit `997c00a` is cherry-picked into main as `c81f12f`;
+replays. i-Octree feature `5c27a79` is cherry-picked into main as `6876a8e`;
+the main node/link, CTest 7/7 (49 regular GTest cases, ASan off), and a
+30-second complete-input replay passed. Its isolated sanitizer/numerical tests
+and feature 30/141-second replays also passed. hVox feature commit `997c00a` is cherry-picked into main as `c81f12f`;
 the main-line production node built and passed `ldd -r`, CTest 5/5 with 33 GTest
 cases, and a 30-second complete-input replay. At the earlier R-VoxelMap integration stage, the main-line node built successfully and
 passed a dynamic-link check; its three main-worktree CTest targets passed 3/3
@@ -25,8 +28,8 @@ future adapter boundaries remain in the
   finite; its square must also be finite and nonzero. `MapManager::configure`
   validates before clearing an initialized map. The three shipped YAML comments
   describe metres and preserve their numeric values. The example dataset
-  example manifest lists all eight selectors, including `octvox`,
-  `r_voxelmap`, and `hvox`.
+  example manifest lists all nine selectors, including `octvox`,
+  `r_voxelmap`, `hvox`, and `i_octree`.
 - **Migration:** an old ikd-tree setting `v` was compared as squared distance;
   to reproduce that threshold, set the new radius to `sqrt(v)` metres. Existing
   iVox values already represented metres and remain unchanged.
@@ -38,7 +41,7 @@ for those three paths (288 output rows each); see
 [`DIAGNOSTIC_RACE_RESULTS.json`](workspace/evidence/DIAGNOSTIC_RACE_RESULTS.json).
 This check does not establish general thread safety.
 
-## Eight backend contracts
+## Nine backend contracts
 
 These entries describe current `MapManager` behavior, not equivalence between
 backends. `size()` intentionally reports native backend-dependent units;
@@ -55,11 +58,12 @@ for `size()`.
 | Super-LIO / OctVox | Native LRU grid map containing up to eight sub-voxel representatives per grid, bounded by its configured capacity. | Ordered TopK query; accepts four-point fallback or five-point plane fitting, with the native range/residual gate and fixed observation information. | Number of active LRU grid entries. | Unsupported. Configuration and explicit geometric deletion are rejected; OctVox owns capacity/LRU eviction. |
 | R-VoxelMap | Native recursive voxel map with planes at internal/child nodes, linked-list outlier pushdown/rebuild, and root LRU retention. | Queries the current root and, conditionally, one adjacent root; matching uses full world-point covariance with a native 3-sigma gate. The filter observation uses plane covariance plus rotated LiDAR measurement covariance, without adding state covariance a second time. | Number of root voxels. | Unsupported. `local_window_en` and explicit geometric erase/window are rejected; native batch-then-freeze root budgeting is not a strict upper bound. |
 | Surfel-LIO / hVox | Native L0 centroid / L1 precomputed-surfel hierarchy; updates use current world-frame IMU position and keyframe flag, with upstream moving-box maintenance. | Exact containing-L1-key lookup via `GetSurfelAtPoint`; fixed correspondences within an observation group feed signed plane residuals and PKO-adapted robust weights. Failed lookups are appended to `non_match`. | Native L0 voxel count. | Unsupported. Uses its native moving box; public geometric window operations and `local_window_en` are rejected. |
+| i-Octree | Dynamic octree with actual-point AABBs, contiguous RAII leaf blocks, and dynamic local insertion/deletion/downsampling; numeric adaptation uses double queries/distances and checks supported rounding/denormal modes. | Full-tree kNN under the declared binary64 metric; production requests at least five neighbors and accepts when fifth squared distance is `<= R²`, then fits a shared local plane. Native radius query uses strict `< r²`. Failed queries are appended to `non_match`. | Live retained point count (`size()` and `point_count()`). | Supported. Tree-side retain keeps points inside the closed world-frame box without rebuilding the whole tree. |
 
 The source of these behaviors is `MapManager` in
 [`map_manager.cpp`](../src/map_manager/map_manager.cpp), its public types and
 configuration in [`map_manager.h`](../include/map_manager/map_manager.h), and
-the eight observation paths in [`mapping.cpp`](../src/mapping.cpp), plus
+the nine observation paths in [`mapping.cpp`](../src/mapping.cpp), plus
 [`hvox_observation.cpp`](../src/map_manager/hvox_observation.cpp). In
 particular, `size()` counts voxel entries, KD-tree points, iVox grids, or
 OctVox LRU grids depending on the selected backend; R-VoxelMap `size()` counts
@@ -67,12 +71,14 @@ root voxels while its `point_count()` traverses retained native points; hVox
 `size()` is its L0 voxel count, `point_count()` uses native retained-point
 count, and `snapshot()` contains L0 centroids. hVox `clear()` reconstructs the
 native map because upstream `Clear()` does not reset its window center. Do not
-compare these values as if they all counted points.
+compare these values as if they all counted points. i-Octree reports live
+retained points, snapshots XYZ, and applies the public closed window through
+native tree retention; it does not rebuild the tree for that operation.
 
 ### Unmatched-query outputs
 
 The common `MapManager::search(MapPointList, ...)` entry point clears `matches`
-and `non_match` before dispatch. ikd-tree, iVox, OctVox, and R-VoxelMap append
+and `non_match` before dispatch. ikd-tree, iVox, OctVox, R-VoxelMap, and i-Octree append
 individual queries that fail their backend-specific search to `non_match`;
 hVox also appends failed exact-key surfel lookups. The native OMP residual
 builders for VoxelMap, VoxelMap++, and C3P do not guarantee
@@ -158,6 +164,37 @@ regression checks, not ground-truth accuracy or controlled-performance
 results. Both replays used non-isolated workload. The main-line cherry-pick `c81f12f` built and passed `ldd -r`, CTest 5/5
 with 33 GTest cases, and a separate 30-second complete-input replay (288 rows).
 All seven main build targets use Eigen 3.4.0; ASan is off in that configuration.
+
+## i-Octree verification
+
+Feature `5c27a79` adapts the pinned author tree at `5b640e05` while retaining
+its dynamic octree organization, contiguous leaf data, insertion/deletion, and
+tree-side downsampling. The local implementation uses actual-point AABBs for
+pruning, binary64 query/distance calculations with supported RN/FTZ/DAZ mode
+checks, and RAII contiguous leaf blocks. This is a numerically guarded,
+structure-preserving adaptation, not an unchanged-upstream performance run.
+Detailed source behavior and limitations are recorded in
+[`SOURCE.md`](../include/map_manager/native/i_octree/SOURCE.md).
+
+The feature node built with exit code 0 and passed `ldd -r`. Its isolated suite
+passed CTest **9/9**. The record contains **49 normal GTest cases plus 11
+sanitizer repetitions (60 executions total)**, not 60 unique cases. Positive
+ASan/UBSan checks passed and the independent numeric review passed, including
+closure of C1/C2. LeakSanitizer was disabled. Main-line commit `6876a8e` built
+and passed `ldd -r`; its regular CTest targets passed **7/7** with **49 GTest
+cases** (ASan off).
+
+On both feature and main line, the 30-second, 0.5 m profile received **301
+LiDAR / 6088 IMU** messages and wrote **288 rows** with no zero-constraint
+frames. The feature 141-second profile received **1414 LiDAR / 28595 IMU** and
+wrote **1402 rows**; effective constraints ranged from 513 to 5620 (median
+2792), the live native map held 15,763–3,918,943 points, quaternion norm error
+was below `7.07e-7`, all eight duration columns were finite and nonnegative,
+and the final PCD contained 30,411,349 points. Main-line short replay also
+passed complete-input checks and wrote 288 rows. These are regression checks,
+not ground-truth accuracy or controlled-performance results. The main-line
+node/test/replay and feature evidence are recorded in
+[`I_OCTREE_RESULTS.json`](workspace/evidence/I_OCTREE_RESULTS.json).
 
 ## Complete-input runtime regression
 

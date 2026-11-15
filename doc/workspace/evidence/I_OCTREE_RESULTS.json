@@ -1,0 +1,211 @@
+{
+  "checked_on": "2026-11-15",
+  "feature_commit": "5c27a79ee8a7c8a214ebbea61320059fb5178b2a",
+  "main_cherry_pick": "6876a8e",
+  "native_author_commit": "5b640e05",
+  "profile": "modified i-Octree real-data AABB map with shared point-plane observation; native float storage,double query and fixed-RN binary64 distance",
+  "node_feature_build": {
+    "exit_code": 0,
+    "binary_sha256": "5c63904e933af1d514aa1d103bfdc653b70f3c7f504898fb67b02ab23e02cea1",
+    "ldd_exit_code": 0
+  },
+  "native_source_sha256": "bc551b59a74f14a1fd9c2fb4fa6128f570274ad549ed7688144a451ca7fd14e6",
+  "native_library_sha256": "4fb98a6e82c71e7b2383b367a44c23de8fd1eb8cdd71c7494c70e7f3d82e4344",
+  "isolated_tests": {
+    "ctest_passed": 9,
+    "ctest_total": 9,
+    "gtest_executions": 60,
+    "unique_normal_gtest_cases": 49,
+    "sanitizer_repeated_cases": 11,
+    "i_octree_native_adapter_cases": 11,
+    "i_octree_numeric_oracle_cases": 5,
+    "i_octree_asan_ubsan_cases": 10,
+    "leak_detection": false
+  },
+  "independent_review": {
+    "source_static": "passed for frozen native bc551b59/headera3a6dbb3; noP0/P1 found",
+    "C1_current_version_numeric_and_sanitizer_rerun": "satisfied",
+    "C2_expansion_then_old_or_new_path_split_rejection": "both normal/sanitizer positive checks passed; snapshot,count,AABB,routing unchanged"
+  },
+  "numeric_reference": {
+    "scalar_cases": 205,
+    "radius_cases": 75,
+    "aabb_cases": 90,
+    "aabb_point_distances": 990,
+    "tree_scenarios": 14,
+    "tree_queries": 83,
+    "reference_point_distances": 1889,
+    "independent_rn_crosschecks": 29333
+  },
+  "short_replay": {
+    "source_commit": "5c27a79ee8a7c8a214ebbea61320059fb5178b2a",
+    "binary_sha256": "5c63904e933af1d514aa1d103bfdc653b70f3c7f504898fb67b02ab23e02cea1",
+    "profile": "mapping/down_sample_size=0.5; visualization off; final PCD on",
+    "cases": [
+      {
+        "backend": "i_octree",
+        "output_rows": 288,
+        "timing_rows": 288,
+        "input_complete": true,
+        "input_delivery": {
+          "/livox/lidar": {
+            "count": 301,
+            "first_stamp": 597.4993629,
+            "last_stamp": 627.49932562,
+            "header_sequence_sha256": "17bf43b52f5662adbe713513ea110b1d72c0efbe9bbd5cdeefba5845390ff35a"
+          },
+          "/livox/imu": {
+            "count": 6088,
+            "first_stamp": 597.50583931,
+            "last_stamp": 627.59773838,
+            "header_sequence_sha256": "a642f2c5c24c0f0d56708829d901d094b88fc19d3f7d9975eb33d989340f1906"
+          }
+        },
+        "first_output_stamp": 598.799258,
+        "last_output_stamp": 627.499322,
+        "finite_nonnegative_duration_columns": [
+          "search_ms",
+          "search_avg_ms",
+          "ikf_update_ms",
+          "ikf_update_avg_ms",
+          "map_update_ms",
+          "map_update_avg_ms",
+          "total_ms",
+          "total_avg_ms"
+        ],
+        "effective_points_min": 793,
+        "effective_points_median": 3022.5,
+        "effective_points_max": 4275,
+        "zero_constraint_frames": 0,
+        "native_map_size_min": 15763,
+        "native_map_size_max": 879210,
+        "max_quaternion_norm_error": 5.914658249839277e-07,
+        "pcd_points": 6077658
+      }
+    ],
+    "limitations": "Regression only; no ground truth or controlled performance ranking"
+  },
+  "full_replay": {
+    "source_commit": "5c27a79ee8a7c8a214ebbea61320059fb5178b2a",
+    "binary_sha256": "5c63904e933af1d514aa1d103bfdc653b70f3c7f504898fb67b02ab23e02cea1",
+    "profile": "mapping/down_sample_size=0.5; visualization off; final PCD on",
+    "cases": [
+      {
+        "backend": "i_octree",
+        "output_rows": 1402,
+        "timing_rows": 1402,
+        "input_complete": true,
+        "input_delivery": {
+          "/livox/lidar": {
+            "count": 1414,
+            "first_stamp": 597.4993629,
+            "last_stamp": 738.7994946,
+            "header_sequence_sha256": "a2b787b13f1507999b4b63de6ceda22f19c714fd08e8436b9d2c90390c0ca562"
+          },
+          "/livox/imu": {
+            "count": 28595,
+            "first_stamp": 597.50583931,
+            "last_stamp": 738.9003379,
+            "header_sequence_sha256": "ba606929480aa97d1e08d364dff9f5b34b560d5e2e2fe8e7dbb7e5374100c2b8"
+          }
+        },
+        "first_output_stamp": 598.799258,
+        "last_output_stamp": 738.899325,
+        "finite_nonnegative_duration_columns": [
+          "search_ms",
+          "search_avg_ms",
+          "ikf_update_ms",
+          "ikf_update_avg_ms",
+          "map_update_ms",
+          "map_update_avg_ms",
+          "total_ms",
+          "total_avg_ms"
+        ],
+        "effective_points_min": 513,
+        "effective_points_median": 2792.0,
+        "effective_points_max": 5620,
+        "zero_constraint_frames": 0,
+        "native_map_size_min": 15763,
+        "native_map_size_max": 3918943,
+        "max_quaternion_norm_error": 7.06711749676181e-07,
+        "pcd_points": 30411349
+      }
+    ],
+    "limitations": "Regression only; no ground truth or controlled performance ranking"
+  },
+  "raw_validation": "output/integration-20261115-i-octree/validation",
+  "raw_short_run": "output/integration-20261115/stage3-i-octree-complete-30s-05m",
+  "raw_full_run": "output/integration-20261115/stage3-i-octree-complete-full-05m",
+  "main_validation": "passed node build/link,7/7 regular CTest49cases,complete288-row main short replay",
+  "limitations": [
+    "No independent ground truth or accuracy-improvement claim",
+    "Timing collected under non-isolated workload; no controlled performance ranking",
+    "Modified i-Octree layout/numeric algorithm; not unchanged upstream performance",
+    "RN/FTZ/DAZ supported-mode checks required; coordinates/depth bounded",
+    "Numerical/depth rejection atomic; arbitrary OOM only basic structural guarantee",
+    "No persistent point ID or general concurrency guarantee; LeakSanitizer disabled"
+  ],
+  "main_node_build": {
+    "code_commit": "6876a8e",
+    "exit_code": 0,
+    "ldd_exit_code": 0,
+    "binary_sha256": "cda6274f40e434c378d7c17bd4442bdee13317eda41cc83b022636f4233b4e39",
+    "core_diff_from_tested_feature": "empty for CMakeLists/include/src/tests/scripts-run_backend_tests",
+    "all_ten_target_eigen_headers": "3.4.0",
+    "strict_native_and_numeric_flags_verified": true
+  },
+  "main_short_replay": {
+    "source_commit": "6876a8ec42bc8a1497b5f6cb249a7d4dff85d11e",
+    "binary_sha256": "cda6274f40e434c378d7c17bd4442bdee13317eda41cc83b022636f4233b4e39",
+    "profile": "mapping/down_sample_size=0.5; visualization off; final PCD on",
+    "cases": [
+      {
+        "backend": "i_octree",
+        "output_rows": 288,
+        "timing_rows": 288,
+        "input_complete": true,
+        "input_delivery": {
+          "/livox/lidar": {
+            "count": 301,
+            "first_stamp": 597.4993629,
+            "last_stamp": 627.49932562,
+            "header_sequence_sha256": "17bf43b52f5662adbe713513ea110b1d72c0efbe9bbd5cdeefba5845390ff35a"
+          },
+          "/livox/imu": {
+            "count": 6088,
+            "first_stamp": 597.50583931,
+            "last_stamp": 627.59773838,
+            "header_sequence_sha256": "a642f2c5c24c0f0d56708829d901d094b88fc19d3f7d9975eb33d989340f1906"
+          }
+        },
+        "first_output_stamp": 598.799258,
+        "last_output_stamp": 627.499322,
+        "finite_nonnegative_duration_columns": [
+          "search_ms",
+          "search_avg_ms",
+          "ikf_update_ms",
+          "ikf_update_avg_ms",
+          "map_update_ms",
+          "map_update_avg_ms",
+          "total_ms",
+          "total_avg_ms"
+        ],
+        "effective_points_min": 793,
+        "effective_points_median": 3022.5,
+        "effective_points_max": 4275,
+        "zero_constraint_frames": 0,
+        "native_map_size_min": 15763,
+        "native_map_size_max": 879210,
+        "max_quaternion_norm_error": 5.914658249839277e-07
+      }
+    ],
+    "limitations": "Regression only; no ground truth or controlled performance ranking",
+    "actual_executable_hash_verified_via_ros_pid": true
+  },
+  "main_regular_ctest": {
+    "passed": 7,
+    "total": 7,
+    "gtest_cases": 49,
+    "asan_enabled": false
+  }
+}
