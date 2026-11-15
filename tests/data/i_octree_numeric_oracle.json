@@ -1,0 +1,26 @@
+{
+  "box_cases": 90,
+  "box_point_checks": 990,
+  "format": 1,
+  "fraction_float_crosschecks": 29333,
+  "header_sha256": "8bbb6d89f58fc50f124260243b41777e6b9c84d5714a37c865e01c483f59e629",
+  "invalid_radii": 8,
+  "metric": "abs(RN(float_point-double_query)); RN(square) per axis; RN(RN(s0+s1)+s2)",
+  "oracle": "Fraction exact rational arithmetic; integer IEEE RN/ties-to-even after each operation",
+  "radius": "T=RN(r*r); membership D<T; computed metric, not exact-real distance",
+  "radius_cases": 75,
+  "scalar_cases": 205,
+  "scenes": 14,
+  "seed": "0x10c7ee",
+  "tree_point_distance_checks": 1889,
+  "tree_points": 128,
+  "tree_queries": 83,
+  "witnesses": [
+    "2^24 missing-root-coverage counterexample",
+    "binary32 distance tie with distinct binary64 ranks",
+    "RN radius threshold equals D although exact r*r>D",
+    "left-associated sum differs from regrouping",
+    "double query not quantized to float",
+    "signed-zero and ties-to-even map quantization"
+  ]
+}

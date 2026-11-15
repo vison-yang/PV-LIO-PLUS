@@ -110,6 +110,14 @@ double ElapsedMilliseconds(const TimingClock::time_point start)
 {
     return std::chrono::duration<double, std::milli>(TimingClock::now() - start).count();
 }
+
+// The shared PCL cloud is float. i-Octree's query contract keeps the current
+// world transform in double and quantizes map insertions once at its boundary.
+void RestoreIOctreeWorldPoints(const state_ikfom& state, MapPointList& points)
+{
+    for (auto& point : points)
+        point.point_world = state.rot * (state.offset_R_L_I * point.point_lidar + state.offset_T_L_I) + state.pos;
+}
 }  // namespace
 
 Mapping* Mapping::active_instance_ = nullptr;
@@ -456,13 +464,29 @@ void Mapping::ObservationModelPointBackend(state_ikfom& s, esekfom::dyn_share_da
     total_residual_ = 0.0;
 
     PointCloudXYZI::Ptr feats_world(new PointCloudXYZI);
-    transformLidar2World(s, feats_undistort_down_, feats_world);
+    if (config_.map_manager_config().type == MapType::IOctree)
+        feats_world = feats_undistort_down_;  // Temporary values; world coordinates are restored below.
+    else
+        transformLidar2World(s, feats_undistort_down_, feats_world);
     pv_lio_plus::MapPointList map_points = make_manager_points(feats_undistort_down_, feats_world, var_down_lidar_);
+    if (config_.map_manager_config().type == MapType::IOctree) RestoreIOctreeWorldPoints(s, map_points);
 
     const auto t0 = TimingClock::now();
     pv_lio_plus::PlaneMatchList matches;
     std::vector<V3D> non_match_list;
-    map_manager_->search(map_points, matches, non_match_list);
+    try
+    {
+        map_manager_->search(map_points, matches, non_match_list);
+    }
+    catch (const std::exception& exception)
+    {
+        if (config_.map_manager_config().type != MapType::IOctree) throw;
+        search_time_ += ElapsedMilliseconds(t0);
+        effective_feature_num_ = 0;
+        ekfom_data.valid = false;
+        ROS_WARN_THROTTLE(1.0, "i-Octree query rejected: %s", exception.what());
+        return;
+    }
     search_time_ += ElapsedMilliseconds(t0);
 
     effective_feature_num_ = static_cast<int>(matches.size());
@@ -528,6 +552,13 @@ void Mapping::ObservationModelPointBackend(state_ikfom& s, esekfom::dyn_share_da
         ekfom_data.R(i) = 1.0 / total_sigma;
     }
 
+    if (config_.map_manager_config().type == MapType::IOctree &&
+        (!ekfom_data.h_x.allFinite() || !ekfom_data.h.allFinite() || !ekfom_data.R.allFinite()))
+    {
+        effective_feature_num_ = 0;
+        ekfom_data.valid = false;
+        return;
+    }
     // Accumulate diagnostics in row order after the parallel observation loop.
     for (int i = 0; i < effective_feature_num_; ++i)
         total_residual_ += std::abs(ekfom_data.h(i));
@@ -881,7 +912,10 @@ void Mapping::InitializeMap()
 
     // Transform the first scan and build the backend-independent point list.
     PointCloudXYZI::Ptr feats_world(new PointCloudXYZI);
-    transformLidar2World(state_point_, feats_undistort_, feats_world);
+    if (config_.map_manager_config().type == MapType::IOctree)
+        feats_world = feats_undistort_;
+    else
+        transformLidar2World(state_point_, feats_undistort_, feats_world);
     std::vector<M3D> cov_lidar;
     cov_lidar.reserve(feats_undistort_->size());
     for (const auto& point : feats_undistort_->points)
@@ -890,7 +924,18 @@ void Mapping::InitializeMap()
     }
     MapUpdateContext context;
     context.imu_position_world = V3D(state_point_.pos);
-    map_manager_->initialize(make_manager_points(feats_undistort_, feats_world, cov_lidar), context);
+    MapPointList map_points = make_manager_points(feats_undistort_, feats_world, cov_lidar);
+    if (config_.map_manager_config().type == MapType::IOctree) RestoreIOctreeWorldPoints(state_point_, map_points);
+    try
+    {
+        map_manager_->initialize(map_points, context);
+    }
+    catch (const std::exception& exception)
+    {
+        if (config_.map_manager_config().type != MapType::IOctree) throw;
+        ROS_WARN_THROTTLE(1.0, "i-Octree initialization rejected: %s", exception.what());
+        return;
+    }
     if (hvox_observations_) hvox_observations_->BeginFrame();
 
     const double map_build_time_ms = ElapsedMilliseconds(t1);
@@ -905,9 +950,26 @@ void Mapping::UpdateMap()
 {
     // Transform the filtered scan once and pass one common point type to MapManager.
     PointCloudXYZI::Ptr feats_world(new PointCloudXYZI);
-    transformLidar2World(state_point_, feats_undistort_down_, feats_world);
+    if (config_.map_manager_config().type == MapType::IOctree)
+        feats_world = feats_undistort_down_;
+    else
+        transformLidar2World(state_point_, feats_undistort_down_, feats_world);
 
     MapPointList map_points = make_manager_points(feats_undistort_down_, feats_world, var_down_lidar_);
+    if (config_.map_manager_config().type == MapType::IOctree)
+    {
+        RestoreIOctreeWorldPoints(state_point_, map_points);
+        const bool invalid = std::any_of(map_points.begin(), map_points.end(), [](const MapPoint& point) {
+            return !point.point_lidar.allFinite() || !point.point_world.allFinite() || !point.cov_world.allFinite();
+        });
+        if (invalid || (config_.map_manager_config().local_window_enabled &&
+                        (!V3D(state_point_.pos).allFinite() || !std::isfinite(config_.det_range_) ||
+                         config_.det_range_ <= 0)))
+        {
+            ROS_WARN_THROTTLE(1.0, "i-Octree update rejected nonfinite point, covariance, or window");
+            return;
+        }
+    }
     if (config_.map_manager_config().type == MapType::RVoxelMap)
     {
         // The native backend rejects nonfinite inputs. Remove them before the
@@ -924,10 +986,16 @@ void Mapping::UpdateMap()
                   });
     MapUpdateContext context;
     context.imu_position_world = V3D(state_point_.pos);
-    map_manager_->update(map_points, static_cast<std::uint32_t>(scan_total_count_), context);
-    if (config_.map_manager_config().local_window_enabled)
+    try
     {
-        map_manager_->move_window(state_point_.pos, V3D(config_.det_range_, config_.det_range_, config_.det_range_));
+        map_manager_->update(map_points, static_cast<std::uint32_t>(scan_total_count_), context);
+        if (config_.map_manager_config().local_window_enabled)
+            map_manager_->move_window(state_point_.pos, V3D(config_.det_range_, config_.det_range_, config_.det_range_));
+    }
+    catch (const std::exception& exception)
+    {
+        if (config_.map_manager_config().type != MapType::IOctree) throw;
+        ROS_WARN_THROTTLE(1.0, "i-Octree update rejected: %s", exception.what());
     }
 }
 

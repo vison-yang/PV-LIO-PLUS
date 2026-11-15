@@ -33,6 +33,7 @@
 class ImuProcess;
 namespace r_voxelmap_ns { class VoxelMap; }
 namespace lio { class VoxelMap; }
+namespace pv_lio_plus::i_octree_native { class Octree; }
 
 #include "common_lib.h"
 #include "native/c3p_voxelmap/c3p_voxel_map_util.hpp"
@@ -62,7 +63,9 @@ enum class MapType
     /// R-VoxelMap with recursive inlier/outlier planes and native LRU.
     RVoxelMap,
     /// Surfel-LIO's two-level hVox map and precomputed L1 surfels.
-    HVox
+    HVox,
+    /// Incremental octree with native leaf blocks and data-AABB search.
+    IOctree
 };
 
 MapType ParseMapType(const std::string &name);
@@ -234,6 +237,11 @@ struct MapManagerConfig
     double hvox_box_multiplier = 2.0;
     double hvox_lidar_noise_std = 0.05;
 
+    /// i-Octree native routing and on-tree downsampling.
+    int i_octree_bucket_size = 32;
+    double i_octree_min_extent = 0.01;
+    bool i_octree_on_tree_downsample = false;
+
     /// Enables moving-window maintenance; disabled by default.
     bool local_window_enabled = false;
 };
@@ -362,6 +370,12 @@ class MapManager
 
     void search_hvox(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
 
+    void initialize_i_octree(const MapPointList &points);
+
+    void update_i_octree(const MapPointList &points);
+
+    void search_i_octree(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
+
     void search_point_backend(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
 
     void search_ikd_tree(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
@@ -422,6 +436,7 @@ class MapManager
     /// Native R-VoxelMap hierarchy and its LRU-managed root voxels.
     std::unique_ptr<r_voxelmap_ns::VoxelMap> r_voxelmap_;
     std::unique_ptr<lio::VoxelMap> hvox_;
+    std::unique_ptr<i_octree_native::Octree> i_octree_;
     /// Native C3P-VoxelMap storage.
     std::unordered_map<c3p_map_ns::VOXEL_LOC, c3p_map_ns::OctoTree *> c3p_voxel_map_;
     /// C3P plane descriptors and merged planes.

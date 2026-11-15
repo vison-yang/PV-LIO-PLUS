@@ -13,6 +13,7 @@
 
 #include "map_manager/map_manager.h"
 #include "map_manager/native/hvox/VoxelMap.h"
+#include "map_manager/native/i_octree/i_octree.hpp"
 #include "map_manager/native/r_voxelmap/r_voxelmap.hpp"
 
 // ikd-tree is a header/template implementation.  Keep the native source in
@@ -30,6 +31,27 @@ namespace pv_lio_plus
 {
 namespace
 {
+i_octree_native::Config MakeIOctreeConfig(const MapManagerConfig &config)
+{
+    i_octree_native::Config native;
+    if (config.i_octree_bucket_size <= 0 || config.nearest_point_count <= 0 ||
+        !std::isfinite(config.plane_fit_threshold) || config.plane_fit_threshold < 0.0 ||
+        config.plane_fit_threshold > double(std::numeric_limits<float>::max()))
+        throw std::invalid_argument("invalid i-Octree bucket, neighbor count, or plane threshold");
+    native.bucket_size = static_cast<std::size_t>(config.i_octree_bucket_size);
+    native.min_extent = config.i_octree_min_extent;
+    return native;
+}
+
+std::vector<i_octree_native::Point3d> ToIOctreePoints(const MapPointList &points)
+{
+    std::vector<i_octree_native::Point3d> native;
+    native.reserve(points.size());
+    for (const auto &point : points)
+        native.push_back({point.point_world.x(), point.point_world.y(), point.point_world.z()});
+    return native;
+}
+
 void ValidateHVoxConfig(const MapManagerConfig &config)
 {
     const float resolution = static_cast<float>(config.hvox_voxel_size);
@@ -201,6 +223,10 @@ MapType ParseMapType(const std::string &name)
     {
         return MapType::HVox;
     }
+    if (name == "i_octree" || name == "ioctree" || name == "i-octree")
+    {
+        return MapType::IOctree;
+    }
 
     throw std::invalid_argument("unknown mapping/map_type: " + name);
 }
@@ -230,6 +256,8 @@ const char *MapTypeName(const MapType type)
             return "r_voxelmap";
         case MapType::HVox:
             return "hvox";
+        case MapType::IOctree:
+            return "i_octree";
     }
     return "unknown";
 }
@@ -269,6 +297,11 @@ void MapManager::configure(const MapManagerConfig &config)
         static_cast<void>(MakeRVoxelConfig(config));
     }
     if (config.type == MapType::HVox) ValidateHVoxConfig(config);
+    if (config.type == MapType::IOctree)
+    {
+        i_octree_native::Octree probe(MakeIOctreeConfig(config));
+        static_cast<void>(i_octree_native::radius_squared(config.nearest_max_range));
+    }
     if (config.type == MapType::OctVox && config.local_window_enabled)
     {
         throw std::invalid_argument(
@@ -330,7 +363,8 @@ bool MapManager::supports_selected_backend() const
 {
     return config_.type == MapType::VoxelMap || config_.type == MapType::VoxelMapPlus ||
            config_.type == MapType::IKDTree || config_.type == MapType::IVox || config_.type == MapType::C3PVoxelMap ||
-           config_.type == MapType::OctVox || config_.type == MapType::RVoxelMap || config_.type == MapType::HVox;
+           config_.type == MapType::OctVox || config_.type == MapType::RVoxelMap || config_.type == MapType::HVox ||
+           config_.type == MapType::IOctree;
 }
 
 /**
@@ -353,6 +387,7 @@ void MapManager::configure_point_backends()
     octvox_.reset();
     r_voxelmap_.reset();
     hvox_.reset();
+    i_octree_.reset();
 
     if (config_.type == MapType::IKDTree)
     {
@@ -404,6 +439,10 @@ void MapManager::configure_point_backends()
         hvox_->SetPlanarityThreshold(static_cast<float>(config_.hvox_planarity_threshold));
         hvox_->SetMapBoxMultiplier(static_cast<float>(config_.hvox_box_multiplier));
     }
+    else if (config_.type == MapType::IOctree)
+    {
+        i_octree_ = std::make_unique<i_octree_native::Octree>(MakeIOctreeConfig(config_));
+    }
 }
 
 /** @brief Clears all backend data, retained points, and window state. */
@@ -434,6 +473,7 @@ void MapManager::clear()
     octvox_.reset();
     r_voxelmap_.reset();
     hvox_.reset();
+    i_octree_.reset();
 
     map_points_.clear();
     initialized_ = false;
@@ -659,10 +699,35 @@ void MapManager::initialize(const MapPointList &points, const MapUpdateContext &
     {
         initialize_hvox(points, context);
     }
+    else if (config_.type == MapType::IOctree)
+    {
+        initialize_i_octree(points);
+    }
     else
     {
         initialize_point_backend(points);
     }
+}
+
+void MapManager::initialize_i_octree(const MapPointList &points)
+{
+    auto replacement = std::make_unique<i_octree_native::Octree>(MakeIOctreeConfig(config_));
+    replacement->initialize(ToIOctreePoints(points));  // Validate/build before clearing the old map.
+    clear();
+    i_octree_ = std::move(replacement);
+    initialized_ = true;
+    ++revision_;
+}
+
+void MapManager::update_i_octree(const MapPointList &points)
+{
+    if (!initialized_ || !i_octree_)
+    {
+        initialize_i_octree(points);
+        return;
+    }
+    i_octree_->update(ToIOctreePoints(points), config_.i_octree_on_tree_downsample);
+    ++revision_;
 }
 
 void MapManager::initialize_hvox(const MapPointList &points, const MapUpdateContext &context)
@@ -947,6 +1012,10 @@ void MapManager::update(const MapPointList &points, const std::uint32_t frame_nu
     else if (config_.type == MapType::HVox)
     {
         update_hvox(points, context);
+    }
+    else if (config_.type == MapType::IOctree)
+    {
+        update_i_octree(points);
     }
     else
     {
@@ -1376,9 +1445,56 @@ void MapManager::search(const MapPointList &points, PlaneMatchList &matches, std
     {
         search_hvox(points, matches, non_match);
     }
+    else if (config_.type == MapType::IOctree)
+    {
+        search_i_octree(points, matches, non_match);
+    }
     else
     {
         search_point_backend(points, matches, non_match);
+    }
+}
+
+void MapManager::search_i_octree(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match)
+{
+    const int nearest_count = std::max(config_.nearest_point_count, NUM_MATCH_POINTS);
+    const double max_squared = i_octree_native::radius_squared(config_.nearest_max_range);
+    const double coordinate_limit = double(std::numeric_limits<float>::max());
+    for (const auto &point : points)
+    {
+        if (!i_octree_ || !point.point_lidar.allFinite() || !point.point_world.allFinite() ||
+            !point.cov_world.allFinite() || (point.point_world.array().abs() > coordinate_limit).any())
+        {
+            non_match.push_back(point.point_world);
+            continue;
+        }
+        std::vector<i_octree_native::Neighbor> found;
+        i_octree_->knn({point.point_world.x(), point.point_world.y(), point.point_world.z()}, nearest_count, found);
+        if (found.size() < NUM_MATCH_POINTS || found[NUM_MATCH_POINTS - 1].distance_squared > max_squared)
+        {
+            non_match.push_back(point.point_world);
+            continue;
+        }
+        PointVector neighbors;
+        neighbors.reserve(found.size());
+        for (const auto &neighbor : found)
+        {
+            PointType p{};
+            p.x = neighbor.point.x; p.y = neighbor.point.y; p.z = neighbor.point.z;
+            neighbors.push_back(p);
+        }
+        PlaneMatch match;
+        // The common plane fit can return true with NaN coefficients for a
+        // degenerate QR solution. Reject those only in the new backend.
+        if (!fit_point_plane(point, neighbors, match, MapType::IOctree) || !match.normal.allFinite() ||
+            !match.center.allFinite() || !std::isfinite(match.d) || !std::isfinite(match.distance) ||
+            !std::isfinite(match.normal.norm()) || match.normal.norm() <= std::numeric_limits<double>::epsilon() ||
+            !std::isfinite((match.normal.transpose() * point.cov_world * match.normal)(0, 0)))
+        {
+            non_match.push_back(point.point_world);
+            continue;
+        }
+        matches.push_back(match);
     }
 }
 
@@ -1803,6 +1919,15 @@ void MapManager::erase_outside_window(const MapWindow &window)
     {
         erase_outside_c3p_window(window);
     }
+    else if (config_.type == MapType::IOctree)
+    {
+        if (i_octree_)
+        {
+            i_octree_->retain_box({window.min_bound.x(), window.min_bound.y(), window.min_bound.z()},
+                                  {window.max_bound.x(), window.max_bound.y(), window.max_bound.z()});
+            ++revision_;
+        }
+    }
     else if (config_.type == MapType::OctVox)
     {
         throw std::logic_error("OctVox does not support geometric local-window deletion");
@@ -2000,6 +2125,10 @@ size_t MapManager::size() const
     {
         return hvox_ ? hvox_->GetVoxelCount() : 0;
     }
+    if (config_.type == MapType::IOctree)
+    {
+        return i_octree_ ? i_octree_->size() : 0;
+    }
     return 0;
 }
 
@@ -2009,6 +2138,7 @@ size_t MapManager::size() const
  */
 size_t MapManager::point_count() const
 {
+    if (config_.type == MapType::IOctree) return i_octree_ ? i_octree_->size() : 0;
     if (config_.type == MapType::HVox) return hvox_ ? hvox_->GetPointCount() : 0;
     if (config_.type == MapType::RVoxelMap)
     {
@@ -2027,6 +2157,20 @@ size_t MapManager::point_count() const
 PointCloudXYZI::Ptr MapManager::snapshot() const
 {
     PointCloudXYZI::Ptr result(new PointCloudXYZI());
+    if (config_.type == MapType::IOctree)
+    {
+        if (i_octree_)
+        {
+            const auto points = i_octree_->snapshot();
+            result->reserve(points.size());
+            for (const auto &point : points)
+            {
+                const V3D p(point.x, point.y, point.z);
+                result->push_back(ToPointType(p));  // Native leaf stores XYZ only.
+            }
+        }
+        return result;
+    }
     if (config_.type == MapType::HVox)
     {
         if (hvox_)

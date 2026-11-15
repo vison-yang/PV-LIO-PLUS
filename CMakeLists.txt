@@ -83,6 +83,12 @@ add_library(pv_lio_plus_hvox_native STATIC
 target_include_directories(pv_lio_plus_hvox_native BEFORE PRIVATE ${PV_LIO_PLUS_EIGEN_INCLUDE_DIRS})
 target_link_libraries(pv_lio_plus_hvox_native ${catkin_LIBRARIES})
 
+add_library(pv_lio_plus_i_octree_native STATIC include/map_manager/native/i_octree/i_octree.cpp)
+target_include_directories(pv_lio_plus_i_octree_native BEFORE PRIVATE ${PV_LIO_PLUS_EIGEN_INCLUDE_DIRS})
+target_compile_options(pv_lio_plus_i_octree_native PRIVATE
+  -fno-fast-math -fno-associative-math -ffp-contract=off -fno-lto)
+set_target_properties(pv_lio_plus_i_octree_native PROPERTIES INTERPROCEDURAL_OPTIMIZATION FALSE)
+
 add_executable(pv_lio_plus_node
   src/lio_main.cpp
   src/mapping.cpp
@@ -91,7 +97,7 @@ add_executable(pv_lio_plus_node
   src/imu_processing.cpp
   src/publish_subscribe.cpp)
 add_dependencies(pv_lio_plus_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(pv_lio_plus_node pv_lio_plus_hvox_native ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES})
+target_link_libraries(pv_lio_plus_node pv_lio_plus_hvox_native pv_lio_plus_i_octree_native ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES})
 target_include_directories(pv_lio_plus_node PRIVATE ${PYTHON_INCLUDE_DIRS})
 
 if(CATKIN_ENABLE_TESTING)
@@ -101,8 +107,24 @@ if(CATKIN_ENABLE_TESTING)
   catkin_add_gtest(pv_lio_plus_r_voxelmap_tests tests/r_voxelmap_tests.cpp src/utils.cpp src/preprocess.cpp)
   catkin_add_gtest(pv_lio_plus_hvox_map_tests tests/hvox_map_tests.cpp)
   catkin_add_gtest(pv_lio_plus_hvox_observation_tests tests/hvox_observation_tests.cpp)
+  catkin_add_gtest(pv_lio_plus_i_octree_tests tests/i_octree_tests.cpp)
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/i_octree_numeric_oracle_tests.cpp)
+    catkin_add_gtest(pv_lio_plus_i_octree_numeric_oracle_tests tests/i_octree_numeric_oracle_tests.cpp)
+    if(TARGET pv_lio_plus_i_octree_numeric_oracle_tests)
+      target_compile_options(pv_lio_plus_i_octree_numeric_oracle_tests PRIVATE
+        -fno-fast-math -fno-associative-math -ffp-contract=off -fno-lto)
+      target_link_libraries(pv_lio_plus_i_octree_numeric_oracle_tests pv_lio_plus_i_octree_native ${catkin_LIBRARIES})
+    endif()
+  endif()
   if(PV_LIO_PLUS_ENABLE_ASAN_TESTS)
     catkin_add_gtest(pv_lio_plus_r_voxelmap_asan_tests tests/r_voxelmap_asan_tests.cpp)
+    add_library(pv_lio_plus_i_octree_asan_native STATIC include/map_manager/native/i_octree/i_octree.cpp)
+    target_include_directories(pv_lio_plus_i_octree_asan_native BEFORE PRIVATE ${PV_LIO_PLUS_EIGEN_INCLUDE_DIRS})
+    target_compile_options(pv_lio_plus_i_octree_asan_native PRIVATE -O1 -UNDEBUG
+      -fsanitize=address,undefined -fno-omit-frame-pointer
+      -fno-fast-math -fno-associative-math -ffp-contract=off -fno-lto)
+    set_target_properties(pv_lio_plus_i_octree_asan_native PROPERTIES INTERPROCEDURAL_OPTIMIZATION FALSE)
+    catkin_add_gtest(pv_lio_plus_i_octree_asan_tests tests/i_octree_tests.cpp)
   endif()
   if(TARGET pv_lio_plus_observation_tests)
     target_include_directories(pv_lio_plus_observation_tests BEFORE PRIVATE ${PV_LIO_PLUS_EIGEN_INCLUDE_DIRS})
@@ -112,20 +134,34 @@ if(CATKIN_ENABLE_TESTING)
     # manager implementation in one translation unit, just as mapping.cpp does.
     target_include_directories(pv_lio_plus_map_contract_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     add_dependencies(pv_lio_plus_map_contract_tests ${catkin_EXPORTED_TARGETS})
-    target_link_libraries(pv_lio_plus_map_contract_tests pv_lio_plus_hvox_native ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+    target_link_libraries(pv_lio_plus_map_contract_tests pv_lio_plus_hvox_native pv_lio_plus_i_octree_native ${catkin_LIBRARIES} ${PCL_LIBRARIES})
   endif()
   if(TARGET pv_lio_plus_r_voxelmap_tests)
     target_include_directories(pv_lio_plus_r_voxelmap_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     add_dependencies(pv_lio_plus_r_voxelmap_tests ${catkin_EXPORTED_TARGETS})
     # Keep Eigen bounds assertions active for degenerate and rebuild tests.
     target_compile_options(pv_lio_plus_r_voxelmap_tests PRIVATE -UNDEBUG -UEIGEN_NO_DEBUG)
-    target_link_libraries(pv_lio_plus_r_voxelmap_tests pv_lio_plus_hvox_native ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+    target_link_libraries(pv_lio_plus_r_voxelmap_tests pv_lio_plus_hvox_native pv_lio_plus_i_octree_native ${catkin_LIBRARIES} ${PCL_LIBRARIES})
   endif()
   if(TARGET pv_lio_plus_hvox_map_tests)
     target_include_directories(pv_lio_plus_hvox_map_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     add_dependencies(pv_lio_plus_hvox_map_tests ${catkin_EXPORTED_TARGETS})
     target_compile_options(pv_lio_plus_hvox_map_tests PRIVATE -UNDEBUG -UEIGEN_NO_DEBUG)
-    target_link_libraries(pv_lio_plus_hvox_map_tests pv_lio_plus_hvox_native ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+    target_link_libraries(pv_lio_plus_hvox_map_tests pv_lio_plus_hvox_native pv_lio_plus_i_octree_native ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+  endif()
+  if(TARGET pv_lio_plus_i_octree_tests)
+    target_include_directories(pv_lio_plus_i_octree_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    add_dependencies(pv_lio_plus_i_octree_tests ${catkin_EXPORTED_TARGETS})
+    target_compile_options(pv_lio_plus_i_octree_tests PRIVATE -UNDEBUG -UEIGEN_NO_DEBUG)
+    target_link_libraries(pv_lio_plus_i_octree_tests pv_lio_plus_hvox_native pv_lio_plus_i_octree_native ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+  endif()
+  if(TARGET pv_lio_plus_i_octree_asan_tests)
+    target_compile_definitions(pv_lio_plus_i_octree_asan_tests PRIVATE I_OCTREE_NATIVE_ONLY)
+    target_compile_options(pv_lio_plus_i_octree_asan_tests PRIVATE -O1 -UNDEBUG
+      -fsanitize=address,undefined -fno-omit-frame-pointer
+      -fno-fast-math -fno-associative-math -ffp-contract=off -fno-lto)
+    set_target_properties(pv_lio_plus_i_octree_asan_tests PROPERTIES LINK_FLAGS "-fsanitize=address,undefined" INTERPROCEDURAL_OPTIMIZATION FALSE)
+    target_link_libraries(pv_lio_plus_i_octree_asan_tests pv_lio_plus_i_octree_asan_native ${catkin_LIBRARIES})
   endif()
   if(TARGET pv_lio_plus_hvox_observation_tests)
     target_include_directories(pv_lio_plus_hvox_observation_tests BEFORE PRIVATE ${PV_LIO_PLUS_EIGEN_INCLUDE_DIRS})
