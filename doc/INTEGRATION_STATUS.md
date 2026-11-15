@@ -31,6 +31,13 @@ future adapter boundaries remain in the
   to reproduce that threshold, set the new radius to `sqrt(v)` metres. Existing
   iVox values already represented metres and remain unchanged.
 
+The later diagnostic fix `f6403f0` moves residual-sum accumulation outside
+the point-map, OctVox and C3P OpenMP loops. Observation `h/H/R` expressions
+are unchanged. The rebuilt node passed complete-input 30-second regressions
+for those three paths (288 output rows each); see
+[`DIAGNOSTIC_RACE_RESULTS.json`](workspace/evidence/DIAGNOSTIC_RACE_RESULTS.json).
+This check does not establish general thread safety.
+
 ## Eight backend contracts
 
 These entries describe current `MapManager` behavior, not equivalence between

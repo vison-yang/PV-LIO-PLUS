@@ -1,0 +1,133 @@
+{
+  "source_commit": "f6403f0c213e4ed8a5df16954451b778bbd3eeaf",
+  "binary_sha256": "493e70c91eb9b6e4cda93238580a172400a82ba9278f2d1010c01b66f98439c7",
+  "profile": "mapping/down_sample_size=0.5; visualization off; final PCD on",
+  "cases": [
+    {
+      "backend": "ivox",
+      "output_rows": 288,
+      "timing_rows": 288,
+      "input_complete": true,
+      "input_delivery": {
+        "/livox/lidar": {
+          "count": 301,
+          "first_stamp": 597.4993629,
+          "last_stamp": 627.49932562,
+          "header_sequence_sha256": "17bf43b52f5662adbe713513ea110b1d72c0efbe9bbd5cdeefba5845390ff35a"
+        },
+        "/livox/imu": {
+          "count": 6088,
+          "first_stamp": 597.50583931,
+          "last_stamp": 627.59773838,
+          "header_sequence_sha256": "a642f2c5c24c0f0d56708829d901d094b88fc19d3f7d9975eb33d989340f1906"
+        }
+      },
+      "first_output_stamp": 598.799258,
+      "last_output_stamp": 627.499322,
+      "finite_nonnegative_duration_columns": [
+        "search_ms",
+        "search_avg_ms",
+        "ikf_update_ms",
+        "ikf_update_avg_ms",
+        "map_update_ms",
+        "map_update_avg_ms",
+        "total_ms",
+        "total_avg_ms"
+      ],
+      "effective_points_min": 776,
+      "effective_points_median": 2842.0,
+      "effective_points_max": 3992,
+      "zero_constraint_frames": 0,
+      "native_map_size_min": 9131,
+      "native_map_size_max": 143138,
+      "max_quaternion_norm_error": 5.87770327298287e-07
+    },
+    {
+      "backend": "c3p_voxelmap",
+      "output_rows": 288,
+      "timing_rows": 288,
+      "input_complete": true,
+      "input_delivery": {
+        "/livox/lidar": {
+          "count": 301,
+          "first_stamp": 597.4993629,
+          "last_stamp": 627.49932562,
+          "header_sequence_sha256": "17bf43b52f5662adbe713513ea110b1d72c0efbe9bbd5cdeefba5845390ff35a"
+        },
+        "/livox/imu": {
+          "count": 6088,
+          "first_stamp": 597.50583931,
+          "last_stamp": 627.59773838,
+          "header_sequence_sha256": "a642f2c5c24c0f0d56708829d901d094b88fc19d3f7d9975eb33d989340f1906"
+        }
+      },
+      "first_output_stamp": 598.799258,
+      "last_output_stamp": 627.499322,
+      "finite_nonnegative_duration_columns": [
+        "search_ms",
+        "search_avg_ms",
+        "ikf_update_ms",
+        "ikf_update_avg_ms",
+        "map_update_ms",
+        "map_update_avg_ms",
+        "total_ms",
+        "total_avg_ms"
+      ],
+      "effective_points_min": 562,
+      "effective_points_median": 2669.0,
+      "effective_points_max": 3796,
+      "zero_constraint_frames": 0,
+      "native_map_size_min": 4149,
+      "native_map_size_max": 35379,
+      "max_quaternion_norm_error": 6.272688031216944e-07
+    },
+    {
+      "backend": "octvox",
+      "output_rows": 288,
+      "timing_rows": 288,
+      "input_complete": true,
+      "input_delivery": {
+        "/livox/lidar": {
+          "count": 301,
+          "first_stamp": 597.4993629,
+          "last_stamp": 627.49932562,
+          "header_sequence_sha256": "17bf43b52f5662adbe713513ea110b1d72c0efbe9bbd5cdeefba5845390ff35a"
+        },
+        "/livox/imu": {
+          "count": 6088,
+          "first_stamp": 597.50583931,
+          "last_stamp": 627.59773838,
+          "header_sequence_sha256": "a642f2c5c24c0f0d56708829d901d094b88fc19d3f7d9975eb33d989340f1906"
+        }
+      },
+      "first_output_stamp": 598.799258,
+      "last_output_stamp": 627.499322,
+      "finite_nonnegative_duration_columns": [
+        "search_ms",
+        "search_avg_ms",
+        "ikf_update_ms",
+        "ikf_update_avg_ms",
+        "map_update_ms",
+        "map_update_avg_ms",
+        "total_ms",
+        "total_avg_ms"
+      ],
+      "effective_points_min": 689,
+      "effective_points_median": 2730.0,
+      "effective_points_max": 3963,
+      "zero_constraint_frames": 0,
+      "native_map_size_min": 4099,
+      "native_map_size_max": 34258,
+      "max_quaternion_norm_error": 6.744567724314976e-07
+    }
+  ],
+  "limitations": "Regression only; no ground truth or controlled performance ranking",
+  "checked_on": "2026-11-15",
+  "node_build_exit_code": 0,
+  "feature_fix_commit": "1672ee09e3d74ba366a9145c5d79a0a3164290da",
+  "main_fix_commit": "f6403f0",
+  "scope": "serial row-order diagnostic sum after three OpenMP observation loops; no h/H/R expression changed",
+  "validation": "complete-input short replay of ivox shared point-plane, c3p_voxelmap and octvox; this is not a thread-sanitizer or general thread-safety claim",
+  "raw_batch": "output/integration-20261115/diagnostic-race-complete-30s-05m",
+  "node_ldd_exit_code": 0
+}
