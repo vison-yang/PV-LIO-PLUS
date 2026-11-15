@@ -67,6 +67,7 @@
 
 #include <Eigen/Core>
 #include <algorithm>
+#include <chrono>
 #include <csignal>
 #include <cstddef>
 #include <cstdint>
@@ -98,6 +99,17 @@ constexpr double kInitTime = 0.1;
 
 namespace pv_lio_plus
 {
+namespace
+{
+using TimingClock = std::chrono::steady_clock;
+static_assert(TimingClock::is_steady, "Elapsed-time measurements require a monotonic clock");
+
+double ElapsedMilliseconds(const TimingClock::time_point start)
+{
+    return std::chrono::duration<double, std::milli>(TimingClock::now() - start).count();
+}
+}  // namespace
+
 Mapping* Mapping::active_instance_ = nullptr;
 
 /** @brief Creates the node-owned mapping state. */
@@ -267,12 +279,12 @@ void Mapping::ObservationModelVoxelMap(state_ikfom& s, esekfom::dyn_share_datast
         // pv_list[i] = pv;
     }
 
-    ros::WallTime t0 = ros::WallTime::now();
+    const auto t0 = TimingClock::now();
     //* 3.查找最近点，计算残差
     std::vector<voxel_map_ns::ptpl> ptpl_list;
     std::vector<V3D> non_match_list;
     map_manager_->search(pv_list, ptpl_list, non_match_list);
-    search_time_ += (ros::WallTime::now() - t0).toSec() * 1000;
+    search_time_ += ElapsedMilliseconds(t0);
 
     //* 4.计算用于构建法方程的各矩阵向量，Computation of Measuremnt Jacobian matrix H and measurents vector
     // TODO 为什么不加上状态量对状态量误差的导数？？？？像quaternion那本书？
@@ -365,12 +377,12 @@ void Mapping::ObservationModelVoxelMapPlus(state_ikfom& s, esekfom::dyn_share_da
         pv.cov_world               = transformLidarCovToWorld(pv.point_lidar, kf_, cov_lidar);
     }
 
-    ros::WallTime t0 = ros::WallTime::now();
+    const auto t0 = TimingClock::now();
     //* 3.查找最近点，计算残差
     std::vector<voxel_map_plus_ns::ptpl> ptpl_list;
     std::vector<V3D> non_match_list;
     map_manager_->search(pv_list, ptpl_list, non_match_list);
-    search_time_ += (ros::WallTime::now() - t0).toSec() * 1000;
+    search_time_ += ElapsedMilliseconds(t0);
 
     //* 4.计算用于构建法方程的各矩阵向量，Computation of Measuremnt Jacobian matrix H and measurents vector
     // TODO 为什么不加上状态量对状态量误差的导数？？？？像quaternion那本书？
@@ -445,11 +457,11 @@ void Mapping::ObservationModelPointBackend(state_ikfom& s, esekfom::dyn_share_da
     transformLidar2World(s, feats_undistort_down_, feats_world);
     pv_lio_plus::MapPointList map_points = make_manager_points(feats_undistort_down_, feats_world, var_down_lidar_);
 
-    ros::WallTime t0 = ros::WallTime::now();
+    const auto t0 = TimingClock::now();
     pv_lio_plus::PlaneMatchList matches;
     std::vector<V3D> non_match_list;
     map_manager_->search(map_points, matches, non_match_list);
-    search_time_ += (ros::WallTime::now() - t0).toSec() * 1000;
+    search_time_ += ElapsedMilliseconds(t0);
 
     effective_feature_num_ = static_cast<int>(matches.size());
     if (effective_feature_num_ < 1)
@@ -544,11 +556,11 @@ void Mapping::ObservationModelOctVox(state_ikfom& s, esekfom::dyn_share_datastru
         map_points.emplace_back(point);
     }
 
-    ros::WallTime t0 = ros::WallTime::now();
+    const auto t0 = TimingClock::now();
     pv_lio_plus::PlaneMatchList matches;
     std::vector<V3D> non_match_list;
     map_manager_->search(map_points, matches, non_match_list);
-    search_time_ += (ros::WallTime::now() - t0).toSec() * 1000;
+    search_time_ += ElapsedMilliseconds(t0);
 
     effective_feature_num_ = static_cast<int>(matches.size());
     if (effective_feature_num_ < 1)
@@ -631,11 +643,11 @@ void Mapping::ObservationModelC3P(state_ikfom& s, esekfom::dyn_share_datastruct<
         map_points.emplace_back(point);
     }
 
-    ros::WallTime t0 = ros::WallTime::now();
+    const auto t0 = TimingClock::now();
     pv_lio_plus::PlaneMatchList matches;
     std::vector<V3D> non_match_list;
     map_manager_->search(map_points, matches, non_match_list);
-    search_time_ += (ros::WallTime::now() - t0).toSec() * 1000;
+    search_time_ += ElapsedMilliseconds(t0);
 
     effective_feature_num_ = static_cast<int>(matches.size());
     if (effective_feature_num_ < 1)
@@ -726,7 +738,7 @@ void Mapping::ObservationModel(state_ikfom& s, esekfom::dyn_share_datastruct<dou
 /** @brief Builds the initial local map after EKF initialization. */
 void Mapping::InitializeMap()
 {
-    ros::WallTime t1 = ros::WallTime::now();
+    const auto t1 = TimingClock::now();
 
     // Transform the first scan and build the backend-independent point list.
     PointCloudXYZI::Ptr feats_world(new PointCloudXYZI);
@@ -739,9 +751,9 @@ void Mapping::InitializeMap()
     }
     map_manager_->initialize(make_manager_points(feats_undistort_, feats_world, cov_lidar));
 
-    double map_build_time = (ros::WallTime::now() - t1).toSec();
+    const double map_build_time_ms = ElapsedMilliseconds(t1);
     std::cout << std::fixed << "[Init Map] Build " << pv_lio_plus::MapTypeName(config_.map_manager_config().type)
-              << ": " << map_build_time * 1000 << " ms\n";
+              << ": " << map_build_time_ms << " ms\n";
 
     map_initialized_ = true;
 }
@@ -896,7 +908,7 @@ int Mapping::Run()
     {
         ros::spinOnce();
 
-        ros::WallTime t0 = ros::WallTime::now();
+        const auto t0 = TimingClock::now();
 
         if (publish_subscribe_.SyncPackages())
         {
@@ -951,9 +963,9 @@ int Mapping::Run()
 
             // Run the iterated EKF observation update.
             search_time_     = 0.;
-            ros::WallTime t2 = ros::WallTime::now();
+            const auto t2 = TimingClock::now();
             bool bConverged  = kf_.update_iterated_dyn_share_diagonal();
-            eseikf_time_     = (ros::WallTime::now() - t2).toSec() * 1000;
+            eseikf_time_     = ElapsedMilliseconds(t2);
             // Extract the corrected state and update the local map.
             state_point_ = kf_.get_x();
             geo_quat_.x  = state_point_.rot.coeffs()[0];
@@ -961,9 +973,9 @@ int Mapping::Run()
             geo_quat_.z  = state_point_.rot.coeffs()[2];
             geo_quat_.w  = state_point_.rot.coeffs()[3];
 
-            ros::WallTime t3 = ros::WallTime::now();
+            const auto t3 = TimingClock::now();
             UpdateMap();
-            update_time_ = (ros::WallTime::now() - t3).toSec() * 1000;
+            update_time_ = ElapsedMilliseconds(t3);
 
             // std::printf("BA: %.4f %.4f %.4f   \nBG: %.4f %.4f %.4f   \ng: %.4f %.4f %.4f\n",
             //             state_point_.ba.x(), state_point_.ba.y(), state_point_.ba.z(),
@@ -979,7 +991,7 @@ int Mapping::Run()
                                              config_.publish_max_voxel_layer_);
             if (map_cloud) publish_subscribe_.PublishMapSnapshot(*map_cloud, lidar_end_time);
 
-            total_time_ = (ros::WallTime::now() - t0).toSec() * 1000;
+            total_time_ = ElapsedMilliseconds(t0);
 
             const double frame_count = static_cast<double>(scan_total_count_ + 1);
             avg_eseikf_time_ += (eseikf_time_ - avg_eseikf_time_) / frame_count;
