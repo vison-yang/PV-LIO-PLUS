@@ -54,14 +54,18 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(Eigen3 REQUIRED)
+get_target_property(PV_LIO_PLUS_EIGEN_INCLUDE_DIRS Eigen3::Eigen INTERFACE_INCLUDE_DIRECTORIES)
+if(NOT PV_LIO_PLUS_EIGEN_INCLUDE_DIRS)
+  message(FATAL_ERROR "Eigen3::Eigen does not expose its include directory")
+endif()
 find_package(PCL 1.8 REQUIRED)
 #find_package(GTSAM REQUIRED QUIET)
 
-message(Eigen: ${EIGEN3_INCLUDE_DIR})
+message(STATUS "Selected Eigen include directories: ${PV_LIO_PLUS_EIGEN_INCLUDE_DIRS}")
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIR}
+  ${PV_LIO_PLUS_EIGEN_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
   ${PYTHON_INCLUDE_DIRS}
   include)
@@ -72,6 +76,13 @@ catkin_package(
   INCLUDE_DIRS
 )
 
+add_library(pv_lio_plus_hvox_native STATIC
+  include/map_manager/native/hvox/VoxelMap.cpp
+  include/map_manager/native/hvox/ProbabilisticKernelOptimizer.cpp
+  src/map_manager/hvox_observation.cpp)
+target_include_directories(pv_lio_plus_hvox_native BEFORE PRIVATE ${PV_LIO_PLUS_EIGEN_INCLUDE_DIRS})
+target_link_libraries(pv_lio_plus_hvox_native ${catkin_LIBRARIES})
+
 add_executable(pv_lio_plus_node
   src/lio_main.cpp
   src/mapping.cpp
@@ -80,7 +91,7 @@ add_executable(pv_lio_plus_node
   src/imu_processing.cpp
   src/publish_subscribe.cpp)
 add_dependencies(pv_lio_plus_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(pv_lio_plus_node ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES})
+target_link_libraries(pv_lio_plus_node pv_lio_plus_hvox_native ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES})
 target_include_directories(pv_lio_plus_node PRIVATE ${PYTHON_INCLUDE_DIRS})
 
 if(CATKIN_ENABLE_TESTING)
@@ -88,24 +99,40 @@ if(CATKIN_ENABLE_TESTING)
   catkin_add_gtest(pv_lio_plus_observation_tests tests/observation_tests.cpp)
   catkin_add_gtest(pv_lio_plus_map_contract_tests tests/map_contract_tests.cpp)
   catkin_add_gtest(pv_lio_plus_r_voxelmap_tests tests/r_voxelmap_tests.cpp src/utils.cpp src/preprocess.cpp)
+  catkin_add_gtest(pv_lio_plus_hvox_map_tests tests/hvox_map_tests.cpp)
+  catkin_add_gtest(pv_lio_plus_hvox_observation_tests tests/hvox_observation_tests.cpp)
   if(PV_LIO_PLUS_ENABLE_ASAN_TESTS)
     catkin_add_gtest(pv_lio_plus_r_voxelmap_asan_tests tests/r_voxelmap_asan_tests.cpp)
+  endif()
+  if(TARGET pv_lio_plus_observation_tests)
+    target_include_directories(pv_lio_plus_observation_tests BEFORE PRIVATE ${PV_LIO_PLUS_EIGEN_INCLUDE_DIRS})
   endif()
   if(TARGET pv_lio_plus_map_contract_tests)
     # Native map headers define non-inline functions; the test includes the
     # manager implementation in one translation unit, just as mapping.cpp does.
     target_include_directories(pv_lio_plus_map_contract_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     add_dependencies(pv_lio_plus_map_contract_tests ${catkin_EXPORTED_TARGETS})
-    target_link_libraries(pv_lio_plus_map_contract_tests ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+    target_link_libraries(pv_lio_plus_map_contract_tests pv_lio_plus_hvox_native ${catkin_LIBRARIES} ${PCL_LIBRARIES})
   endif()
   if(TARGET pv_lio_plus_r_voxelmap_tests)
     target_include_directories(pv_lio_plus_r_voxelmap_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     add_dependencies(pv_lio_plus_r_voxelmap_tests ${catkin_EXPORTED_TARGETS})
     # Keep Eigen bounds assertions active for degenerate and rebuild tests.
     target_compile_options(pv_lio_plus_r_voxelmap_tests PRIVATE -UNDEBUG -UEIGEN_NO_DEBUG)
-    target_link_libraries(pv_lio_plus_r_voxelmap_tests ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+    target_link_libraries(pv_lio_plus_r_voxelmap_tests pv_lio_plus_hvox_native ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+  endif()
+  if(TARGET pv_lio_plus_hvox_map_tests)
+    target_include_directories(pv_lio_plus_hvox_map_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    add_dependencies(pv_lio_plus_hvox_map_tests ${catkin_EXPORTED_TARGETS})
+    target_compile_options(pv_lio_plus_hvox_map_tests PRIVATE -UNDEBUG -UEIGEN_NO_DEBUG)
+    target_link_libraries(pv_lio_plus_hvox_map_tests pv_lio_plus_hvox_native ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+  endif()
+  if(TARGET pv_lio_plus_hvox_observation_tests)
+    target_include_directories(pv_lio_plus_hvox_observation_tests BEFORE PRIVATE ${PV_LIO_PLUS_EIGEN_INCLUDE_DIRS})
+    target_link_libraries(pv_lio_plus_hvox_observation_tests pv_lio_plus_hvox_native ${catkin_LIBRARIES})
   endif()
   if(TARGET pv_lio_plus_r_voxelmap_asan_tests)
+    target_include_directories(pv_lio_plus_r_voxelmap_asan_tests BEFORE PRIVATE ${PV_LIO_PLUS_EIGEN_INCLUDE_DIRS})
     target_compile_options(pv_lio_plus_r_voxelmap_asan_tests PRIVATE
       -O1 -UNDEBUG -UEIGEN_NO_DEBUG -fsanitize=address -fno-omit-frame-pointer)
     set_target_properties(pv_lio_plus_r_voxelmap_asan_tests PROPERTIES LINK_FLAGS "-fsanitize=address")

@@ -23,6 +23,7 @@
 namespace pv_lio_plus
 {
 class MapManager;
+class HVoxObservationGroup;
 struct MapManagerConfig;
 struct MapPoint;
 
@@ -65,6 +66,7 @@ class Mapping
     void ObservationModelC3P(state_ikfom& state, esekfom::dyn_share_datastruct<double>& ekfom_data);
     void ObservationModelOctVox(state_ikfom& state, esekfom::dyn_share_datastruct<double>& ekfom_data);
     void ObservationModelRVoxelMap(state_ikfom& state, esekfom::dyn_share_datastruct<double>& ekfom_data);
+    void ObservationModelHVox(state_ikfom& state, esekfom::dyn_share_datastruct<double>& ekfom_data);
 
     // ---------------------- Geometry and conversion --------------------------
     void transformLidar2World(const state_ikfom& state, const PointCloudXYZI::Ptr& input_cloud,
@@ -106,6 +108,7 @@ class Mapping
 
     // --------------------------------- Map ------------------------------------
     std::unique_ptr<pv_lio_plus::MapManager> map_manager_;
+    std::unique_ptr<HVoxObservationGroup> hvox_observations_;
     bool map_initialized_ = false;
 
     // -------------------------- ROS transport state ---------------------------

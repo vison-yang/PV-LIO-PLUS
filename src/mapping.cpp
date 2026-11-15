@@ -81,6 +81,7 @@
 #include <thread>
 
 #include "imu_processing.hpp"
+#include "map_manager/hvox_observation.h"
 #include "map_manager/map_manager.h"
 #include "map_manager/point_plane_jacobian.h"
 #include "map_manager/r_voxelmap_observation.h"
@@ -754,6 +755,84 @@ void Mapping::ObservationModelRVoxelMap(state_ikfom& s, esekfom::dyn_share_datas
     res_mean_last_ = total_residual_ / effective_feature_num_;
 }
 
+/** hvox_pko_ikfom: fixed surfels within a group, current-state signed residuals. */
+void Mapping::ObservationModelHVox(state_ikfom& s, esekfom::dyn_share_datastruct<double>& ekfom_data)
+{
+    effective_feature_num_ = 0;
+    total_residual_ = 0.0;
+    if (!hvox_observations_)
+    {
+        ekfom_data.valid = false;
+        return;
+    }
+
+    if (hvox_observations_->NeedsRefresh(ekfom_data.converge, map_manager_->revision()))
+    {
+        MapPointList points;
+        points.reserve(feats_undistort_down_->size());
+        for (const auto &source : feats_undistort_down_->points)
+        {
+            MapPoint point;
+            point.point_lidar = V3D(source.x, source.y, source.z);
+            point.point_world = s.rot * (s.offset_R_L_I * point.point_lidar + s.offset_T_L_I) + s.pos;
+            points.push_back(point);
+        }
+        PlaneMatchList matches;
+        std::vector<V3D> non_match;
+        const auto start = TimingClock::now();
+        try
+        {
+            map_manager_->search(points, matches, non_match);
+        }
+        catch (const std::exception &exception)
+        {
+            search_time_ += ElapsedMilliseconds(start);
+            hvox_observations_->BeginFrame();
+            ekfom_data.valid = false;
+            ROS_WARN_THROTTLE(1.0, "hVox match rejected: %s", exception.what());
+            return;
+        }
+        search_time_ += ElapsedMilliseconds(start);
+        HVoxCorrespondences group;
+        group.reserve(matches.size());
+        for (const auto &match : matches)
+        {
+            HVoxCorrespondence correspondence;
+            correspondence.point_lidar = match.point;
+            correspondence.normal_world = match.normal;
+            correspondence.center_world = match.center;
+            group.push_back(correspondence);
+        }
+        if (!hvox_observations_->Refresh(group, s.rot, s.offset_R_L_I, s.offset_T_L_I, s.pos,
+                                         map_manager_->revision()))
+        {
+            ekfom_data.valid = false;
+            return;
+        }
+    }
+
+    HVoxObservationRows rows;
+    if (!hvox_observations_->Evaluate(s.rot, s.offset_R_L_I, s.offset_T_L_I, s.pos, config_.extrinsic_est_en_,
+                                      config_.map_manager_config().hvox_lidar_noise_std, rows))
+    {
+        ekfom_data.valid = false;
+        return;
+    }
+    effective_feature_num_ = static_cast<int>(rows.size());
+    ekfom_data.h_x.resize(effective_feature_num_, 12);
+    ekfom_data.h.resize(effective_feature_num_);
+    ekfom_data.R.resize(effective_feature_num_, 1);
+    for (int i = 0; i < effective_feature_num_; ++i)
+    {
+        const auto &row = rows[static_cast<std::size_t>(i)];
+        ekfom_data.h_x.row(i) = row.jacobian;
+        ekfom_data.h(i) = row.residual;
+        ekfom_data.R(i) = row.information;
+        total_residual_ += std::abs(row.residual);
+    }
+    res_mean_last_ = total_residual_ / effective_feature_num_;
+}
+
 /**
  * @brief Dispatches the EKF observation model to the selected map backend.
  * @param s Current iterated filter state.
@@ -781,6 +860,10 @@ void Mapping::ObservationModel(state_ikfom& s, esekfom::dyn_share_datastruct<dou
     {
         ObservationModelRVoxelMap(s, ekfom_data);
     }
+    else if (config_.map_manager_config().type == pv_lio_plus::MapType::HVox)
+    {
+        ObservationModelHVox(s, ekfom_data);
+    }
     else
     {
         ObservationModelPointBackend(s, ekfom_data);
@@ -801,7 +884,10 @@ void Mapping::InitializeMap()
     {
         cov_lidar.emplace_back(calc_lidar_cov_for_backend(V3D(point.x, point.y, point.z)));
     }
-    map_manager_->initialize(make_manager_points(feats_undistort_, feats_world, cov_lidar));
+    MapUpdateContext context;
+    context.imu_position_world = V3D(state_point_.pos);
+    map_manager_->initialize(make_manager_points(feats_undistort_, feats_world, cov_lidar), context);
+    if (hvox_observations_) hvox_observations_->BeginFrame();
 
     const double map_build_time_ms = ElapsedMilliseconds(t1);
     std::cout << std::fixed << "[Init Map] Build " << pv_lio_plus::MapTypeName(config_.map_manager_config().type)
@@ -827,11 +913,14 @@ void Mapping::UpdateMap()
                          }),
                          map_points.end());
     }
-    std::sort(map_points.begin(), map_points.end(),
-              [](const pv_lio_plus::MapPoint& lhs, const pv_lio_plus::MapPoint& rhs) {
-                  return lhs.cov_world.diagonal().norm() < rhs.cov_world.diagonal().norm();
-              });
-    map_manager_->update(map_points, static_cast<std::uint32_t>(scan_total_count_));
+    if (config_.map_manager_config().type != MapType::HVox)
+        std::sort(map_points.begin(), map_points.end(),
+                  [](const pv_lio_plus::MapPoint& lhs, const pv_lio_plus::MapPoint& rhs) {
+                      return lhs.cov_world.diagonal().norm() < rhs.cov_world.diagonal().norm();
+                  });
+    MapUpdateContext context;
+    context.imu_position_world = V3D(state_point_.pos);
+    map_manager_->update(map_points, static_cast<std::uint32_t>(scan_total_count_), context);
     if (config_.map_manager_config().local_window_enabled)
     {
         map_manager_->move_window(state_point_.pos, V3D(config_.det_range_, config_.det_range_, config_.det_range_));
@@ -950,6 +1039,10 @@ int Mapping::Run()
                   pv_lio_plus::MapTypeName(config_.map_manager_config().type));
         return 1;
     }
+    if (config_.map_manager_config().type == MapType::HVox)
+        hvox_observations_ = std::make_unique<HVoxObservationGroup>();
+    else
+        hvox_observations_.reset();
     OpenTimingLog();
 
     down_size_filter_surf_.setLeafSize(config_.filter_size_surf_min_, config_.filter_size_surf_min_,
@@ -1031,6 +1124,7 @@ int Mapping::Run()
             }
 
             // Run the iterated EKF observation update.
+            if (hvox_observations_) hvox_observations_->BeginFrame();
             search_time_     = 0.;
             const auto t2 = TimingClock::now();
             bool bConverged  = kf_.update_iterated_dyn_share_diagonal();

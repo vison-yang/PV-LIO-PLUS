@@ -71,6 +71,11 @@ bool Config::Load(ros::NodeHandle& nh)
         ROS_FATAL("mapping/local_window_en is not supported by R-VoxelMap; it uses native LRU eviction");
         return false;
     }
+    if (map_manager_config_->type == MapType::HVox && map_manager_config_->local_window_enabled)
+    {
+        ROS_FATAL("mapping/local_window_en is not supported by hVox; it uses its native moving box");
+        return false;
+    }
     nh.param<int>("mapping/nearest_point_count", map_manager_config_->nearest_point_count, NUM_MATCH_POINTS);
     nh.param<double>("mapping/nearest_max_range", map_manager_config_->nearest_max_range, 5.0);
     if ((map_manager_config_->type == MapType::IKDTree || map_manager_config_->type == MapType::IVox) &&
@@ -124,6 +129,13 @@ bool Config::Load(ros::NodeHandle& nh)
     nh.param<int>("mapping/r_voxelmap_valid_check_min_points_size",
                   map_manager_config_->r_valid_check_min_points_size, 10);
     nh.param<int>("mapping/r_voxelmap_valid_check_resolution", map_manager_config_->r_valid_check_resolution, 5);
+
+    nh.param<double>("mapping/hvox_voxel_size", map_manager_config_->hvox_voxel_size, 0.4);
+    nh.param<int>("mapping/hvox_hierarchy_factor", map_manager_config_->hvox_hierarchy_factor, 3);
+    nh.param<double>("mapping/hvox_planarity_threshold", map_manager_config_->hvox_planarity_threshold, 0.01);
+    nh.param<double>("mapping/hvox_max_distance", map_manager_config_->hvox_max_distance, 50.0);
+    nh.param<double>("mapping/hvox_box_multiplier", map_manager_config_->hvox_box_multiplier, 2.0);
+    nh.param<double>("mapping/hvox_lidar_noise_std", map_manager_config_->hvox_lidar_noise_std, 0.05);
 
     // ------------------------------ Noise and output --------------------------
     nh.param<double>("noise_model/ranging_cov", ranging_cov_, 0.02);

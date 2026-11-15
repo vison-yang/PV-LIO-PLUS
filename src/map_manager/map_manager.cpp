@@ -12,6 +12,7 @@
  */
 
 #include "map_manager/map_manager.h"
+#include "map_manager/native/hvox/VoxelMap.h"
 #include "map_manager/native/r_voxelmap/r_voxelmap.hpp"
 
 // ikd-tree is a header/template implementation.  Keep the native source in
@@ -29,6 +30,68 @@ namespace pv_lio_plus
 {
 namespace
 {
+void ValidateHVoxConfig(const MapManagerConfig &config)
+{
+    const float resolution = static_cast<float>(config.hvox_voxel_size);
+    const float distance = static_cast<float>(config.hvox_max_distance);
+    const float multiplier = static_cast<float>(config.hvox_box_multiplier);
+    const float planarity = static_cast<float>(config.hvox_planarity_threshold);
+    const auto positive = [](double value) { return std::isfinite(value) && value > 0.0; };
+    if (!positive(config.hvox_voxel_size) || !positive(resolution) ||
+        config.hvox_hierarchy_factor <= 0 || config.hvox_hierarchy_factor > (1 << 20) ||
+        config.hvox_hierarchy_factor % 2 == 0 ||
+        !positive(resolution * static_cast<float>(config.hvox_hierarchy_factor)) ||
+        !std::isfinite(config.hvox_planarity_threshold) || config.hvox_planarity_threshold < 0.0 ||
+        !std::isfinite(planarity) || !positive(config.hvox_max_distance) || !positive(distance) ||
+        !positive(config.hvox_box_multiplier) || !positive(multiplier) ||
+        !positive(distance * multiplier) || !positive(distance / multiplier) ||
+        !std::isfinite(config.hvox_lidar_noise_std) || config.hvox_lidar_noise_std < 0.0 ||
+        !std::isfinite(config.hvox_lidar_noise_std * config.hvox_lidar_noise_std))
+    {
+        throw std::invalid_argument("invalid mapping/hvox parameters");
+    }
+    if (config.local_window_enabled)
+    {
+        throw std::invalid_argument("mapping/local_window_en is not supported by hVox; it uses its native moving box");
+    }
+}
+
+// The native implementation bins floats into int keys and offsets Morton keys.
+// Check before conversion so nonfinite/out-of-range coordinates cannot invoke
+// undefined float-to-int conversion or signed overflow in the native code.
+void ValidateHVoxCoordinate(const V3D &position, const MapManagerConfig &config)
+{
+    if (!position.allFinite()) throw std::invalid_argument("hVox point must be finite");
+    const float resolution = static_cast<float>(config.hvox_voxel_size);
+    const double min_key = static_cast<double>(std::numeric_limits<int>::min()) + config.hvox_hierarchy_factor - 1;
+    const double max_key = static_cast<double>(std::numeric_limits<int>::max()) - (1 << 20);
+    for (int axis = 0; axis < 3; ++axis)
+    {
+        const float value = static_cast<float>(position[axis]);
+        const float quotient = value / resolution;
+        const double key = std::floor(static_cast<double>(quotient));
+        if (!std::isfinite(value) || !std::isfinite(quotient) || key < min_key || key > max_key)
+            throw std::invalid_argument("hVox point is outside the native float voxel-key domain");
+    }
+}
+
+void ValidateHVoxUpdate(const MapPointList &points, const MapUpdateContext &context,
+                        const MapManagerConfig &config)
+{
+    if (!context.imu_position_world || !context.imu_position_world->allFinite() ||
+        !context.imu_position_world->cast<float>().allFinite())
+        throw std::invalid_argument("hVox requires a finite world-frame IMU position");
+    for (const auto &point : points) ValidateHVoxCoordinate(point.point_world, config);
+}
+
+lio::PointCloudPtr ToHVoxCloud(const MapPointList &points)
+{
+    auto cloud = std::make_shared<lio::PointCloud>();
+    cloud->reserve(points.size());
+    for (const auto &point : points) cloud->push_back(lio::Point3D::from_eigen(point.point_world));
+    return cloud;
+}
+
 r_voxelmap_ns::voxel_map_config MakeRVoxelConfig(const MapManagerConfig &config)
 {
     r_voxelmap_ns::voxel_map_config native{};
@@ -134,6 +197,10 @@ MapType ParseMapType(const std::string &name)
     {
         return MapType::RVoxelMap;
     }
+    if (name == "hvox" || name == "h_vox" || name == "h-vox")
+    {
+        return MapType::HVox;
+    }
 
     throw std::invalid_argument("unknown mapping/map_type: " + name);
 }
@@ -161,6 +228,8 @@ const char *MapTypeName(const MapType type)
             return "octvox";
         case MapType::RVoxelMap:
             return "r_voxelmap";
+        case MapType::HVox:
+            return "hvox";
     }
     return "unknown";
 }
@@ -199,6 +268,7 @@ void MapManager::configure(const MapManagerConfig &config)
     {
         static_cast<void>(MakeRVoxelConfig(config));
     }
+    if (config.type == MapType::HVox) ValidateHVoxConfig(config);
     if (config.type == MapType::OctVox && config.local_window_enabled)
     {
         throw std::invalid_argument(
@@ -222,6 +292,7 @@ void MapManager::configure(const MapManagerConfig &config)
     voxel_map_plus_ns::sigma_num             = static_cast<int>(config_.sigma_num);
     voxel_map_plus_ns::quater_length         = config_.voxel_size / 4.0;
     configure_point_backends();
+    ++revision_;
 }
 
 /**
@@ -259,7 +330,7 @@ bool MapManager::supports_selected_backend() const
 {
     return config_.type == MapType::VoxelMap || config_.type == MapType::VoxelMapPlus ||
            config_.type == MapType::IKDTree || config_.type == MapType::IVox || config_.type == MapType::C3PVoxelMap ||
-           config_.type == MapType::OctVox || config_.type == MapType::RVoxelMap;
+           config_.type == MapType::OctVox || config_.type == MapType::RVoxelMap || config_.type == MapType::HVox;
 }
 
 /**
@@ -281,6 +352,7 @@ void MapManager::configure_point_backends()
     ivox_.reset();
     octvox_.reset();
     r_voxelmap_.reset();
+    hvox_.reset();
 
     if (config_.type == MapType::IKDTree)
     {
@@ -325,6 +397,13 @@ void MapManager::configure_point_backends()
         r_voxelmap_ = std::make_unique<r_voxelmap_ns::VoxelMap>();
         r_voxelmap_->init(MakeRVoxelConfig(config_));
     }
+    else if (config_.type == MapType::HVox)
+    {
+        hvox_ = std::make_unique<lio::VoxelMap>(static_cast<float>(config_.hvox_voxel_size));
+        hvox_->SetHierarchyFactor(config_.hvox_hierarchy_factor);
+        hvox_->SetPlanarityThreshold(static_cast<float>(config_.hvox_planarity_threshold));
+        hvox_->SetMapBoxMultiplier(static_cast<float>(config_.hvox_box_multiplier));
+    }
 }
 
 /** @brief Clears all backend data, retained points, and window state. */
@@ -354,10 +433,12 @@ void MapManager::clear()
     ikd_tree_.reset();
     octvox_.reset();
     r_voxelmap_.reset();
+    hvox_.reset();
 
     map_points_.clear();
     initialized_ = false;
     window_      = MapWindow();
+    ++revision_;
 }
 
 /**
@@ -539,7 +620,7 @@ bool MapManager::fit_point_plane(const MapPoint &query, const PointVector &neigh
  * @param points Initial points in LiDAR and world frames.
  * @throws std::logic_error If the selected backend cannot be initialized.
  */
-void MapManager::initialize(const MapPointList &points)
+void MapManager::initialize(const MapPointList &points, const MapUpdateContext &context)
 {
     require_supported_backend();
     if (config_.type == MapType::VoxelMap)
@@ -574,10 +655,37 @@ void MapManager::initialize(const MapPointList &points)
     {
         initialize_r_voxelmap(points);
     }
+    else if (config_.type == MapType::HVox)
+    {
+        initialize_hvox(points, context);
+    }
     else
     {
         initialize_point_backend(points);
     }
+}
+
+void MapManager::initialize_hvox(const MapPointList &points, const MapUpdateContext &context)
+{
+    ValidateHVoxUpdate(points, context, config_);  // Before destroying an existing map.
+    auto cloud = ToHVoxCloud(points);
+    clear();
+    configure_point_backends();
+    hvox_->UpdateVoxelMap(cloud, *context.imu_position_world, config_.hvox_max_distance, true);
+    initialized_ = true;
+    ++revision_;
+}
+
+void MapManager::update_hvox(const MapPointList &points, const MapUpdateContext &context)
+{
+    ValidateHVoxUpdate(points, context, config_);  // Never mutate the map on rejected input.
+    if (!initialized_)
+    {
+        initialize_hvox(points, context);
+        return;
+    }
+    hvox_->UpdateVoxelMap(ToHVoxCloud(points), *context.imu_position_world, config_.hvox_max_distance, true);
+    ++revision_;
 }
 
 void MapManager::initialize_r_voxelmap(const MapPointList &points)
@@ -787,7 +895,7 @@ void MapManager::initialize_voxel_map_plus(const std::vector<voxel_map_plus_ns::
  * @param frame_number Backend update frame number.
  * @throws std::logic_error If the selected backend is unsupported.
  */
-void MapManager::update(const MapPointList &points, const std::uint32_t frame_number)
+void MapManager::update(const MapPointList &points, const std::uint32_t frame_number, const MapUpdateContext &context)
 {
     require_supported_backend();
     if (config_.type == MapType::VoxelMap)
@@ -835,6 +943,10 @@ void MapManager::update(const MapPointList &points, const std::uint32_t frame_nu
     else if (config_.type == MapType::RVoxelMap)
     {
         update_r_voxelmap(points);
+    }
+    else if (config_.type == MapType::HVox)
+    {
+        update_hvox(points, context);
     }
     else
     {
@@ -1260,9 +1372,50 @@ void MapManager::search(const MapPointList &points, PlaneMatchList &matches, std
     {
         search_r_voxelmap(points, matches, non_match);
     }
+    else if (config_.type == MapType::HVox)
+    {
+        search_hvox(points, matches, non_match);
+    }
     else
     {
         search_point_backend(points, matches, non_match);
+    }
+}
+
+void MapManager::search_hvox(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match)
+{
+    // Reject the whole observation before querying if any input is invalid.
+    for (const auto &point : points)
+    {
+        if (!point.point_lidar.allFinite()) throw std::invalid_argument("hVox LiDAR point must be finite");
+        ValidateHVoxCoordinate(point.point_world, config_);
+    }
+    if (!hvox_)
+    {
+        for (const auto &point : points) non_match.push_back(point.point_world);
+        return;
+    }
+    for (const auto &point : points)
+    {
+        Eigen::Vector3f normal, center;
+        float planarity = 0.0f;
+        if (!hvox_->GetSurfelAtPoint(lio::Point3D::from_eigen(point.point_world), normal, center, planarity))
+        {
+            non_match.push_back(point.point_world);
+            continue;
+        }
+        if (!normal.allFinite() || !center.allFinite() || !std::isfinite(planarity) || normal.squaredNorm() < 1e-12f)
+            throw std::runtime_error("hVox produced a nonfinite or degenerate surfel");
+        PlaneMatch match;
+        match.map_type = MapType::HVox;
+        match.point = point.point_lidar;
+        match.point_world = point.point_world;
+        // Preserve the native normal sign: the imported PKO is asymmetric.
+        match.normal = normal.cast<double>();
+        match.center = center.cast<double>();
+        match.distance = match.normal.dot(match.point_world - match.center);
+        if (!std::isfinite(match.distance)) throw std::runtime_error("hVox residual is nonfinite");
+        matches.push_back(match);
     }
 }
 
@@ -1621,6 +1774,10 @@ void MapManager::erase_outside_window(const MapWindow &window)
     {
         throw std::logic_error("R-VoxelMap does not support geometric local-window deletion");
     }
+    if (config_.type == MapType::HVox)
+    {
+        throw std::logic_error("hVox does not support public geometric local-window deletion");
+    }
     if (!window.initialized)
     {
         return;
@@ -1800,6 +1957,11 @@ const MapWindow &MapManager::window() const
     return window_;
 }
 
+std::uint64_t MapManager::revision() const
+{
+    return revision_;
+}
+
 /**
  * @brief Returns the backend-dependent map size.
  * @return Number of backend entries or valid grids.
@@ -1834,6 +1996,10 @@ size_t MapManager::size() const
     {
         return r_voxelmap_ ? r_voxelmap_->feat_map.size() : 0;
     }
+    if (config_.type == MapType::HVox)
+    {
+        return hvox_ ? hvox_->GetVoxelCount() : 0;
+    }
     return 0;
 }
 
@@ -1843,6 +2009,7 @@ size_t MapManager::size() const
  */
 size_t MapManager::point_count() const
 {
+    if (config_.type == MapType::HVox) return hvox_ ? hvox_->GetPointCount() : 0;
     if (config_.type == MapType::RVoxelMap)
     {
         std::size_t count = 0;
@@ -1860,6 +2027,16 @@ size_t MapManager::point_count() const
 PointCloudXYZI::Ptr MapManager::snapshot() const
 {
     PointCloudXYZI::Ptr result(new PointCloudXYZI());
+    if (config_.type == MapType::HVox)
+    {
+        if (hvox_)
+        {
+            const auto centers = hvox_->GetL0Centroids();
+            result->reserve(centers.size());
+            for (const auto &center : centers) result->push_back(ToPointType(center.cast<double>()));
+        }
+        return result;
+    }
     if (config_.type == MapType::RVoxelMap)
     {
         if (r_voxelmap_)

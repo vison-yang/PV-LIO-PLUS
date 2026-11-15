@@ -420,6 +420,16 @@ TEST(RVoxelMapConfiguration, SelectorAndOutputStemAreDistinct)
         EXPECT_NE(stem, result_file_stem(pv_lio_plus::MapTypeName(type)));
 }
 
+TEST(HVoxConfiguration, SelectorAliasesAndOutputStemAreDistinct)
+{
+    EXPECT_EQ(pv_lio_plus::ParseMapType("hvox"), MapType::HVox);
+    EXPECT_EQ(pv_lio_plus::ParseMapType("h_vox"), MapType::HVox);
+    EXPECT_EQ(pv_lio_plus::ParseMapType("h-vox"), MapType::HVox);
+    EXPECT_EQ(result_file_stem(pv_lio_plus::MapTypeName(MapType::HVox)), "pv_lio_hvox");
+    EXPECT_NE(result_file_stem(pv_lio_plus::MapTypeName(MapType::HVox)),
+              result_file_stem(pv_lio_plus::MapTypeName(MapType::RVoxelMap)));
+}
+
 TEST(RVoxelMapObservation, MatchesAuthorSensorAndPlaneCovarianceWeight)
 {
     const Eigen::Vector3d pl(1.4, -2.0, 0.7), pw(1, 2, 3), normal(1, 0, 0), center(-1, 3, 2.5);

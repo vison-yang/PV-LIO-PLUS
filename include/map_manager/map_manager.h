@@ -24,6 +24,7 @@
 #include <cmath>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -31,6 +32,7 @@
 
 class ImuProcess;
 namespace r_voxelmap_ns { class VoxelMap; }
+namespace lio { class VoxelMap; }
 
 #include "common_lib.h"
 #include "native/c3p_voxelmap/c3p_voxel_map_util.hpp"
@@ -58,7 +60,9 @@ enum class MapType
     /// Super-LIO's LRU octant-aggregated OctVox point map.
     OctVox,
     /// R-VoxelMap with recursive inlier/outlier planes and native LRU.
-    RVoxelMap
+    RVoxelMap,
+    /// Surfel-LIO's two-level hVox map and precomputed L1 surfels.
+    HVox
 };
 
 MapType ParseMapType(const std::string &name);
@@ -89,6 +93,12 @@ struct MapPoint
 
 /** @brief Eigen-aligned collection of map points. */
 using MapPointList = std::vector<MapPoint, Eigen::aligned_allocator<MapPoint>>;
+
+/** World-frame IMU position required by the hVox native moving box. */
+struct MapUpdateContext
+{
+    std::optional<V3D> imu_position_world;
+};
 
 /**
  * @brief Backend-independent point-to-plane match.
@@ -216,6 +226,14 @@ struct MapManagerConfig
     int r_valid_check_min_points_size = 10;
     int r_valid_check_resolution = 5;
 
+    /// Surfel-LIO native map and sensor parameters.
+    double hvox_voxel_size = 0.4;
+    int hvox_hierarchy_factor = 3;
+    double hvox_planarity_threshold = 0.01;
+    double hvox_max_distance = 50.0;
+    double hvox_box_multiplier = 2.0;
+    double hvox_lidar_noise_std = 0.05;
+
     /// Enables moving-window maintenance; disabled by default.
     bool local_window_enabled = false;
 };
@@ -263,9 +281,10 @@ class MapManager
 
     void clear();
 
-    void initialize(const MapPointList &points);
+    void initialize(const MapPointList &points, const MapUpdateContext &context = MapUpdateContext{});
 
-    void update(const MapPointList &points, std::uint32_t frame_number = 0);
+    void update(const MapPointList &points, std::uint32_t frame_number = 0,
+                const MapUpdateContext &context = MapUpdateContext{});
 
     void search(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
 
@@ -280,6 +299,7 @@ class MapManager
     void erase_outside_window(const MapWindow &window);
 
     const MapWindow &window() const;
+    std::uint64_t revision() const;
     size_t size() const;
 
     size_t point_count() const;
@@ -336,6 +356,12 @@ class MapManager
 
     void search_r_voxelmap(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
 
+    void initialize_hvox(const MapPointList &points, const MapUpdateContext &context);
+
+    void update_hvox(const MapPointList &points, const MapUpdateContext &context);
+
+    void search_hvox(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
+
     void search_point_backend(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
 
     void search_ikd_tree(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
@@ -370,6 +396,7 @@ class MapManager
     MapManagerConfig config_;
     /// Whether at least one point batch has initialized the backend.
     bool initialized_ = false;
+    std::uint64_t revision_ = 0;
     /// Current local-window bounds.
     MapWindow window_;
     /// Common points retained for snapshots and backend rebuilds.
@@ -394,6 +421,7 @@ class MapManager
     std::unique_ptr<OctVoxBackend> octvox_;
     /// Native R-VoxelMap hierarchy and its LRU-managed root voxels.
     std::unique_ptr<r_voxelmap_ns::VoxelMap> r_voxelmap_;
+    std::unique_ptr<lio::VoxelMap> hvox_;
     /// Native C3P-VoxelMap storage.
     std::unordered_map<c3p_map_ns::VOXEL_LOC, c3p_map_ns::OctoTree *> c3p_voxel_map_;
     /// C3P plane descriptors and merged planes.

@@ -46,6 +46,7 @@ BACKENDS = {
     "c3p_voxelmap": "pv_lio_c3p_voxelmap",
     "octvox": "pv_lio_octvox",
     "r_voxelmap": "pv_lio_r_voxelmap",
+    "hvox": "pv_lio_hvox",
 }
 DEFAULT_BACKENDS = ("voxelmap", "voxelmap_plus", "ikdtree", "ivox", "c3p_voxelmap", "octvox")
 BACKEND_ALIASES = {
@@ -62,6 +63,8 @@ BACKEND_ALIASES = {
     "oct-vox": "octvox",
     "r_voxel_map": "r_voxelmap",
     "r-voxelmap": "r_voxelmap",
+    "h_vox": "hvox",
+    "h-vox": "hvox",
 }
 LIDAR_TYPES = {
     "1": (1, "livox_ros_driver/CustomMsg"),

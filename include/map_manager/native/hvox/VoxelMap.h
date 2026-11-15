@@ -1,0 +1,444 @@
+/**
+ * @file      VoxelMap.h
+ * @brief     Voxel-based hash map for efficient nearest neighbor search
+ * @author    Seungwon Choi
+ * @email     csw3575@snu.ac.kr
+ * @date      2025-11-18
+ * @copyright Copyright (c) 2025 Seungwon Choi. All rights reserved.
+ *
+ * @par License
+ * This project is released under the MIT License.
+ */
+
+#ifndef VOXEL_MAP_H
+#define VOXEL_MAP_H
+
+#include "PointCloudUtils.h"
+#include "unordered_dense.h"  // Fast hash map (ankerl::unordered_dense)
+#include <unordered_set>
+#include <vector>
+#include <mutex>
+#include <Eigen/Dense>
+
+namespace lio {
+
+/**
+ * @brief Voxel key for spatial hashing
+ * Represents a 3D grid cell by integer indices (x, y, z)
+ */
+struct VoxelKey {
+    int x, y, z;
+
+    VoxelKey() : x(0), y(0), z(0) {}
+    VoxelKey(int x_, int y_, int z_) : x(x_), y(y_), z(z_) {}
+
+    bool operator==(const VoxelKey& other) const {
+        return x == other.x && y == other.y && z == other.z;
+    }
+
+    // For debugging
+    std::string ToString() const {
+        return "(" + std::to_string(x) + ", " + std::to_string(y) + ", " + std::to_string(z) + ")";
+    }
+};
+
+/**
+ * @brief Z-order (Morton code) hash function for VoxelKey
+ *
+ * Morton code interleaves bits of x, y, z coordinates to create a 1D index
+ * that preserves spatial locality. Nearby 3D points map to nearby hash values,
+ * improving cache efficiency during spatial queries.
+ *
+ * Example: (5, 3, 2) in binary:
+ *   x = 101, y = 011, z = 010
+ *   Interleaved: z2y2x2 z1y1x1 z0y0x0 = 001 101 100 = 0b001101100
+ *
+ * Benefits over standard hash:
+ * - Spatial locality: nearby voxels have similar hash values
+ * - Cache efficiency: ~2-3x improvement for spatial queries
+ * - O(1) encoding with bit manipulation
+ */
+struct VoxelKeyHash {
+private:
+    /**
+     * @brief Expand 21-bit integer to 63 bits with 2 zeros between each bit
+     * Used for Morton code encoding (bit interleaving)
+     */
+    static inline uint64_t ExpandBits(int32_t v) {
+        // Handle negative coordinates by offsetting to positive range
+        // This maps [-2^20, 2^20) to [0, 2^21)
+        uint64_t x = static_cast<uint64_t>(v + (1 << 20)) & 0x1fffff;  // 21 bits
+
+        // Spread bits: insert 2 zeros between each bit
+        // Magic numbers for 3D Morton encoding
+        x = (x | (x << 32)) & 0x1f00000000ffffULL;
+        x = (x | (x << 16)) & 0x1f0000ff0000ffULL;
+        x = (x | (x << 8))  & 0x100f00f00f00f00fULL;
+        x = (x | (x << 4))  & 0x10c30c30c30c30c3ULL;
+        x = (x | (x << 2))  & 0x1249249249249249ULL;
+
+        return x;
+    }
+
+public:
+    /**
+     * @brief Compute Z-order (Morton) hash for 3D voxel key
+     * @param key VoxelKey with integer coordinates
+     * @return 64-bit Morton code preserving spatial locality
+     */
+    std::size_t operator()(const VoxelKey& key) const {
+        // Interleave bits: x in bit positions 0,3,6,...; y in 1,4,7,...; z in 2,5,8,...
+        uint64_t morton = ExpandBits(key.x) | (ExpandBits(key.y) << 1) | (ExpandBits(key.z) << 2);
+        return static_cast<std::size_t>(morton);
+    }
+};
+
+/**
+ * @brief Voxel-based spatial hash map for efficient nearest neighbor search
+ *
+ * This data structure provides O(1) voxel lookup and fast K-nearest neighbor search
+ * by checking only neighboring voxels (27 voxels in 3x3x3 grid).
+ *
+ * Performance comparison vs KdTree:
+ * - KdTree: O(N * log(M)) where N=query points, M=map size
+ * - VoxelMap: O(N * K) where K=fixed (27 voxels * points_per_voxel)
+ *
+ * Expected speedup: 3-5x faster for large maps (20k+ points)
+ */
+class VoxelMap {
+public:
+    /**
+     * @brief Constructor
+     * @param voxel_size Size of each voxel in meters (default: 0.5m)
+     */
+    explicit VoxelMap(float voxel_size = 0.5f);
+
+    /**
+     * @brief Set voxel size
+     * @param size Voxel size in meters
+     */
+    void SetVoxelSize(float size);
+
+    /**
+     * @brief Set maximum hit count for voxel occupancy
+     * @param max_count Maximum hit count (default: 10)
+     */
+    void SetMaxHitCount(int max_count) { m_max_hit_count = max_count; }
+
+    /**
+     * @brief Get maximum hit count for voxel occupancy
+     */
+    int GetMaxHitCount() const { return m_max_hit_count; }
+
+    /**
+     * @brief Set initial hit count for new voxels
+     * @param count Initial hit count (default: 1)
+     */
+    void SetInitHitCount(int count) { m_init_hit_count = count; }
+
+    /**
+     * @brief Get initial hit count for new voxels
+     */
+    int GetInitHitCount() const { return m_init_hit_count; }
+
+    /**
+     * @brief Set hierarchy factor (L1 = factor × L0)
+     * @param factor Hierarchy factor (3 = 3×3×3, 5 = 5×5×5, 7 = 7×7×7, must be odd)
+     */
+    void SetHierarchyFactor(int factor);
+
+    /**
+     * @brief Set planarity threshold for surfel creation
+     * @param threshold Planarity threshold (sigma_min / sigma_max)
+     *                  Lower values = stricter planarity requirement
+     *                  Default: 0.01 (very strict for map quality)
+     */
+    void SetPlanarityThreshold(float threshold) { m_planarity_threshold = threshold; }
+
+    /**
+     * @brief Set point-to-surfel distance threshold
+     * @param threshold Maximum distance from point to surfel plane (meters)
+     *                  Points within this distance are considered inliers
+     */
+    void SetPointToSurfelThreshold(float threshold) { m_point_to_surfel_threshold = threshold; }
+
+    /**
+     * @brief Set minimum inlier count for valid surfel
+     * @param count Minimum number of points within point_to_surfel_threshold
+     */
+    void SetMinSurfelInliers(int count) { m_min_surfel_inliers = count; }
+
+    /**
+     * @brief Set minimum linearity ratio for plane detection (edge rejection)
+     * @param ratio Minimum σ₁/σ₀ ratio (higher = reject more edge-like structures)
+     *              Plane: σ₀ ≈ σ₁ >> σ₂ → ratio ≈ 1.0
+     *              Edge:  σ₀ >> σ₁ ≈ σ₂ → ratio ≈ 0.0
+     */
+    void SetMinLinearityRatio(float ratio) { m_min_linearity_ratio = ratio; }
+
+    /**
+     * @brief Set map box multiplier (box_size = max_distance × multiplier)
+     * @param multiplier Box size multiplier (default: 2.0)
+     */
+    void SetMapBoxMultiplier(float multiplier) { m_map_box_multiplier = multiplier; }
+
+    /**
+     * @brief Get map box multiplier
+     */
+    float GetMapBoxMultiplier() const { return m_map_box_multiplier; }
+
+    /**
+     * @brief Get current map center
+     */
+    Eigen::Vector3f GetMapCenter() const { return m_map_center; }
+
+    /**
+     * @brief Check if map has been initialized (first point added)
+     */
+    bool IsMapInitialized() const { return m_map_initialized; }
+
+    /**
+     * @brief Get current hierarchy factor
+     */
+    int GetHierarchyFactor() const { return m_hierarchy_factor; }
+
+    /**
+     * @brief Get current voxel size
+     */
+    float GetVoxelSize() const { return m_voxel_size; }
+
+    /**
+     * @brief Add a point to the voxel map
+     * @param point 3D point to add
+     */
+    void AddPoint(const Point3D& point);
+
+    /**
+     * @brief Add multiple points to the voxel map
+     * @param cloud Point cloud to add
+     */
+    void AddPointCloud(const PointCloudPtr& cloud);
+
+    /**
+     * @brief Clear all points from the map
+     */
+    void Clear();
+
+    /**
+     * @brief Update voxel map: add new points and remove distant voxels
+     * @param new_cloud New point cloud to add
+     * @param sensor_position Current sensor position in world frame
+     * @param max_distance Maximum distance to keep voxels (meters)
+     *
+     * This method:
+     * 1. Adds new points to the map (creates new voxels automatically)
+     * 2. Removes voxels that are more than max_distance away from sensor
+     *
+     * This enables incremental map maintenance without full rebuild.
+     */
+    void UpdateVoxelMap(const PointCloudPtr& new_cloud,
+                        const Eigen::Vector3d& sensor_position,
+                        double max_distance, bool is_keyframe);
+
+    /**
+     * @brief Get total number of points in the map (sum of all voxel point counts)
+     */
+    size_t GetPointCount() const {
+        size_t total = 0;
+        for (const auto& pair : m_voxels_L0) {
+            total += pair.second.point_count;
+        }
+        return total;
+    }
+
+    /**
+     * @brief Get number of occupied voxels
+     */
+    size_t GetVoxelCount() const { return m_voxels_L0.size(); }
+
+    /**
+     * @brief Get all L0 voxel centroids
+     * @return Vector of L0 centroids
+     */
+    std::vector<Eigen::Vector3f> GetL0Centroids() const {
+        std::vector<Eigen::Vector3f> centroids;
+        centroids.reserve(m_voxels_L0.size());
+        for (const auto& pair : m_voxels_L0) {
+            centroids.push_back(pair.second.centroid);
+        }
+        return centroids;
+    }
+
+    /**
+     * @brief Get centroid of a voxel as a Point3D
+     * @param key Voxel key
+     * @return Centroid as Point3D (with zero intensity and offset_time)
+     */
+    Point3D GetCentroidPoint(const VoxelKey& key) const;
+
+    /**
+     * @brief Get all occupied voxel keys for visualization
+     * @return Vector of all occupied voxel keys
+     */
+    std::vector<VoxelKey> GetOccupiedVoxels() const;
+
+    /**
+     * @brief Convert voxel key to center position
+     * @param key Voxel key
+     * @return Center position of the voxel in world coordinates
+     */
+    Eigen::Vector3f VoxelKeyToCenter(const VoxelKey& key) const;
+
+    /**
+     * @brief Get the weighted centroid of a voxel
+     * @param key Voxel key
+     * @return Weighted average centroid of points in the voxel
+     */
+    Eigen::Vector3f GetVoxelCentroid(const VoxelKey& key) const;
+
+    /**
+     * @brief Get the hit count of a voxel
+     * @param key Voxel key
+     * @return Hit count (occupancy count) of the voxel
+     */
+    int GetVoxelHitCount(const VoxelKey& key) const;
+
+    /**
+     * @brief Get all occupied voxels with their centers and hit counts (thread-safe)
+     * @return Vector of tuples: (center, hit_count)
+     */
+    std::vector<std::pair<Eigen::Vector3f, int>> GetOccupiedVoxelsWithHitCount() const;
+
+    /**
+     * @brief Mark a voxel as hit by current scan
+     * @param key Voxel key to mark
+     */
+    void MarkVoxelAsHit(const VoxelKey& key);
+
+    /**
+     * @brief Clear all hit markers
+     */
+    void ClearHitMarkers();
+
+    /**
+     * @brief Check if a voxel is hit by current scan
+     * @param key Voxel key to check
+     * @return True if voxel is hit
+     */
+    bool IsVoxelHit(const VoxelKey& key) const;
+
+    /**
+     * @brief Get all hit voxel keys
+     * @return Vector of hit voxel keys
+     */
+    std::vector<VoxelKey> GetHitVoxels() const;
+
+    /**
+     * @brief Get all L1 surfels for visualization
+     * @return Vector of tuples: (centroid, normal, planarity_score, L1_key, hit_count)
+     */
+    std::vector<std::tuple<Eigen::Vector3f, Eigen::Vector3f, float, VoxelKey, int>> GetL1Surfels() const;
+
+    /**
+     * @brief Get surfel information for the L1 voxel containing the given point
+     * @param point Query point in world frame
+     * @param normal Output: surfel normal
+     * @param centroid Output: surfel centroid
+     * @param planarity_score Output: planarity score
+     * @return True if the containing L1 voxel has a valid surfel
+     */
+    bool GetSurfelAtPoint(const Point3D& point,
+                          Eigen::Vector3f& normal,
+                          Eigen::Vector3f& centroid,
+                          float& planarity_score) const;
+
+private:
+    /**
+     * @brief Convert 3D point to voxel key at specified level
+     */
+    VoxelKey PointToVoxelKey(const Point3D& point, int level = 0) const;
+
+    /**
+     * @brief Get parent voxel key
+     */
+    VoxelKey GetParentKey(const VoxelKey& key) const;
+
+    /**
+     * @brief Register L0 voxel to parent hierarchy
+     */
+    void RegisterToParent(const VoxelKey& key_L0);
+
+    /**
+     * @brief Unregister L0 voxel from parent hierarchy
+     */
+    void UnregisterFromParent(const VoxelKey& key_L0);
+
+    /**
+     * @brief Get all neighboring voxel keys within a specified distance
+     */
+    std::vector<VoxelKey> GetNeighborVoxels(const VoxelKey& center, float search_distance) const;
+
+    // ===== Member Variables =====
+
+    float m_voxel_size;  ///< Size of each voxel in meters (Level 0: 1×1×1)
+    int m_max_hit_count; ///< Maximum hit count for occupancy (default: 10)
+    int m_init_hit_count = 1; ///< Initial hit count for new voxels (default: 1)
+    int m_hierarchy_factor; ///< L1 voxel factor: L1 = factor × L0 (default: 3 for 3×3×3)
+    float m_planarity_threshold = 0.01f; ///< Planarity threshold for surfel creation (sigma_min/sigma_max)
+    float m_point_to_surfel_threshold = 0.1f; ///< Max distance from point to surfel plane (meters)
+    int m_min_surfel_inliers = 5; ///< Minimum inlier count for valid surfel
+    float m_min_linearity_ratio = 0.3f; ///< Min σ₁/σ₀ ratio to reject edges (higher = stricter)
+
+    // ===== Map Box Parameters =====
+    float m_map_box_multiplier = 2.0f;  ///< Box size = max_distance × multiplier
+    Eigen::Vector3f m_map_center = Eigen::Vector3f::Zero();  ///< Current map center
+    bool m_map_initialized = false;  ///< True after first point cloud is added
+    float m_max_distance = 100.0f;  ///< Max sensor distance (for box size calculation)
+
+    // ===== Hierarchical Voxel Structure (2 Levels) =====
+
+    /// Level 0: Leaf nodes (1×1×1) - stores centroid only (no raw points)
+    struct VoxelNode_L0 {
+        Eigen::Vector3f centroid;
+        int hit_count;
+        int point_count;  // Number of points used to compute centroid
+        bool centroid_dirty;  // True if centroid was updated since last surfel computation
+
+        VoxelNode_L0() : centroid(Eigen::Vector3f::Zero()), hit_count(1), point_count(0), centroid_dirty(true) {}
+    };
+    ankerl::unordered_dense::map<VoxelKey, VoxelNode_L0, VoxelKeyHash> m_voxels_L0;
+
+    /// Level 1: Parent nodes (3×3×3) - tracks occupied L0 children
+    struct VoxelNode_L1 {
+        int hit_count;
+        ankerl::unordered_dense::set<VoxelKey, VoxelKeyHash> occupied_children;  // L0 keys
+
+        // Surfel data (only valid if has_surfel == true)
+        bool has_surfel;
+        Eigen::Vector3f surfel_normal;     // Plane normal vector
+        Eigen::Vector3f surfel_centroid;   // Plane centroid
+        Eigen::Matrix3f surfel_covariance; // Covariance matrix for plane fitting
+        float planarity_score;             // sigma_min / sigma_max (smaller = more planar)
+        int last_child_count;              // Track number of children at last surfel update
+
+        VoxelNode_L1()
+            : hit_count(0)
+            , has_surfel(false)
+            , surfel_normal(Eigen::Vector3f::Zero())
+            , surfel_centroid(Eigen::Vector3f::Zero())
+            , surfel_covariance(Eigen::Matrix3f::Zero())
+            , planarity_score(1.0f)
+            , last_child_count(0) {}
+    };
+    ankerl::unordered_dense::map<VoxelKey, VoxelNode_L1, VoxelKeyHash> m_voxels_L1;
+
+    /// Hit markers for current scan visualization
+    ankerl::unordered_dense::map<VoxelKey, bool, VoxelKeyHash> m_hit_voxels;
+
+    /// Thread synchronization recursive mutex for thread-safe access (allows re-locking)
+    mutable std::recursive_mutex m_mutex;
+};
+
+} // namespace lio
+
+#endif // VOXEL_MAP_H
