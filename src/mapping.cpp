@@ -526,9 +526,11 @@ void Mapping::ObservationModelPointBackend(state_ikfom& s, esekfom::dyn_share_da
             total_sigma = 1e-9;
         }
         ekfom_data.R(i) = 1.0 / total_sigma;
-        total_residual_ += std::abs(match.distance);
     }
 
+    // Accumulate diagnostics in row order after the parallel observation loop.
+    for (int i = 0; i < effective_feature_num_; ++i)
+        total_residual_ += std::abs(ekfom_data.h(i));
     res_mean_last_ = total_residual_ / effective_feature_num_;
 }
 
@@ -610,9 +612,10 @@ void Mapping::ObservationModelOctVox(state_ikfom& s, esekfom::dyn_share_datastru
 
         ekfom_data.h(index) = -match.distance;
         ekfom_data.R(index) = 1000.0;
-        total_residual_ += std::abs(match.distance);
     }
 
+    for (int i = 0; i < effective_feature_num_; ++i)
+        total_residual_ += std::abs(ekfom_data.h(i));
     res_mean_last_ = total_residual_ / effective_feature_num_;
 }
 
@@ -702,9 +705,10 @@ void Mapping::ObservationModelC3P(state_ikfom& s, esekfom::dyn_share_datastruct<
         const double sigma_plane = (J_nq * match.plane_cov * J_nq.transpose())(0, 0);
         const double sigma_point = (norm_vec.transpose() * match.point_cov * norm_vec)(0, 0);
         ekfom_data.R(i)          = 1.0 / (sigma_plane + sigma_point);
-        total_residual_ += std::abs(signed_point_plane_residual);
     }
 
+    for (int i = 0; i < effective_feature_num_; ++i)
+        total_residual_ += std::abs(ekfom_data.h(i));
     res_mean_last_ = total_residual_ / effective_feature_num_;
 }
 
