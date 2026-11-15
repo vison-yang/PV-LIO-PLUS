@@ -80,7 +80,8 @@
       "local_commit": "5166480ebec04e348fe3d2aad80a72450ac60ffc",
       "branch": "main",
       "build_group": "catkin-src",
-      "scope": "candidate recursive probabilistic plane map and corresponding residuals; source collected and upstream ROS1 build recorded",
+      "scope": "integrated recursive probabilistic plane map and corresponding covariance-aware observation; selector r_voxelmap; source pin, local compatibility revision, and patch provenance retained",
+      "integration": "PV-LIO-PLUS native adapter and selector cherry-picked as b820b08; isolated tests/replays and main-node build evidence: doc/workspace/evidence/R_VOXELMAP_RESULTS.json",
       "local_changes": [],
       "compatibility_patch": "patches/R-VoxelMap.patch",
       "patch_base_commit": "50ffbbab3626e384d77f0da91a7e51d5e4b14ff7",
@@ -287,6 +288,6 @@
   },
   "patches_note": "Patches are full worktree deltas against the pinned author commit, including relevant compatibility edits already present when this task began. They do not replace the source repositories. Apply only to the matching clean author baseline.",
   "scope_reviewed_on": "2026-11-15",
-  "scope_note": "Active integration scope requires a new or improved map data structure among the method contributions; qualifying maps and their corresponding residual models are compared in the shared framework. Source pins and build outcomes retain the 2026-11-14 snapshot. Scope classification was reviewed on 2026-11-15 and does not assert implemented selectors. See PLAN.md and paper/notes/MAP_BACKEND_SCOPE_REVIEW.md.",
+  "scope_note": "Active integration scope requires a new or improved map data structure among the method contributions; qualifying maps and their corresponding residual models are compared in the shared framework. Source pins and upstream build outcomes retain the 2026-11-14 snapshot; later selector, node-build, and replay evidence is recorded separately per implementation. Seven selectors are integrated and six source-available qualifying candidates remain. Scope classification was reviewed on 2026-11-15. See PLAN.md and paper/notes/MAP_BACKEND_SCOPE_REVIEW.md.",
   "map_structure_eligibility_reviewed_on": "2026-11-15"
 }

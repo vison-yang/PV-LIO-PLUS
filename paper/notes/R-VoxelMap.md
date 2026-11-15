@@ -124,6 +124,7 @@ R-VoxelMap 的贡献是把“平面拟合”和“剩余点重用”连成递归
 
 ## 2026-11-15 对 PV-LIO-PLUS 的范围说明
 
-- 作者源码已收集在 `src/R-VoxelMap`，固定提交见[源码清单](../../doc/workspace/SOURCE_MANIFEST.json)，ROS1 包包含在已记录的共享构建中；尚未进入 PV-LIO-PLUS selector。
-- 移植须保留递归平面拟合、剩余点复用等支撑结构资格的地图机制，并评估相应概率平面观测。接入前核对来源/许可、平面协方差语义和观测门限。
-- 旧计划未说明依据的外部源码阻断已解除。完整估计器和作者整机结果仍不归因于单独地图；本地构建不等于回放复现。
+- 作者源码与完整固定提交见[源码清单](../../doc/workspace/SOURCE_MANIFEST.json)及集成来源说明 [`SOURCE.md`](../../include/map_manager/native/r_voxelmap/SOURCE.md)。PV-LIO-PLUS 原生地图、匹配和观测已在 selector `r_voxelmap` 下集成；R 的递归平面、链表剩余点下推/重建和 root LRU 机制均保留。
+- R 集成 feature `af44fc0` 已 cherry-pick 到主线 `b820b08`。隔离 CTest 4/4（23 个 GTest 用例）通过；正向 ASan fixture 连续 30 次通过。一次全量 ASan 调用曾挂起并中止，之后单项、重复及全量重试通过，原因未确定；环境 ptrace 限制导致泄漏检查关闭，不能据此声称无泄漏。主节点构建退出 0，`ldd -r` 无缺失/未解析库；主线常规 CTest 3/3（22 个 GTest 用例）通过，主配置未启用 ASan。
+- 同一输入的 30 秒与 141 秒回放均通过完整输入核验；141 秒记录有 1414 个 LiDAR、28595 个 IMU 输入和 1402 行输出，每帧均有有效约束（473 至 4850，中位 2418），root 体素数最多 122755。时长使用单调时钟且均有限、非负，最大四元数单位范数误差约 `6.42e-7`，最终 PCD 有 30411349 点。完整字段见[机器结果记录](../../doc/workspace/evidence/R_VOXELMAP_RESULTS.json)。这些记录不含独立真值精度结论，计时也不是受控性能排名。
+- 适配边界：匹配以完整世界点协方差实施原生 3-sigma 门限；滤波观测使用平面协方差与旋转到世界系的 LiDAR 测量协方差，不重复加入状态协方差。查询当前根体素，并在原生条件满足时查一个邻根，不是全局 kNN。`size()` 计 root voxel；snapshot 输出当前 native 点列表；`clear()` 销毁地图以供重建。拒绝 `local_window_en` 和显式几何擦除。根体素预算在一批更新后冻结，不是严格上限。输出前缀为 `pv_lio_r_voxelmap`，含 `pv_lio_r_voxelmap_pos.txt`、`pv_lio_r_voxelmap.pcd` 和 `_timing.csv`；全局未匹配语义仍以[集成状态](../../doc/INTEGRATION_STATUS.md)所述的共同保证为准。

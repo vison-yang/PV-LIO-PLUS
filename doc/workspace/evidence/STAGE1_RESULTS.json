@@ -121,9 +121,130 @@
     "configuration_correction": "The first batch directory included coarse in its name and an unused filter_size_surf overlay of 0.5; Config::Load actually read mapping/down_sample_size=0.1. Generated config and parameter dump were audited. Input/output coverage results remain valid."
   },
   "full_sequence_replay": {
+    "status": "input and trajectory checks passed for all 6; duration telemetry invalid pending monotonic-clock fix",
     "input_duration_sec": 141.29459,
     "effective_scan_downsample_size_m": 0.5,
-    "status": "running; not yet accepted"
+    "recorded_lidar_messages": 1414,
+    "recorded_imu_messages": 28595,
+    "processable_lidar_messages": 1414,
+    "initialization_scans_without_output": 12,
+    "expected_output_rows": 1402,
+    "cases": [
+      {
+        "backend": "voxelmap",
+        "input_and_trajectory_passed": true,
+        "lidar_received": 1414,
+        "imu_received": 28595,
+        "input_header_sequence_verified": true,
+        "output_rows": 1402,
+        "timing_rows": 1402,
+        "first_output_stamp": 598.799257705,
+        "last_output_stamp": 738.899325342,
+        "pcd_points": 30411349,
+        "max_quaternion_unit_norm_error": 7.253442368959639e-07,
+        "negative_duration_rows": {
+          "search_ms": 0,
+          "ikf_update_ms": 0,
+          "map_update_ms": 0,
+          "total_ms": 0
+        }
+      },
+      {
+        "backend": "voxelmap_plus",
+        "input_and_trajectory_passed": true,
+        "lidar_received": 1414,
+        "imu_received": 28595,
+        "input_header_sequence_verified": true,
+        "output_rows": 1402,
+        "timing_rows": 1402,
+        "first_output_stamp": 598.799257705,
+        "last_output_stamp": 738.899325342,
+        "pcd_points": 30411349,
+        "max_quaternion_unit_norm_error": 6.875302364095504e-07,
+        "negative_duration_rows": {
+          "search_ms": 0,
+          "ikf_update_ms": 0,
+          "map_update_ms": 0,
+          "total_ms": 1
+        }
+      },
+      {
+        "backend": "ikdtree",
+        "input_and_trajectory_passed": true,
+        "lidar_received": 1414,
+        "imu_received": 28595,
+        "input_header_sequence_verified": true,
+        "output_rows": 1402,
+        "timing_rows": 1402,
+        "first_output_stamp": 598.799257705,
+        "last_output_stamp": 738.899325342,
+        "pcd_points": 30411349,
+        "max_quaternion_unit_norm_error": 6.876672363764769e-07,
+        "negative_duration_rows": {
+          "search_ms": 2,
+          "ikf_update_ms": 2,
+          "map_update_ms": 1,
+          "total_ms": 3
+        }
+      },
+      {
+        "backend": "ivox",
+        "input_and_trajectory_passed": true,
+        "lidar_received": 1414,
+        "imu_received": 28595,
+        "input_header_sequence_verified": true,
+        "output_rows": 1402,
+        "timing_rows": 1402,
+        "first_output_stamp": 598.799257705,
+        "last_output_stamp": 738.899325342,
+        "pcd_points": 30411349,
+        "max_quaternion_unit_norm_error": 6.970587429488972e-07,
+        "negative_duration_rows": {
+          "search_ms": 4,
+          "ikf_update_ms": 4,
+          "map_update_ms": 1,
+          "total_ms": 5
+        }
+      },
+      {
+        "backend": "c3p_voxelmap",
+        "input_and_trajectory_passed": true,
+        "lidar_received": 1414,
+        "imu_received": 28595,
+        "input_header_sequence_verified": true,
+        "output_rows": 1402,
+        "timing_rows": 1402,
+        "first_output_stamp": 598.799257705,
+        "last_output_stamp": 738.899325342,
+        "pcd_points": 30411349,
+        "max_quaternion_unit_norm_error": 7.668307940855712e-07,
+        "negative_duration_rows": {
+          "search_ms": 0,
+          "ikf_update_ms": 0,
+          "map_update_ms": 0,
+          "total_ms": 0
+        }
+      },
+      {
+        "backend": "octvox",
+        "input_and_trajectory_passed": true,
+        "lidar_received": 1414,
+        "imu_received": 28595,
+        "input_header_sequence_verified": true,
+        "output_rows": 1402,
+        "timing_rows": 1402,
+        "first_output_stamp": 598.799257705,
+        "last_output_stamp": 738.899325342,
+        "pcd_points": 30411349,
+        "max_quaternion_unit_norm_error": 6.952592417341918e-07,
+        "negative_duration_rows": {
+          "search_ms": 3,
+          "ikf_update_ms": 3,
+          "map_update_ms": 0,
+          "total_ms": 3
+        }
+      }
+    ]
   },
   "limitations": [
     "No independent ground truth; no ATE/RPE or accuracy improvement claim.",
@@ -132,5 +253,81 @@
   ],
   "local_evidence_root": "output/integration-20261115",
   "raw_short_batch": "output/integration-20261115/stage1-complete-30s-coarse",
-  "independent_input_and_completion_oracle": "Exact per-topic header-sequence SHA-256; odometry reaches the final IMU-supported scan; saved trajectory row count, first/last stamps and monotonicity verified."
+  "independent_input_and_completion_oracle": "Exact per-topic header-sequence SHA-256; odometry reaches the final IMU-supported scan; saved trajectory row count, first/last stamps and monotonicity verified.",
+  "raw_full_batch": "output/integration-20261115/stage1-complete-full-05m",
+  "timing_defect": {
+    "code_commit": "9fa3111654edb7479c0fa973ac69296f754c8e54",
+    "cause": "duration instrumentation uses ros::WallTime, which can move backwards with system clock adjustments",
+    "observed": "negative frame/stage durations in otherwise complete replay output",
+    "fix_status": "fixed with std::chrono::steady_clock; all six short replays verified finite nonnegative durations"
+  },
+  "monotonic_clock_fix": {
+    "commit": "f86ebd6eed5657df367e1e9afe71a2988543667c",
+    "binary_sha256": "3945e73e78456dc1bf3647671ded3cefc9f06d70dcd11c409e559bce1e314488",
+    "validation": "six complete 30s cases, all288 trajectory/timing rows, all duration columns finite/nonnegative",
+    "raw_batch": "output/integration-20261115/stage1-steady-30s-05m",
+    "cases": [
+      {
+        "backend": "voxelmap",
+        "complete_input_window": true,
+        "output_rows": 288,
+        "timing_rows": 288,
+        "duration_fields_finite_nonnegative": true,
+        "max_pose_field_difference_vs_pre_fix_same_05m_input": 0.0,
+        "min_total_ms": 8.605643,
+        "max_total_ms": 145.120653
+      },
+      {
+        "backend": "voxelmap_plus",
+        "complete_input_window": true,
+        "output_rows": 288,
+        "timing_rows": 288,
+        "duration_fields_finite_nonnegative": true,
+        "max_pose_field_difference_vs_pre_fix_same_05m_input": 0.0,
+        "min_total_ms": 8.310918,
+        "max_total_ms": 127.271736
+      },
+      {
+        "backend": "ikdtree",
+        "complete_input_window": true,
+        "output_rows": 288,
+        "timing_rows": 288,
+        "duration_fields_finite_nonnegative": true,
+        "max_pose_field_difference_vs_pre_fix_same_05m_input": 0.005982999999999961,
+        "min_total_ms": 34.226158,
+        "max_total_ms": 209.020566
+      },
+      {
+        "backend": "ivox",
+        "complete_input_window": true,
+        "output_rows": 288,
+        "timing_rows": 288,
+        "duration_fields_finite_nonnegative": true,
+        "max_pose_field_difference_vs_pre_fix_same_05m_input": 0.0,
+        "min_total_ms": 27.326075,
+        "max_total_ms": 243.052156
+      },
+      {
+        "backend": "c3p_voxelmap",
+        "complete_input_window": true,
+        "output_rows": 288,
+        "timing_rows": 288,
+        "duration_fields_finite_nonnegative": true,
+        "max_pose_field_difference_vs_pre_fix_same_05m_input": 0.0,
+        "min_total_ms": 12.681811,
+        "max_total_ms": 169.543137
+      },
+      {
+        "backend": "octvox",
+        "complete_input_window": true,
+        "output_rows": 288,
+        "timing_rows": 288,
+        "duration_fields_finite_nonnegative": true,
+        "max_pose_field_difference_vs_pre_fix_same_05m_input": 0.0,
+        "min_total_ms": 13.978965,
+        "max_total_ms": 142.225383
+      }
+    ]
+  },
+  "stage1_operational_regression": "passed: complete 30s and full141s input/trajectory checks, plus post-fix duration correctness; no independent accuracy or controlled performance claims"
 }

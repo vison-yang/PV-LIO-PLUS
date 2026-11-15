@@ -23,19 +23,20 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 | --- | --- | --- |
 | **源码已收集** | 本地保存可追溯的作者源码快照；作者基线、当前本地提交与兼容性差异见 `doc/workspace/SOURCE_MANIFEST.json`。 | 上游完整、可构建或已接入本框架。 |
 | **上游构建通过 / 阻塞** | 指定的完整包、组件或示例有实际构建退出码；范围与遗漏见 `doc/workspace/BUILD_REPORT.md`。 | 地图/残差已由 `MapManager` 使用，或数据集效果有效。 |
-| **框架已集成** | 地图实现及对应观测分支均进入 PV-LIO-PLUS selector 和估计循环。 | 六个后端已有相同权重，或结果构成严格地图消融。 |
+| **框架已集成** | 地图实现及对应观测分支均进入 PV-LIO-PLUS selector 和估计循环；当前为七个后端。 | 七个后端已有相同权重，或结果构成严格地图消融。 |
 | **精度/运行复现** | 有逐次运行清单、输入和配置标识、完整输出及明确的数值检查。 | 不能由编译日志、符号检查、旧地图文件或论文作者结果替代。 |
 
 ### 当前验证基线
 
 - 2026-11-14 的[构建报告](doc/workspace/BUILD_REPORT.md)记录 ROS1 共享工作区 14 个包编译退出 0、GenZ-LIO 已有 CTest 21/21 通过、23 个 ELF 链接检查通过，且 PV-LIO-PLUS 单节点含六组地图实现符号。R-VoxelMap、GenZ-LIO、iG-LIO 和 Hybrid-VoxelMap 的上游包包含在该共享构建中。
 - 同一份报告记录 BIEVR-LIO、Surfel-LIO、i-Octree、KISS-ICP 独立目标构建通过；LIO-GVM 因作者发布缺少定制头文件而以退出码 1 阻塞。KISS 的记录只覆盖 C++ core/metrics/pipeline 静态库，不含 ROS2 包装器。
-- 这份构建报告**没有运行 rosbag 回放**，没有评估轨迹或地图精度。旧计划中“六后端最近均完成 30 秒回放”缺少此处可核对的运行清单，应待找到对应数据、命令、提交与产物记录后再恢复为可复现结论；不能把旧 PCD/轨迹文件作为精度证据。
-- 尚无此计划记录的六后端长序列复现结果。文档中的测试要求是后续工作，不表示已完成。
-- 2026-11-15 已修复 VoxelMap++ 外参 Jacobian 开关和点图查询半径契约，并完成两个合成 gtest 目标的实际构建与运行：CTest 2/2、共 11 个 GTest 条目。测试覆盖六后端生命周期、4.99/5/5.01 m 边界、两种 iVox 查询实现/有限格邻域、非法半径在清图前拒绝、OctVox 窗口拒绝，以及 12 列右扰动 Jacobian 在三组非单位姿态下的中心差分。精确覆盖与遗漏见[集成状态](doc/INTEGRATION_STATUS.md)。
-- 阶段1代码 `9fa3111` 的真实节点已构建并通过动态链接检查；六后端在同一30秒 Avia 片段均收到301个LiDAR/6088个IMU消息，精确输入序列核对通过，并各保存预期288帧有限轨迹与非空PCD。完整性检查包含启动连接、IMU支撑、初始化跳过、首末时间戳及单调/计数核验；证据见[阶段1结果](doc/workspace/evidence/STAGE1_RESULTS.json)。141秒完整序列的0.5米档案仍在运行；当前没有精度提升或受控性能排名结论。
+- 这份 2026-11-14 构建报告**没有运行 rosbag 回放**，没有评估轨迹或地图精度。回放证据另记于 2026-11-15 的结果文件；两类记录不能混为一谈。
+- `9fa3111` 的 141 秒旧计时运行输入、轨迹覆盖完整，但 WallTime 回拨导致负时长；不能将其用作性能证据。六后端修复单调时钟后的短回放已通过，修复后的长序列仍需重跑。
+- 2026-11-15 已修复 VoxelMap++ 外参 Jacobian 开关和点图查询半径契约，并完成两个合成 gtest 目标的实际构建与运行：CTest 2/2、共 11 个 GTest 条目。测试覆盖原有六后端生命周期、4.99/5/5.01 m 边界、两种 iVox 查询实现/有限格邻域、非法半径在清图前拒绝、OctVox 窗口拒绝，以及 12 列右扰动 Jacobian 在三组非单位姿态下的中心差分。精确覆盖与遗漏见[集成状态](doc/INTEGRATION_STATUS.md)。
+- 阶段1代码 `f86ebd6` 修复单调计时后，六后端均完成同一 30 秒、0.5 米配置复测；各保存预期 288 行有限轨迹，时长有限且非负。早先 `9fa3111` 的 141 秒序列虽有 1402 行完整轨迹，WallTime 回拨造成负耗时，不作性能证据；要完成长基线需用修复后的计时重跑。早先名为 coarse 的目录实际使用 0.1 米配置，事实保留在[阶段1结果](doc/workspace/evidence/STAGE1_RESULTS.json)，不与 0.5 米档案混淆。
+- R-VoxelMap feature `af44fc0` 已以 `b820b08` 合入主线。隔离套件 CTest 4/4、23 个 GTest 条目通过；正向 ASan fixture 连续 30 次通过。一次全量 ASan 调用曾挂起并中止，后续重试通过、原因未知；ptrace 不兼容令泄漏检查关闭。主线 R 节点构建退出 0 并通过 `ldd -r`。30 秒和 141 秒完整输入回放通过；141 秒有 1414 个 LiDAR、28595 个 IMU、1402 帧输出且逐帧有非零有效约束，时长有限且非负。详见[R 结果](doc/workspace/evidence/R_VOXELMAP_RESULTS.json)；无真值精度或受控性能结论。
 
-## 3. 六个已集成后端
+## 3. 七个已集成后端
 
 下表中的“作者版本”来自本地源清单中的固定作者提交；如有本地兼容性提交，完整 SHA 和补丁均以 manifest 为准。集成层复制在 `include/map_manager/native/`，完整作者工程另保留于表中路径。
 
@@ -47,16 +48,16 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 | Faster-LIO / iVox | `ivox`；稀疏体素点图及 PV 点面拟合观测 | `src/faster_lio`，`ea0e0910` | 同上；本地兼容性提交 `1273553f`。 |
 | C3P-VoxelMap | `c3p_voxelmap`；概率体素平面及原生不确定性观测 | `src/c3p_voxelmap`，`ab4a8020` | 同上；本地兼容性提交 `69f84b88`。 |
 | Super-LIO / OctVox | `octvox`；八分体代表点、TopK 与固定信息量平面观测 | `src/Super-LIO`，`60b57aaa`（`ros1`） | 同上；本地兼容性提交 `9bd033b3`。 |
+| R-VoxelMap | `r_voxelmap`；递归内部/子层概率平面及原生协方差观测 | `src/R-VoxelMap`，`50ffbbab` | selector 与观测在 `b820b08` 合入；隔离测试/回放通过，主线节点构建/动态链接通过，主线常规 CTest 3/3（22 GTest）通过。 |
 
-共用滤波主循环不等于共用观测。VoxelMap++、点图适配层、C3P 和 OctVox 的残差、Jacobian、信息量及门限按实际路径分别记录。`nearest_max_range` 对 ikd-tree/iVox 统一为米：ikd-tree 比较第五近邻平方距离与 `r²` 并接受边界，iVox 使用严格 `<r` 且仍受配置附近格域限制。旧 ikd-tree 设置 `v` 原来代表平方距离；要复现旧阈值，新半径应设 `sqrt(v)` 米。现有 iVox 数值不变。细节见[地图与观测范围审查](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)。
+共用滤波主循环不等于共用观测。VoxelMap++、点图适配层、C3P、OctVox 和 R-VoxelMap 的残差、Jacobian、信息量及门限按实际路径分别记录。`nearest_max_range` 对 ikd-tree/iVox 统一为米：ikd-tree 比较第五近邻平方距离与 `r²` 并接受边界，iVox 使用严格 `<r` 且仍受配置附近格域限制。旧 ikd-tree 设置 `v` 原来代表平方距离；要复现旧阈值，新半径应设 `sqrt(v)` 米。现有 iVox 数值不变。细节见[地图与观测范围审查](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)。
 
-## 4. 已收集、结构资格通过的七项待集成作者源码
+## 4. 已收集、结构资格通过的六项待集成作者源码
 
 这些项目均有本地固定作者快照，且其地图数据结构创新满足当前硬条件；它们尚未成为新的 PV-LIO-PLUS selector。主路线评估结构创新及其对应观测；严格统一点面的版本可作为单独消融。完整上游系统仍可在独立工作区作为端到端基线。不得剥离资格结构后，以原算法名义只测通用点容器。
 
 | 方法 | 本地工程 / 固定作者版本 | 已有上游构建记录 | 计划范围与前置条件 |
 | --- | --- | --- | --- |
-| R-VoxelMap | `src/R-VoxelMap` / `50ffbbab` | ROS1 共享工作区通过 | 优先评估递归平面、剩余点复用及其概率平面观测；核对协方差、门限、源码与许可证。旧计划未指明依据的外部源码阻断已解除，不代表已集成。 |
 | Surfel-LIO / hVox | `upstream/Surfel-LIO` / `73348c1e` | 独立 `lio_player` 通过 | 固定本地版本的预计算 L1 surfel 与 `GetSurfelAtPoint`；定义 surfel 残差、平面度、不确定性和鲁棒尺度。升级版本前重审查询实现。 |
 | i-Octree | `upstream/i-Octree` / `5b640e05` | C++ `time_compare` 示例通过 | 评估动态点图、插入、kNN/半径查询及盒删除；先完成生命周期、边界与查询 oracle。 |
 | iG-LIO | `src/ig_lio` / `2d79259e` | ROS1 共享工作区通过 | 地图适配必须保留增量充分统计和原生地图维护；可先评估点面观测变体。GICP 是后续独立观测设计，不能把散点 3×3 协方差直接当点面参数不确定性，需映射完整信息、残差与鲁棒模型。 |
@@ -88,20 +89,20 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 
 ## 7. 集成顺序与每阶段完成条件
 
-### 阶段 1：六个现有后端的契约与复现基线
+### 阶段 1：原有六个后端的契约与复现基线
 
-**状态：部分完成。** VoxelMap++ 外参 Jacobian 与点图物理半径契约已修复；两个合成 gtest 目标已构建并通过 CTest 2/2（11 个 GTest 条目）；`scripts/datasets.example.json` 已覆盖六个 selector。真实节点编译/链接检查及六后端30秒完整输入回归已通过（各288帧）；141秒完整序列仍在验收，故本阶段未完成。具体配置、输入计数及验证边界见[集成状态](doc/INTEGRATION_STATUS.md)和[结果记录](doc/workspace/evidence/STAGE1_RESULTS.json)。
+**状态：部分完成。** VoxelMap++ 外参 Jacobian 与点图物理半径契约已修复；两个合成 gtest 目标已构建并通过 CTest 2/2（11 个 GTest 条目），分别保留原有六后端生命周期覆盖；`scripts/datasets.example.json` 现含七个 selector。六后端均通过修复单调计时后的 30 秒、0.5 米配置完整输入回归（各 288 帧、时长有限非负）。早先 `9fa3111` 的 141 秒轨迹输入和输出完整，但 WallTime 回拨导致负耗时；需以修复后的计时重跑长序列才能完成阶段。早先 coarse 目录实际使用 0.1 米配置，勿与 0.5 米回归混淆。具体边界见[集成状态](doc/INTEGRATION_STATUS.md)和[阶段1结果](doc/workspace/evidence/STAGE1_RESULTS.json)。
 
 - 逐后端记录坐标系、长度/距离/平方距离单位、协方差语义、地图 `size` 口径、当前帧自匹配、插入时机、搜索域、门限、窗口/淘汰和观测模型。
 - 点图参数以米输入，并按 ikd-tree `r²`/含边界与 iVox 严格 `<r`/附近格域的原生约定查询；拒绝非正、非有限或平方后非有限/零的半径，配置检查必须先于已初始化地图的清理。
-- 已有合成测试包含六后端生命周期、半径边界和外参 Jacobian 数值核验；仍需按统一输入身份运行短 bag。`scripts/run_backend_tests.py` 可按清单构造运行与归档，但每个结果须引用实际 run manifest、输入/配置身份和产物检查。
-- 建立至少一个可复现短基线与一个长序列基线；完成条件是六个 selector 都有逐次构建、运行/退出、轨迹与地图质量检查记录。旧的 30 秒说法只有找到可核验记录后才可作为历史证据。
+- 已有六后端合成测试包含生命周期、半径边界和外参 Jacobian 数值核验；修复后的六个 30 秒短 bag 完整性回归已通过。`scripts/run_backend_tests.py` 可按清单构造运行与归档，但每个结果须引用实际 run manifest、输入/配置身份和产物检查。
+- 长序列完成条件：六个 selector 均有修复后单调时钟的逐次构建、运行/退出、轨迹、地图质量和非负耗时检查记录。此前 141 秒记录的输入/轨迹覆盖可留档，但负 WallTime 不能支持时延比较。
 
-### 阶段 2：R-VoxelMap 与 Surfel-LIO / hVox
+### 阶段 2：R-VoxelMap 已集成；Surfel-LIO / hVox 待实施
 
-- R-VoxelMap：复核固定提交和许可，跟踪递归拟合、离群点复用、分布检验与概率平面协方差；按其原生观测建模，另保留可选统一点面消融。
+- R-VoxelMap：selector 与对应原生概率观测已在 `b820b08` 集成，并保留内部/子层递归平面、剩余点链表下推/重建及 root LRU。隔离 CTest 4/4、23 个 GTest 用例、正向 ASan fixture 30 次及 30/141 秒完整输入检查通过；主线节点构建退出 0、`ldd -r` 通过，主线三个常规 CTest 目标 3/3（22 GTest）通过，主配置未启用 ASan。141 秒每帧有非零约束且单调时长有限非负。一次 ASan 全量运行曾挂起后中止，后续重试通过、原因未知；ptrace 限制下关闭泄漏检测。目前不宣称精度或受控性能结论。细节见[R 结果](doc/workspace/evidence/R_VOXELMAP_RESULTS.json)。
 - Surfel-LIO：保持 `73348c1e` 的预计算 L1 路径；准确实现 `GetSurfelAtPoint` 查询语义，定义平面度、误差和 Huber 权重，不接入原 Estimator。
-- 完成条件：地图状态/查询/边界的 oracle、观测残差/Jacobian/信息的有限差分或数学核验、包构建日志、短回放清单与结果。无 run 记录不宣称地图精度或长序列结果。
+- hVox 完成条件：地图状态/查询/边界的 oracle、观测残差/Jacobian/信息的有限差分或数学核验、包构建日志、短回放清单与结果。无 run 记录不宣称地图精度或长序列结果。
 
 ### 阶段 3：i-Octree 与 iG-LIO 地图结构
 
@@ -143,7 +144,7 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 | `src/utils.cpp` | 轨迹和地图输出命名。 |
 | `scripts/run_backend_tests.py` | 输入清单驱动的构建、运行与结果归档；运行结论仍须指向实际记录。 |
 
-上述仅描述当前已存在的点面及六个观测分支。带类型的 `Point`、`Gaussian`、`HeightImage` 匹配和通用向量/相关协方差观测接口均为未来设计，当前未实现。
+上述仅描述当前已存在的点面及七个观测分支。带类型的 `Point`、`Gaussian`、`HeightImage` 匹配和通用向量/相关协方差观测接口均为未来设计，当前未实现。
 
 观测可为点面、点点、GICP、Gaussian 或高度图。接口必须保留其残差维度、Jacobian 与完整信息含义；不能把不兼容类型硬塞入 `PlaneMatch`，也不能丢掉相关协方差后称数学等价。主路线中，各后端无需得到相同 `h/H/R`；仅严格统一观测消融检查跨地图等价。
 

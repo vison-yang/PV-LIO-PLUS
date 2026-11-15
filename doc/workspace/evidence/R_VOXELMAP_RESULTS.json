@@ -1,0 +1,49 @@
+{
+  "feature_commit": "af44fc009c6196f63d082282e96a3818b1c07890",
+  "main_cherry_pick": "b820b08",
+  "binary_sha256": "da4f5f05dc9907b181826f338e9a1cc096c7f11238860a93cb654d003fe6d3ad",
+  "input_complete": true,
+  "lidar_received": 1414,
+  "imu_received": 28595,
+  "output_rows": 1402,
+  "effective_points_min": 473,
+  "effective_points_median": 2418.0,
+  "effective_points_max": 4850,
+  "zero_constraint_frames": 0,
+  "native_root_voxels_min": 4169,
+  "native_root_voxels_max": 122755,
+  "max_quaternion_norm_error": 6.41571794135487e-07,
+  "finite_nonnegative_durations": true,
+  "pcd_points": 30411349,
+  "gtest": "4/4 targets,23 cases in isolated feature; algorithm/helper unchanged by later telemetry/timing edits",
+  "address_sanitizer": "repaired parent/child batch fixture passed; 30 positive repetitions; leak detection unverified",
+  "review": "God conditional pass after two P1 corrections; final regression and real replay conditions now satisfied",
+  "limitations": [
+    "No independent ground truth or accuracy claim",
+    "Timing is diagnostic under non-isolated CPU workload",
+    "One ASan full-suite invocation hung, was interrupted, later direct/repeated/full-suite retries passed; cause unknown",
+    "LeakSanitizer disabled for environment ptrace incompatibility; no leak-free claim"
+  ],
+  "raw_run": "output/integration-20261115/stage2-r-complete-full-05m",
+  "main_node_build": {
+    "commit": "b820b08",
+    "exit_code": 0,
+    "ldd_exit_code": 0,
+    "sha256": "9a4f9eddd9d8b4b8ed26f4e147c194d9f85b60ea5435cc7cf380bdad22df9f0d"
+  },
+  "main_regular_ctest": {
+    "targets": 3,
+    "passed": 3,
+    "gtest_cases": 22
+  },
+  "main_short_replay": {
+    "passed": true,
+    "code_commit": "b820b08646eae4ffe029d7d05f0432107c16bab4",
+    "binary_sha256": "9a4f9eddd9d8b4b8ed26f4e147c194d9f85b60ea5435cc7cf380bdad22df9f0d",
+    "rows": 288,
+    "min_effective_points": 534,
+    "input_complete": true,
+    "finite_nonnegative_durations": true,
+    "actual_executable_hash_checked_via_ros_pid": true
+  }
+}

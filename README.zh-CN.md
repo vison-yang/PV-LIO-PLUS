@@ -6,14 +6,14 @@ PV-LIO-PLUS 是一个 ROS1 激光-惯性里程计（LIO）框架，集成多种�
 
 本项目最早源自 [PV-LIO](https://github.com/HViktorTsoi/PV-LIO)。PV-LIO 在 **FAST-LIO2 的源码框架**中，以概率体素地图 [VoxelMap](https://github.com/hku-mars/VoxelMap) 替换 ikd-tree。PV-LIO-PLUS 在此基础上先集成 [VoxelMapPlus（VoxelMap++）](https://github.com/uestc-icsp/VoxelMapPlus_Public)，随后大幅重构并优化代码框架，再进一步集成更多地图结构及其对应的残差模型。
 
-目前可通过统一配置和 `MapManager` 选择六个已集成后端，其地图实现保存在本包内部。工作空间另行收集官方上游工程，用于源码追溯与独立的完整系统基线；这些工程的完整估计节点分别构建。
+目前可通过统一配置和 `MapManager` 选择七个已集成后端，其地图实现保存在本包内部。工作空间另行收集官方上游工程，用于源码追溯与独立的完整系统基线；这些工程的完整估计节点分别构建。
 
 ## 主要工作
 
 - 共用 PV-LIO 的紧耦合激光-惯性估计和 IKFoM 迭代滤波。
 - 集成 VoxelMap、VoxelMap++ 地图及其概率平面残差。
 - 重构配置、地图管理、观测分发和结果输出，形成统一的 C++17 框架。
-- 进一步集成 ikd-tree、iVox、C3P-VoxelMap 和 OctVox 及其对应匹配、残差路径，共六个可选后端。
+- 进一步集成 ikd-tree、iVox、C3P-VoxelMap、OctVox 和 R-VoxelMap 及其对应匹配、观测路径，共七个可选后端。
 - 提供轨迹、世界坐标系地图点云和逐帧耗时输出，支持可复现对比。
 
 [集成计划](PLAN.md)说明源码收集状态、移植范围、实施顺序及验收条件；[地图与残差范围审查](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)记录现有观测差异和后续适配边界。
@@ -26,7 +26,7 @@ PV-LIO-PLUS 是一个 ROS1 激光-惯性里程计（LIO）框架，集成多种�
 
 ### 已集成的局部地图后端
 
-以下六类地图均满足结构创新条件。FAST-LIO2 在此对应 ikd-tree 的结构贡献，不与 FAST-LIO1 混称。
+以下七类地图均满足结构创新条件。FAST-LIO2 在此对应 ikd-tree 的结构贡献，不与 FAST-LIO1 混称。
 
 | 算法 / 地图 | 本包内地图源码 | 配置项 | 地图与残差模型 |
 | --- | --- | --- | --- |
@@ -36,16 +36,16 @@ PV-LIO-PLUS 是一个 ROS1 激光-惯性里程计（LIO）框架，集成多种�
 | Faster-LIO / iVox | `include/map_manager/native/ivox` | `ivox` | 稀疏增量体素点地图；与 ikd-tree 共用点面适配路径。 |
 | C3P-VoxelMap | `include/map_manager/native/c3p_voxelmap` | `c3p_voxelmap` | 紧凑概率平面与合并；原生匹配及不确定性加权残差。 |
 | Super-LIO / OctVox | `include/map_manager/native/octvox` | `octvox` | LRU 八分体点地图；有序 TopK、4/5 点拟平面和固定观测信息量。 |
+| R-VoxelMap | `include/map_manager/native/r_voxelmap` | `r_voxelmap` | 递归内部/子层平面、离群点复用、原生 root LRU 及协方差概率平面观测。 |
 
 FAST-LIO2 和 Faster-LIO 分别通过 ikd-tree、iVox 及本框架的观测适配层参与对比。完整官方工程已收集在工作空间 `src/FAST_LIO`、`src/faster_lio`，用于独立系统基线。
 
 ### 已收集源码与后续集成
 
-以下状态于 **2026-11-15** 对照本地源码快照核对。路径相对于工作空间根目录；作者提交和本地兼容性补丁见[源码清单](doc/workspace/SOURCE_MANIFEST.json)。表中编译结果引用 **2026-11-14** 的[构建记录](doc/workspace/BUILD_REPORT.md)，并非本次重新实验。**下表均为待集成项，尚无对应选择器。**
+以下剩余候选状态于 **2026-11-15** 对照本地源码快照核对。路径相对于工作空间根目录；作者提交和本地兼容性补丁见[源码清单](doc/workspace/SOURCE_MANIFEST.json)。表中编译结果引用 **2026-11-14** 的[构建记录](doc/workspace/BUILD_REPORT.md)。R-VoxelMap 已集成；下表六项均仍无对应选择器。
 
 | 地图 / 方法 | 已收集的官方源码 | 已记录的编译结果 | 后续集成工作 |
 | --- | --- | --- | --- |
-| R-VoxelMap | `src/R-VoxelMap` | ROS1 共享构建通过 | 已具备源码，可进入移植设计；提取递归平面、鲁棒地图更新及对应概率残差。 |
 | Surfel-LIO / hVox | `upstream/Surfel-LIO` | 独立 `lio_player` 编译通过 | 固定作者快照 `73348c1` 的预计算 L1 surfel 与 `GetSurfelAtPoint`，适配 surfel 残差和鲁棒权重；更新版本前重新审查地图/查询路径。 |
 | i-Octree | `upstream/i-Octree` | C++ 示例编译通过 | 适配动态八叉树的插入、kNN/半径查询和盒删除，复用点面适配层。 |
 | iG-LIO | `src/ig_lio` | ROS1 共享构建通过 | 保留增量体素充分统计与原生维护，再适配匹配/观测；GICP 的完整信息和协方差另行审查。点面变体也须保留其地图结构贡献。 |
@@ -61,11 +61,11 @@ KISS-ICP、GenZ-LIO 使用已有地图结构，论文所列创新不构成新的
 
 主要实验比较共同框架中的**地图结构及其对应残差模型**。统一传感器标定、输入片段、IMU 处理、状态定义、滤波时序及评测方法；记录各后端的残差类型、协方差/信息量、鲁棒核、匹配门限、扫描采样和地图预算/淘汰策略。语义输入或地图引导采样须有明确的实验档案与消融。
 
-现有六条路径均使用点面几何，但参数化、不确定性模型和门限不同，OctVox 使用固定信息量。VoxelMap++ 现已遵循 `extrinsic_est_en`：启用时，解析雅可比包含右扰动外参旋转和平移列；关闭时，这些列为零。`h = -float(dist)`、原生权重和面片门限未变。细节与测试边界见[集成状态](doc/INTEGRATION_STATUS.md)和[范围审查](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)。
+现有七条路径使用平面观测，各自参数化、不确定性模型和门限不同，OctVox 使用固定信息量，R-VoxelMap 保留递归概率平面匹配。VoxelMap++ 现已遵循 `extrinsic_est_en`：启用时，解析雅可比包含右扰动外参旋转和平移列；关闭时，这些列为零。`h = -float(dist)`、原生权重和面片门限未变。细节与测试边界见[集成状态](doc/INTEGRATION_STATUS.md)和[范围审查](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)。
 
 ikd-tree 和 iVox 的 `nearest_max_range` 现统一以米表示。ikd-tree 将第五近邻平方距离与 `r²` 比较并包含边界；iVox 将 `r` 传给原生查询，采用严格的 `< r`，且查询受配置的附近体素范围限制。因此数值表示相同物理单位，但边界行为和搜索域仍不同。旧 ikd-tree 曾把配置值 `v` 当平方距离，若要复现旧阈值，新半径应设为 `sqrt(v)` 米；现有 iVox 数值不变。
 
-六后端示例数据清单现已包含全部 selector。两项合成 gtest 已构建并通过（CTest 2/2，共 11 个 GTest 条目），覆盖生命周期、所列半径边界和解析雅可比有限差分；实际节点编译/链接检查和六后端30秒完整输入回归也已通过，各保存预期的288帧轨迹与非空PCD；141秒序列仍在验收。这些结果不构成精度提升结论。配置、覆盖缺口及证据见[集成状态](doc/INTEGRATION_STATUS.md)。
+示例数据清单现已包含全部七个 selector。原有六后端的两项合成 gtest 已构建并通过（CTest 2/2，共 11 个 GTest 条目），其中包括六个原后端生命周期用例；R-VoxelMap 另有隔离 CTest 4/4、23 个 GTest 条目，正向 ASan fixture 连续 30 次通过。一次全量 ASan 调用曾挂起并中止，原因未知；ptrace 限制下关闭泄漏检查。主线 R 节点构建退出 0 并通过动态链接检查。原有六后端修复单调时钟后的 30 秒、0.5 米回归各输出 288 行且耗时有限非负；此前 141 秒记录虽有完整输入和 1402 行轨迹，但 WallTime 回拨产生负耗时，须修复计时后重跑长序列。R-VoxelMap 的 30 秒与 141 秒完整输入检查通过，141 秒共 1402 帧且每帧均有有效约束、耗时有限非负。以上不构成精度提升或受控性能结论。配置、覆盖缺口及证据见[集成状态](doc/INTEGRATION_STATUS.md)、[阶段1结果](doc/workspace/evidence/STAGE1_RESULTS.json)和[R结果](doc/workspace/evidence/R_VOXELMAP_RESULTS.json)。
 
 严格的索引/地图表示消融是可选实验，需额外对齐残差、雅可比、权重、门限、保留点集和地图预算。完整上游系统则作为独立的端到端基线。结果应按实际改变的因素解释。
 
@@ -84,7 +84,8 @@ MapManager：地图存储、更新与匹配
   |-- ikd-tree       --> 共用点面适配器
   |-- iVox           --> 共用点面适配器
   |-- C3P-VoxelMap   --> 原生概率平面观测
-  `-- OctVox         --> 固定信息量的平面观测
+  |-- OctVox         --> 固定信息量的平面观测
+  `-- R-VoxelMap     --> 递归概率平面观测
       |
       v
 后端观测分发 --> 共用 IKFoM 更新
@@ -120,7 +121,7 @@ source devel/setup.bash
 
 ```yaml
 mapping:
-  map_type: octvox    # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap, octvox
+  map_type: octvox    # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap, octvox, r_voxelmap
 ```
 
 局部窗口模式使用现有的 `mapping` 窗口参数配置。各后端的专用参数仍放在同一配置文件中，选择其它后端时会被忽略。`octvox` 保留 Super-LIO 的容量/LRU 淘汰语义，因此会拒绝几何局部窗口模式。
@@ -149,6 +150,7 @@ rosbag play --clock /path/to/your.bag
 | `ivox` | `pv_lio_ivox_pos.txt` | `pv_lio_ivox.pcd` |
 | `c3p_voxelmap` | `pv_lio_c3p_voxelmap_pos.txt` | `pv_lio_c3p_voxelmap.pcd` |
 | `octvox` | `pv_lio_octvox_pos.txt` | `pv_lio_octvox.pcd` |
+| `r_voxelmap` | `pv_lio_r_voxelmap_pos.txt` | `pv_lio_r_voxelmap.pcd` |
 
 轨迹文件保存带时间戳的位姿记录。根据点云保存配置，还可能在 `output/PCD/` 下生成分段点云。进行地图对比时，应对所有后端使用相同的数据包片段、传感器参数、窗口设置和输出目录组织方式。
 
