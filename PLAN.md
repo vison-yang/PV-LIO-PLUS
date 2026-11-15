@@ -106,6 +106,8 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 
 ### 阶段 3：i-Octree 与 iG-LIO 地图结构
 
+**状态：i-Octree 在独立工作树实施，尚未验收或增加主线 selector。** 作者版本存在空树、返回数量、删除计数及浮点树盒剪枝边界问题；[接入审计](doc/workspace/I_OCTREE_DESIGN.md)与[数值方案](doc/workspace/I_OCTREE_NUMERICS.md)记录修复方向。方案采用实点 AABB、double 查询与隔离距离核，并须通过独立逐步舍入 oracle、生命周期和内存检查后才可进入真实回放。
+
 - 保留 i-Octree 动态八叉树生命周期和 iG 增量充分统计/地图维护；不得只提取通用点容器后仍以原算法名义评估。iG 点面适配只是一个观测变体，不能剥离其结构创新。
 - i-Octree 检查空树、少于 k 点、等距、盒边界和删除后 ID；iG 检查充分统计更新、`KNNByCondition` 数量/排序与容量淘汰。
 - 完成条件：查询结果对各自声明域内的暴力排序 oracle 通过，生命周期测试通过，接入的观测变体有短回放清单。不得把有限邻域查询描述为全图精确 kNN。
