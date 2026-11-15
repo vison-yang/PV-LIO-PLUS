@@ -6,7 +6,8 @@
     "ivox",
     "c3p_voxelmap",
     "octvox",
-    "r_voxelmap"
+    "r_voxelmap",
+    "hvox"
   ],
   "datasets": [
     {

@@ -44,8 +44,8 @@
 
 ## 本项目的集成与复现状态
 
-- 当前七个 selector 均集成地图及对应观测。R-VoxelMap 已进入主线 `b820b08`；隔离测试 CTest 4/4（23 个 GTest 条目）通过，正向 ASan fixture 连续 30 次通过，且 30 秒与 141 秒完整输入回放检查通过。141 秒记录共 1402 行、每帧均有有效约束、时长有限且非负；主节点构建退出 0、通过链接检查，主线常规 CTest 3/3（22 个 GTest 条目）通过。详细边界见[R 结果记录](../doc/workspace/evidence/R_VOXELMAP_RESULTS.json)。未作独立真值精度或受控性能结论。
-- 另有六项满足结构准入条件的本地作者源码待评估，其中 LIO-GVM 因作者发布缺少定制头文件而阻塞；两项结构合格论文（FR-LIO、SV-LIO）本地收集记录尚未确认作者源码。KISS-ICP、GenZ-LIO、CT-VoxelMap、SA-LIVO 和 Environment-Adaptive 的论文、源码或历史构建证据保留归档，不列当前候选。逐项状态见[集成计划](../PLAN.md)。
+- 当前八个 selector 均集成地图及对应观测。R-VoxelMap 已进入主线 `b820b08` 并通过主线节点、测试和 30/141 秒回放验证。hVox feature `997c00a` 已以 `c81f12f` 合入主线；功能工作树构建、CTest 6/6（34 个 GTest 条目）、数学核验及 30/141 秒完整输入回放通过，主线构建和复测仍待完成。hVox 141 秒记录有 1402 行、每帧有效约束且耗时有限非负。见[R 结果记录](../doc/workspace/evidence/R_VOXELMAP_RESULTS.json)和[hVox 结果记录](../doc/workspace/evidence/HVOX_RESULTS.json)。这些回归不构成独立真值精度或受控性能结论。
+- 另有五项满足结构准入条件的本地作者源码待评估，其中 LIO-GVM 因作者发布缺少定制头文件而阻塞；两项结构合格论文（FR-LIO、SV-LIO）本地收集记录尚未确认作者源码。KISS-ICP、GenZ-LIO、CT-VoxelMap、SA-LIVO 和 Environment-Adaptive 的论文、源码或历史构建证据保留归档，不列当前候选。逐项状态见[集成计划](../PLAN.md)。
 - 本地构建退出 0 不等于数据集精度复现。作者论文中的精度、耗时和运行条件不代表本工作区的实验结果。
 
 ## 源码核查边界

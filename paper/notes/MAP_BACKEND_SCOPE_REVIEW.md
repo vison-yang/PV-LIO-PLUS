@@ -1,10 +1,10 @@
 # 地图数据结构资格与对应残差集成范围审核
 
-核验日期：**2026-11-15**。资格判定依据固定版本的本地论文及其分页全文、作者贡献陈述和本地作者源码；关键论文另经官方一手来源对照。未更新远程仓库或源码基线。阶段1原有六后端的30秒复测通过；较早141秒记录有负WallTime，修复单调计时后的长序列仍待重跑。R-VoxelMap 已集成，隔离测试和30/141秒完整输入回放通过，主节点已构建并通过链接检查；详见[阶段与R结果](../../doc/INTEGRATION_STATUS.md)、[R机器记录](../../doc/workspace/evidence/R_VOXELMAP_RESULTS.json)。这些记录不声称精度提升或受控性能结论。下文的远程版本差异观察单独保留为 2026-11-14 历史证据。
+核验日期：**2026-11-15**。资格判定依据固定版本的本地论文及其分页全文、作者贡献陈述和本地作者源码；关键论文另经官方一手来源对照。源码按本地固定快照描述，未拉取远程更新。阶段1原有六后端修复计时后的30秒和141秒输入回归均通过。R-VoxelMap 已集成并通过测试、主线节点构建和30/141秒回放。hVox 已 cherry-pick 至主线 `c81f12f`；功能工作树构建、数学核验与30/141秒完整输入回放通过，主线构建、链接、CTest 5/5（33 个 GTest 条目）及30秒完整回归通过。详见[阶段状态](../../doc/INTEGRATION_STATUS.md)、[R机器记录](../../doc/workspace/evidence/R_VOXELMAP_RESULTS.json)和[hVox机器记录](../../doc/workspace/evidence/HVOX_RESULTS.json)。这些记录不声称精度提升或受控性能结论。下文的远程版本差异观察单独保留为 2026-11-14 历史证据。
 
 ## 项目定位与硬准入条件
 
-本项目源自 PV-LIO：PV-LIO 在 FAST-LIO2 源码框架中用 VoxelMap 替换 ikd-tree，并利用点与平面的不确定性构造滤波观测，见 [PV-LIO 说明](../../../PV-LIO/README.md#L2)。PV-LIO-PLUS 随后集成 VoxelMap++，大幅重构框架，再继续集成更多地图结构及其对应残差模型。主目标是在相同框架中评估不同地图与配套观测的效果。
+本项目源自 PV-LIO：PV-LIO 在 FAST-LIO2 源码框架中用 VoxelMap 替换 ikd-tree，并利用点与平面的不确定性构造滤波观测，见 [PV-LIO 说明](../../../../src/PV-LIO/README.md#L2)。PV-LIO-PLUS 随后集成 VoxelMap++，大幅重构框架，再继续集成更多地图结构及其对应残差模型。主目标是在相同框架中评估不同地图与配套观测的效果。
 
 **进入当前地图集成/候选清单的必要条件：原论文将提出新的地图数据结构或改进地图数据结构列为创新之一，并能指出存储单元、空间组织、层级、融合统计或地图维护结构的实际变化。** 使用体素/哈希容器、仅改查询算法、残差、语义权重、扫描采样、估计器缓存或更新门控均不自动满足。结构创新资格、源码可用性、编译和集成是独立状态；源码已收集或已构建不能补足论文资格。
 
@@ -30,24 +30,24 @@
 | [C3P-VoxelMap](../C3P-VoxelMap.pdf) | **保留，已集成** | p2 贡献 1–3，pp3–5 §IV/V：点无关的固定规模充分统计、累积更新、平面合并与 locality-sensitive hash 合并桶。 |
 | [Super-LIO / OctVox](../Super-LIO.pdf) | **保留，已集成** | p1 摘要、p3 §III-C：每格八个子体素代表点、有限密度聚合/增量降噪及 LRU 组织；资格来自 OctVox，不能只保留 HKNN 查询。 |
 | [R-VoxelMap](../R-VoxelMap.pdf) | **保留，已集成** | p2 贡献 1，p3 §III-A/B：内部与叶节点均可保存平面/点，链表划分点集、离群点递归下推复用，改变传统仅叶平面组织与构建。 |
-| [Surfel-LIO / hVox](../Surfel-LIO.pdf) | **保留，待集成** | p2 贡献 1–2，p4 §III-B：两层 L0 质心 / L1 预计算 surfel 及 Z-order 键组织；必须保留更新期计算与层级，而不只是加速查找。 |
+| [Surfel-LIO / hVox](../Surfel-LIO.pdf) | **保留，已集成** | p2 贡献 1–2，p4 §III-B：两层 L0 质心 / L1 预计算 surfel 及 Z-order 键组织；必须保留更新期计算与层级，而不只是加速查找。 |
 | [i-Octree](../i-Octree.pdf) | **保留，待集成** | p1 摘要，p2 §II-A：叶端连续内存点块、仅叶保存点、局部树上更新/降采样和盒删除；明确提出动态八叉树数据结构。 |
 | [iG-LIO](../iG-LIO.pdf) | **保留，待集成** | p2 第三项贡献，pp3–4 §II-C、式 (7)–(9)/算法 1：每格 `(N,Σp,Σppᵀ,μ,Σ)`，活跃格增量分布更新及 LRU 地图维护。资格不靠 VSCE 扫描协方差或 GICP 残差。 |
 | [KISS-ICP](../KISS-ICP.pdf) | **移除地图候选** | p2 贡献是简洁系统、模块评估与自适应阈值；p4 §III-C 利用已有 voxel grid/hash 并引用既有实现思路，未将新的地图结构列为贡献。有界点存储和距离淘汰的实现存在，不足以证明该论文提出结构创新。 |
-| [GenZ-LIO v3](../GenZ-LIO.pdf) | **移除地图候选** | pp2–3 贡献/五项主张是扫描尺度控制、混合状态观测和剪枝查询；p9 §V-B 明确查询 VoxelMap [11]，所谓 27 区域是查询分类，非新存储层级。[原地图源码](../../../GenZ-LIO/cpp/genz_lio/core/VoxelMap.hpp#L3)也注明继承 VoxelMap/PV-LIO；未证明独立地图结构创新。 |
+| [GenZ-LIO v3](../GenZ-LIO.pdf) | **移除地图候选** | pp2–3 贡献/五项主张是扫描尺度控制、混合状态观测和剪枝查询；p9 §V-B 明确查询 VoxelMap [11]，所谓 27 区域是查询分类，非新存储层级。[原地图源码](../../../../src/GenZ-LIO/cpp/genz_lio/core/VoxelMap.hpp#L3)也注明继承 VoxelMap/PV-LIO；未证明独立地图结构创新。 |
 | [Hybrid-VoxelMap](../Hybrid-VoxelMap.pdf) | **保留，条件化待集成** | p1 第一项贡献，p3 §III-B：语义决定每格 Plane/Gaussian 表示并动态转换；改变实际几何单元类型与维护，区别于只按语义调残差权重。 |
 | [BIEVR-LIO](../BIEVR-LIO.pdf) | **保留，条件化待集成** | p2 贡献 1，p3 §III-A：每体素存定向 bump image、高度/权重像素与局部坐标变换，迭代融合细节；资格来自新地图单元，不依赖采样创新。 |
 | [LIO-GVM](../LIO-GVM.pdf) | **保留资格，源码阻断** | p2 第二项贡献，p5 §IV-D/式 (18)：将 VGICP 式分布提升为可插入/更新/删除的全局哈希高斯地图，维护均值/协方差/计数并以 `M=max(M,N)` 防止历史统计冻结。不是仅更改 Gaussian 残差。 |
 | [FR-LIO / RC-Vox](../FR-LIO.pdf) | **保留论文地图储备，源码未核验** | p2 第二项贡献，p4 §V-A/B：机器人中心、固定大小双层 3D 数组及滚动重用索引，明确提出 RC-Vox 结构；完整子帧与 smoother 不随地图移植。 |
 | [CT-VoxelMap](../CT-VoxelMap.pdf) | **结构创新证据不足，移出当前候选** | p2 贡献重点为 spline/融合/重估；p7 图 5 与正文明确采用类似 VoxelMap [38] 的粗到细构造，将非平面叶称为 voxel feature，pp7–8 主要新增特征不确定性和观测。未核实独立存储、组织或维护结构变化，不能因名称/混合残差保留。 |
-| [SA-LIVO v3](../SA-LIVO.pdf) | **移除地图候选，仅相关视觉/估计研究** | p1 贡献为 SAIF、估计器效率和系统验证；pp3–4 §V-B/C 继承 VoxelMap 八叉树，冻结平面与邻域 PCA 统计缓存服务估计/查询，未证明作者将新的环境地图结构作为创新。[原 VoxelMap](../../../VoxelMap/include/voxel_map_util.hpp#L409)已有饱和后停止更新机制，不能据“冻结”直接认定新结构。 |
+| [SA-LIVO v3](../SA-LIVO.pdf) | **移除地图候选，仅相关视觉/估计研究** | p1 贡献为 SAIF、估计器效率和系统验证；pp3–4 §V-B/C 继承 VoxelMap 八叉树，冻结平面与邻域 PCA 统计缓存服务估计/查询，未证明作者将新的环境地图结构作为创新。[原 VoxelMap](../../../../src/VoxelMap/include/voxel_map_util.hpp#L409)已有饱和后停止更新机制，不能据“冻结”直接认定新结构。 |
 | [SV-LIO](../SV-LIO.pdf) | **保留论文地图储备，源码/语义输入未核验** | p3 贡献 2，pp9–11 §4.3/式 (10)–(14)：语义引导聚类，离群点下推八个子体素，剩余内点重估平面并维护叶平面的类别概率。改的是递归构建与单元统计，不只是 §4.4/4.5 的语义关联/加权。 |
 | [Environment-Adaptive Solid-State LIO](../Environment-Adaptive-Solid-State-LIO.pdf) | **结构创新证据不足，移出当前候选** | p2 贡献 2 是退化感知更新策略；p4 §III-C2/式 (16)–(17)给出帧级门控及置信度 `q_v` 的 EMA，但未清楚规定它如何改变空间组织、层级融合或几何统计结构。持久置信度/更新门控本身不充分，作者源码也未核验。 |
 | [FAST-LIO](../FAST-LIO.pdf) | **框架来源，不单列地图候选** | p1 贡献为紧耦合滤波、去畸变与 Kalman gain 计算；不能把 FAST-LIO2/ikd-Tree 的结构创新回填给 FAST-LIO 原论文。 |
 
-PV-LIO 未收录独立论文，其项目说明证明它在 FAST-LIO2 框架采用 VoxelMap，不能据此另认定一项新地图结构。PV-LIO/FAST-LIO 可以作为框架来源或独立系统比较基线，须与合格地图清单分开。当前七个 selector 均对应通过资格筛选的地图；这张22篇论文表记录结构资格，不替代各实现的集成和运行状态。KISS/GenZ 等退出候选也不等于删除已收集源码、论文或历史构建结果。
+PV-LIO 未收录独立论文，其项目说明证明它在 FAST-LIO2 框架采用 VoxelMap，不能据此另认定一项新地图结构。PV-LIO/FAST-LIO 可以作为框架来源或独立系统比较基线，须与合格地图清单分开。当前八个 selector 均对应通过资格筛选的地图；这张22篇论文表记录结构资格，不替代各实现的集成和运行状态。KISS/GenZ 等退出候选也不等于删除已收集源码、论文或历史构建结果。
 
-## 现有七后端：公共循环相同，观测并非完全相同
+## 现有八后端：公共循环相同，观测并非完全相同
 
 [公共循环](../../src/mapping.cpp#L896)共用滤波初始化、`imu_process_->Process` 与 `update_iterated_dyn_share_diagonal`；[ObservationModel 分派](../../src/mapping.cpp#L711)保留不同观测实现。下表 `w` 为 `ekfom_data.R` 中的逆方差/信息量。
 
@@ -60,16 +60,19 @@ PV-LIO 未收录独立论文，其项目说明证明它在 FAST-LIO2 框架采�
 | C3P-VoxelMap | 紧凑概率体素及可选合并；[search_c3p](../../src/map_manager/map_manager.cpp#L1249)调用原生残差生成，[ObservationModelC3P](../../src/mapping.cpp#L619)传播 6 维平面与点协方差。 | 使用独立 C3P 观测，没有点图路径的方差下限。 |
 | OctVox | 八分体代表点聚合、容量/LRU、有序 TopK；[search_octvox](../../src/map_manager/map_manager.cpp#L1281)执行 4/5 点拟平面、0.1 m 邻点平面与距离门限；[ObservationModelOctVox](../../src/mapping.cpp#L537)使用 `w=1000`。 | 固定信息量；LRU 不等于几何窗口，启用公共局部窗口会被配置检查拒绝。 |
 | R-VoxelMap | 递归层级地图在内部/子节点存平面，链表组织离群点下推及重建并保留 root LRU；[`search_r_voxelmap`](../../src/map_manager/map_manager.cpp#L1269)查当前 root，原生条件满足时再查单个相邻 root。[`ObservationModelRVoxelMap`](../../src/mapping.cpp#L710)使用平面协方差与旋转到世界系的 LiDAR 测量协方差。 | 原生匹配用完整世界点协方差与 3-sigma 门限；滤波观测不重复加入状态协方差。非全域 kNN。`size()` 是 root voxel 数；snapshot 为保留 native 点列表；批次后冻结的 root 点预算不是严格上限。几何窗口/显式 erase 不支持。 |
+| hVox | 原生 L0/L1 层级与更新期预计算 surfel；[`search_hvox`](../../src/map_manager/map_manager.cpp#L1385)按包含点的 L1 键调用 `GetSurfelAtPoint`，`hvox_pko_ikfom` 通过[`HVoxObservationGroup`](../../src/map_manager/hvox_observation.cpp#L38)保留有符号残差和 PKO 分组尺度。 | 固定匹配组内重算当前状态残差、Jacobian 和 PKO/Huber 信息；不重建作者双循环。`size()` 是 L0 voxel 数，snapshot 为 L0 质心，point count 使用原生点数；原生 moving box，拒绝公共几何窗口。 |
 
 [calc_lidar_cov_for_backend](../../src/mapping.cpp#L227)还为 VoxelMap++ 选择单独的传感器协方差实现。这些差异属于当前地图与观测组合，应如实记录；现有结果不能直接称为严格地图表示消融。
 
 **距离单位与迁移：** [`search_ikd_tree`](../../src/map_manager/map_manager.cpp)比较第 5 近邻平方距离与 `r²`，包含边界；iVox 的[原生查询](../../include/map_manager/native/ivox/ivox3d_node.hpp)采用严格 `<r`，并受 `ivox_nearby_type` 限制。`nearest_max_range` 现对两者统一以米配置。旧 ikd-tree 配置值 `v` 曾直接作为平方距离阈值，要复现旧门限应设置新半径 `r=sqrt(v)` 米；已有 iVox 数值不变。半径必须为正有限值，平方后也须有限且非零；MapManager 在清除既有地图前执行校验。ikd-tree 和 iVox 的点面残差门限都等价于严格条件 `range > 81 t²`（`t=plane_fit_threshold`），但这与查询半径无关，查询域也不相同。
 
-**未匹配返回：** `MapManager::search` 每次清空 `matches` 与 `non_match`。ikd-tree、iVox、OctVox 和 R-VoxelMap 会把其后端搜索失败的查询点写入 `non_match`；VoxelMap、VoxelMap++ 和 C3P 的原生 OMP residual builder 不保证逐点填充该列表。共同 API 只可依赖“无有效匹配时 `matches` 为空”，不可假定 `non_match` 与查询点逐项对应。
+**未匹配返回：** `MapManager::search` 每次清空 `matches` 与 `non_match`。ikd-tree、iVox、OctVox、R-VoxelMap 和 hVox 会把其后端搜索失败的查询点写入 `non_match`；VoxelMap、VoxelMap++ 和 C3P 的原生 OMP residual builder 不保证逐点填充该列表。共同 API 只可依赖“无有效匹配时 `matches` 为空”，不可假定 `non_match` 与查询点逐项对应。
 
-**原有六后端合成测试：** 两个 gtest 目标已实际构建，CTest 2/2 通过，共 11 个 GTest 条目。六后端各有空图/平面生命周期测试；半径测试覆盖 4.99/5/5.01 m、两种 iVox 实现、有限附近格域、非法值及 OctVox 窗口拒绝。VoxelMap++ Jacobian helper 对 12 列、三组非单位姿态做中心差分并检查外参开关。生产 `h=-float(dist)`、原生权重及门限仅作静态核对，未作自动集成测试；亚米级半径、负世界坐标和仅 1–4 个近邻的查询未专项覆盖。修复单调计时后的六后端30秒、0.5米回归均有288行且耗时有限非负；此前141秒运行的WallTime回拨导致负耗时，长基线待修复计时后重跑。
+**原有六后端合成测试：** 两个 gtest 目标已实际构建，CTest 2/2 通过，共 11 个 GTest 条目。六后端各有空图/平面生命周期测试；半径测试覆盖 4.99/5/5.01 m、两种 iVox 实现、有限附近格域、非法值及 OctVox 窗口拒绝。VoxelMap++ Jacobian helper 对 12 列、三组非单位姿态做中心差分并检查外参开关。生产 `h=-float(dist)`、原生权重及门限仅作静态核对，未作自动集成测试；亚米级半径、负世界坐标和仅 1–4 个近邻的查询未专项覆盖。修复单调时钟后的六后端30秒和141秒回归均通过；长回归各有1402行、逐帧非零约束及有限非负计时。早期141秒运行的WallTime回拨仍作为历史失败记录，不作为计时证据。
 
 **R-VoxelMap 独立验证：** 隔离 CTest 4/4、23 个 GTest 条目通过；正向 ASan fixture 连续30次通过。一次全量 ASan 调用曾挂起并中止，后续单项/重复/全量重试通过但原因未知；ptrace 不兼容导致泄漏检测关闭。主线节点编译退出0、`ldd -r`通过。30秒与141秒输入完整性回放均通过；长回放 1414 LiDAR/28595 IMU，1402行，每帧473至4850个有效约束（中位2418），root体素最多122755，耗时单调且有限非负，姿态单位范数误差小于 `5e-6`，PCD非空。未做真值精度或受控性能结论。详见[集成状态](../../doc/INTEGRATION_STATUS.md)及[R结果](../../doc/workspace/evidence/R_VOXELMAP_RESULTS.json)。
+
+**hVox 独立验证：** feature `997c00a` 已以 `c81f12f` cherry-pick 到主线。功能工作树节点构建和 `ldd -r` 通过，CTest 6/6（34 个 GTest 条目）及独立数学/源码核验通过。30秒短回放 301 LiDAR/6088 IMU 输入对应 288 输出行；141秒回放 1414 LiDAR/28595 IMU 输入对应 1402 行，每帧都有非零约束，耗时列有限且非负，四元数单位范数误差小于 `7.0e-7`。细节见[状态记录](../../doc/INTEGRATION_STATUS.md)及[hVox结果](../../doc/workspace/evidence/HVOX_RESULTS.json)。这是输入完整性回归，不是精度或受控性能结论；主线构建、链接、CTest 5/5（33 个 GTest 条目）及30秒完整回归通过。
 
 ## 本次所审源码版本（包含已移出候选者）
 
@@ -85,16 +88,15 @@ PV-LIO-PLUS 核验基线为 `985fd799fa61`。作者基线和本地构建提交�
 | `src/ig_lio` | `a75b362f0852` | 作者基线 `2d79259`；`lio.cpp`、地图实现/地图头与基线相同。 |
 | `upstream/lio_gvm` | `c80c968ed7ff` | README、`laserMapping.cpp` 与文件清单，定制地图头仍缺失。 |
 
-## 六项合格源码候选的实施边界
+## 五项合格源码候选的实施边界
 
-R-VoxelMap 已是第七个 selector；其主线提交、测试边界和运行证据见上文及[R结果记录](../../doc/workspace/evidence/R_VOXELMAP_RESULTS.json)。以下六项尚未实现 selector。只有通过结构资格的项目进入下列设计工作；FR/SV 仍为论文储备。
+R-VoxelMap 与 hVox 已分别在 `b820b08`、`c81f12f` 集成；R 的主线测试/运行结果见[R结果记录](../../doc/workspace/evidence/R_VOXELMAP_RESULTS.json)，hVox 功能工作树结果见[hVox记录](../../doc/workspace/evidence/HVOX_RESULTS.json)。hVox 主线构建、链接、CTest 5/5（33 个 GTest 条目）及30秒完整回归通过。以下五项尚未实现 selector。只有通过结构资格的项目进入下列设计工作；FR/SV 仍为论文储备。
 
 | 地图 | 必须保留的结构与对应观测 / 实施前置条件 |
 | --- | --- |
-| Surfel-LIO / hVox | [UpdateVoxelMap](../../../../upstream/Surfel-LIO/src/core/VoxelMap.cpp#L281)保存 L1 surfel，[FindCorrespondences](../../../../upstream/Surfel-LIO/src/core/Estimator.cpp#L822)调用 [GetSurfelAtPoint](../../../../upstream/Surfel-LIO/src/core/VoxelMap.cpp#L472)，保留双层统计和更新期预计算；可评估原生自适应 Huber 权重，不移植原 Estimator 循环。 |
 | i-Octree | [Octree.h](../../../../upstream/i-Octree/octree2/Octree.h#L535)中的动态树、叶端连续点块、增删/树上降采样；明确空树输出、盒边界、删除后点 ID 与返回计数，点面适配不改变结构资格。 |
-| iG-LIO | [Grid](../../../ig_lio/include/ig_lio/voxel_map.h#L27)与 [AddCloud](../../../ig_lio/src/voxel_map.cpp#L87)保存充分统计并增量更新；论文与实现的统计饱和、点数限制和 LRU 须记录。可设计点面变体或 [GICP 观测](../../../ig_lio/src/lio.cpp#L198)，但不能只抽点存储。GICP 需表面协方差、3 维残差和相关信息；Cauchy 的 `rho[2]` 二阶项不能等同简单对角加权。 |
-| Hybrid-VoxelMap | [UnionFindNode](../../../Hybrid-VoxelMap/include/voxelmapplus_util.hpp#L123)的 Plane/Gaussian 类型及语义驱动切换；[NDT 残差](../../../Hybrid-VoxelMap/include/voxelmapplus_util.hpp#L707)和[消费端](../../../Hybrid-VoxelMap/src/voxelMapping.cpp#L915)可抽取。须补标签来源、类别转换、缺标签和退化协方差语义；只留普通平面会丢失支撑资格的混合结构。 |
+| iG-LIO | [Grid](../../../../src/ig_lio/include/ig_lio/voxel_map.h#L27)与 [AddCloud](../../../../src/ig_lio/src/voxel_map.cpp#L87)保存充分统计并增量更新；论文与实现的统计饱和、点数限制和 LRU 须记录。可设计点面变体或 [GICP 观测](../../../../src/ig_lio/src/lio.cpp#L198)，但不能只抽点存储。GICP 需表面协方差、3 维残差和相关信息；Cauchy 的 `rho[2]` 二阶项不能等同简单对角加权。 |
+| Hybrid-VoxelMap | [UnionFindNode](../../../../src/Hybrid-VoxelMap/include/voxelmapplus_util.hpp#L123)的 Plane/Gaussian 类型及语义驱动切换；[NDT 残差](../../../../src/Hybrid-VoxelMap/include/voxelmapplus_util.hpp#L707)和[消费端](../../../../src/Hybrid-VoxelMap/src/voxelMapping.cpp#L915)可抽取。须补标签来源、类别转换、缺标签和退化协方差语义；只留普通平面会丢失支撑资格的混合结构。 |
 | BIEVR-LIO | [BIEVRMap](../../../../upstream/BIEVR-LIO/BIEVR/include/bievr_lio/bievr_map.h#L14)的定向高度图/像素融合及 [linearize](../../../../upstream/BIEVR-LIO/BIEVR/src/ls_optimizer.cpp#L55)的 `r=p_o.z-I(x,y)`、图像梯度和 Huber。适配共同状态，不调用 `computeTransformation/stepLm` 或惯性后端；[地图引导采样](../../../../upstream/BIEVR-LIO/BIEVR/src/pipeline.cpp#L239)单列实验。 |
 | LIO-GVM | 保留全局高斯地图增量融合统计；[h_share_model](../../../../upstream/lio_gvm/src/laserMapping.cpp#L671)调用 `kalmanCalculate`。但 [README](../../../../upstream/lio_gvm/README.md#L9)仍注明 `.hpp` 待更新，[包含处](../../../../upstream/lio_gvm/src/laserMapping.cpp#L62)依赖缺失的 `fast_vgicp/fast_vgicp.hpp`；补齐完整作者实现后才能核对地图/信息模型。 |
 | FR-LIO / RC-Vox；SV-LIO | 论文证明结构资格，尚未核验作者实现；分别跟踪双层数组地图、语义引导递归地图的官方源码与可分离性，不进入当前源码移植排期。 |
@@ -105,7 +107,7 @@ KISS/GenZ 仅保留历史源码与论文、完整系统基线资料，不再排�
 
 ## 未来接口与验收
 
-当前 `PlaneMatch` 和七个 selector 已有实现。供剩余合格候选使用的 `Surfel`、`Gaussian`、`HeightImage` 等带类型匹配，以及通用标量/向量残差、状态 Jacobian 和信息接口，均是**未来设计，本轮未实现**。现有滤波使用对角信息，向量观测需处理相关协方差，可评估白化为标量行，不能直接丢掉非对角项或照搬上游状态列顺序。
+当前 `PlaneMatch` 和八个 selector 已有实现。hVox 通过专用适配将原生 surfel 对应关系转换为 `PlaneMatch`；通用带类型的 `Surfel`、`Gaussian`、`HeightImage` 匹配，以及通用标量/向量残差、状态 Jacobian 和信息接口，仍是**未来设计，本轮未实现**。现有滤波使用对角信息，向量观测需处理相关协方差，可评估白化为标量行，不能直接丢掉非对角项或照搬上游状态列顺序。
 
 - **资格验收：** 导入文件、实际数据布局和维护调用链须保留论文支撑资格的结构创新；裁剪/改写须说明保留机制及影响，不能以原项目名包装通用索引。
 - **地图 oracle：** 点图在声明的搜索域内对照暴力排序；概率平面、surfel 和高度图按各自的构造/查询规则建立可穷举参照。检查充分统计、层级/合并、像素融合、淘汰和快照，覆盖空图、少于 k 点、等距、负坐标与边界及插入删除。有限邻域 kNN 不得称为全图精确 kNN。

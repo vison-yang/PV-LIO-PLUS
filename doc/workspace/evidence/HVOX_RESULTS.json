@@ -1,0 +1,205 @@
+{
+  "checked_on": "2026-11-15",
+  "feature_commit": "997c00abc365eeea2914380de414a7f540cc6fd9",
+  "native_author_commit": "73348c1e5560eccd2df1ff9f87683b2326a396d4",
+  "observation_profile": "hvox_pko_ikfom",
+  "feature_node_build": {
+    "exit_code": 0,
+    "binary_sha256": "a1a8cb25a4583c8ca604388b33355c4c02c12d175acb5033f16343c3aaf4d394",
+    "all_eight_target_eigen_headers": "3.4.0",
+    "ldd_exit_code": 0
+  },
+  "isolated_tests": {
+    "ctest_passed": 6,
+    "ctest_total": 6,
+    "gtest_cases": 34,
+    "asan_scope": "R-VoxelMap positive fixture only; leak detection disabled"
+  },
+  "review": "Independent math/source and numerical-oracle review passed before replay",
+  "short_replay": {
+    "source_commit": "997c00abc365eeea2914380de414a7f540cc6fd9",
+    "binary_sha256": "a1a8cb25a4583c8ca604388b33355c4c02c12d175acb5033f16343c3aaf4d394",
+    "profile": "mapping/down_sample_size=0.5; visualization off; final PCD on",
+    "cases": [
+      {
+        "backend": "hvox",
+        "output_rows": 288,
+        "timing_rows": 288,
+        "input_complete": true,
+        "input_delivery": {
+          "/livox/lidar": {
+            "count": 301,
+            "first_stamp": 597.4993629,
+            "last_stamp": 627.49932562,
+            "header_sequence_sha256": "17bf43b52f5662adbe713513ea110b1d72c0efbe9bbd5cdeefba5845390ff35a"
+          },
+          "/livox/imu": {
+            "count": 6088,
+            "first_stamp": 597.50583931,
+            "last_stamp": 627.59773838,
+            "header_sequence_sha256": "a642f2c5c24c0f0d56708829d901d094b88fc19d3f7d9975eb33d989340f1906"
+          }
+        },
+        "first_output_stamp": 598.799258,
+        "last_output_stamp": 627.499322,
+        "finite_nonnegative_duration_columns": [
+          "search_ms",
+          "search_avg_ms",
+          "ikf_update_ms",
+          "ikf_update_avg_ms",
+          "map_update_ms",
+          "map_update_avg_ms",
+          "total_ms",
+          "total_avg_ms"
+        ],
+        "effective_points_min": 374,
+        "effective_points_median": 1455.0,
+        "effective_points_max": 2044,
+        "zero_constraint_frames": 0,
+        "native_map_size_min": 3341,
+        "native_map_size_max": 31242,
+        "max_quaternion_norm_error": 6.74921272203477e-07,
+        "pcd_points": 6077658
+      }
+    ],
+    "limitations": "Regression only; no ground truth or controlled performance ranking"
+  },
+  "full_replay": {
+    "source_commit": "997c00abc365eeea2914380de414a7f540cc6fd9",
+    "binary_sha256": "a1a8cb25a4583c8ca604388b33355c4c02c12d175acb5033f16343c3aaf4d394",
+    "profile": "mapping/down_sample_size=0.5; visualization off; final PCD on",
+    "cases": [
+      {
+        "backend": "hvox",
+        "output_rows": 1402,
+        "timing_rows": 1402,
+        "input_complete": true,
+        "input_delivery": {
+          "/livox/lidar": {
+            "count": 1414,
+            "first_stamp": 597.4993629,
+            "last_stamp": 738.7994946,
+            "header_sequence_sha256": "a2b787b13f1507999b4b63de6ceda22f19c714fd08e8436b9d2c90390c0ca562"
+          },
+          "/livox/imu": {
+            "count": 28595,
+            "first_stamp": 597.50583931,
+            "last_stamp": 738.9003379,
+            "header_sequence_sha256": "ba606929480aa97d1e08d364dff9f5b34b560d5e2e2fe8e7dbb7e5374100c2b8"
+          }
+        },
+        "first_output_stamp": 598.799258,
+        "last_output_stamp": 738.899325,
+        "finite_nonnegative_duration_columns": [
+          "search_ms",
+          "search_avg_ms",
+          "ikf_update_ms",
+          "ikf_update_avg_ms",
+          "map_update_ms",
+          "map_update_avg_ms",
+          "total_ms",
+          "total_avg_ms"
+        ],
+        "effective_points_min": 243,
+        "effective_points_median": 1115.0,
+        "effective_points_max": 2193,
+        "zero_constraint_frames": 0,
+        "native_map_size_min": 3341,
+        "native_map_size_max": 112385,
+        "max_quaternion_norm_error": 6.999247550432131e-07,
+        "pcd_points": 30411349
+      }
+    ],
+    "limitations": "Regression only; no ground truth or controlled performance ranking"
+  },
+  "raw_validation": "output/integration-20261115-hvox/validation",
+  "raw_short_run": "output/integration-20261115/stage2-hvox-complete-30s-05m",
+  "raw_full_run": "output/integration-20261115/stage2-hvox-complete-full-05m",
+  "limitations": [
+    "No independent ground truth or accuracy-improvement claim",
+    "Timing collected under non-isolated workload; no controlled ranking",
+    "Native same-child-count skip-refresh and moving-box hysteresis retained",
+    "Observation scheduling adapted to shared IKFoM; not full Surfel-LIO dual-loop reproduction"
+  ],
+  "main_cherry_pick": "c81f12f",
+  "main_node_build": {
+    "exit_code": 0,
+    "ldd_exit_code": 0,
+    "binary_sha256": "d4a893339df3784d876f560c5edfdfafd832f40eac0468843678ab3a6c314bec",
+    "all_seven_target_eigen_headers": "3.4.0",
+    "feature_core_source_diff": "empty across CMakeLists/include/src/tests/scripts-run_backend_tests between 997c00a and c81f12f"
+  },
+  "main_short_replay": {
+    "source_commit": "c81f12feaac25c15f722b8a2e624f74dbab48c61",
+    "binary_sha256": "d4a893339df3784d876f560c5edfdfafd832f40eac0468843678ab3a6c314bec",
+    "profile": "mapping/down_sample_size=0.5; visualization off; final PCD on",
+    "cases": [
+      {
+        "backend": "hvox",
+        "output_rows": 288,
+        "timing_rows": 288,
+        "input_complete": true,
+        "input_delivery": {
+          "/livox/lidar": {
+            "count": 301,
+            "first_stamp": 597.4993629,
+            "last_stamp": 627.49932562,
+            "header_sequence_sha256": "17bf43b52f5662adbe713513ea110b1d72c0efbe9bbd5cdeefba5845390ff35a"
+          },
+          "/livox/imu": {
+            "count": 6088,
+            "first_stamp": 597.50583931,
+            "last_stamp": 627.59773838,
+            "header_sequence_sha256": "a642f2c5c24c0f0d56708829d901d094b88fc19d3f7d9975eb33d989340f1906"
+          }
+        },
+        "first_output_stamp": 598.799258,
+        "last_output_stamp": 627.499322,
+        "finite_nonnegative_duration_columns": [
+          "search_ms",
+          "search_avg_ms",
+          "ikf_update_ms",
+          "ikf_update_avg_ms",
+          "map_update_ms",
+          "map_update_avg_ms",
+          "total_ms",
+          "total_avg_ms"
+        ],
+        "effective_points_min": 374,
+        "effective_points_median": 1455.0,
+        "effective_points_max": 2044,
+        "zero_constraint_frames": 0,
+        "native_map_size_min": 3341,
+        "native_map_size_max": 31242,
+        "max_quaternion_norm_error": 6.74921272203477e-07
+      }
+    ],
+    "limitations": "Regression only; no ground truth or controlled performance ranking",
+    "actual_executable_hash_verified_via_ros_pid": true
+  },
+  "main_regular_ctest": {
+    "passed": 5,
+    "total": 5,
+    "gtest_cases": 33,
+    "asan_enabled": false
+  },
+  "main_build_invocations": {
+    "initial": {
+      "exit_code": 2,
+      "completed_targets": [
+        "node",
+        "observation_tests",
+        "map_contract_tests",
+        "r_voxelmap_tests"
+      ],
+      "message": "No rule to make target pv_lio_plus_hvox_map_tests after automatic CMake regeneration"
+    },
+    "new_target_retry": {
+      "exit_code": 0,
+      "targets": [
+        "hvox_map_tests",
+        "hvox_observation_tests"
+      ]
+    }
+  }
+}

@@ -1,10 +1,12 @@
 # Current Backend Contracts and Verification Status
 
-Updated: 2026-11-15. This document records seven integrated `MapManager`
+Updated: 2026-11-15. This document records eight integrated `MapManager`
 backends, contract fixes, separate synthetic test suites, and complete-input
-replays. The R-VoxelMap main-line production node built successfully and passed
-a dynamic-link check; its three main-worktree CTest targets passed 3/3 with 22
-GTest cases (ASan was off in this main configuration). Paper eligibility and
+replays. hVox feature commit `997c00a` is cherry-picked into main as `c81f12f`;
+the main-line production node built and passed `ldd -r`, CTest 5/5 with 33 GTest
+cases, and a 30-second complete-input replay. At the earlier R-VoxelMap integration stage, the main-line node built successfully and
+passed a dynamic-link check; its three main-worktree CTest targets passed 3/3
+with 22 GTest cases (ASan was off in this main configuration). Paper eligibility and
 future adapter boundaries remain in the
 [map/residual review](../paper/notes/MAP_BACKEND_SCOPE_REVIEW.md).
 
@@ -23,12 +25,13 @@ future adapter boundaries remain in the
   finite; its square must also be finite and nonzero. `MapManager::configure`
   validates before clearing an initialized map. The three shipped YAML comments
   describe metres and preserve their numeric values. The example dataset
-  manifest lists all seven selectors, including `octvox` and `r_voxelmap`.
+  example manifest lists all eight selectors, including `octvox`,
+  `r_voxelmap`, and `hvox`.
 - **Migration:** an old ikd-tree setting `v` was compared as squared distance;
   to reproduce that threshold, set the new radius to `sqrt(v)` metres. Existing
   iVox values already represented metres and remain unchanged.
 
-## Seven backend contracts
+## Eight backend contracts
 
 These entries describe current `MapManager` behavior, not equivalence between
 backends. `size()` intentionally reports native backend-dependent units;
@@ -44,22 +47,28 @@ for `size()`.
 | C3P-VoxelMap | Native hierarchical voxel `OctoTree` map, with separate plane and optional merge metadata. | Native OMP residual builder supplies C3P plane matches; the observation propagates C3P plane and point uncertainty. | Number of voxel-tree entries. | Supported. Filters retained points and rebuilds the C3P map. |
 | Super-LIO / OctVox | Native LRU grid map containing up to eight sub-voxel representatives per grid, bounded by its configured capacity. | Ordered TopK query; accepts four-point fallback or five-point plane fitting, with the native range/residual gate and fixed observation information. | Number of active LRU grid entries. | Unsupported. Configuration and explicit geometric deletion are rejected; OctVox owns capacity/LRU eviction. |
 | R-VoxelMap | Native recursive voxel map with planes at internal/child nodes, linked-list outlier pushdown/rebuild, and root LRU retention. | Queries the current root and, conditionally, one adjacent root; matching uses full world-point covariance with a native 3-sigma gate. The filter observation uses plane covariance plus rotated LiDAR measurement covariance, without adding state covariance a second time. | Number of root voxels. | Unsupported. `local_window_en` and explicit geometric erase/window are rejected; native batch-then-freeze root budgeting is not a strict upper bound. |
+| Surfel-LIO / hVox | Native L0 centroid / L1 precomputed-surfel hierarchy; updates use current world-frame IMU position and keyframe flag, with upstream moving-box maintenance. | Exact containing-L1-key lookup via `GetSurfelAtPoint`; fixed correspondences within an observation group feed signed plane residuals and PKO-adapted robust weights. Failed lookups are appended to `non_match`. | Native L0 voxel count. | Unsupported. Uses its native moving box; public geometric window operations and `local_window_en` are rejected. |
 
 The source of these behaviors is `MapManager` in
 [`map_manager.cpp`](../src/map_manager/map_manager.cpp), its public types and
 configuration in [`map_manager.h`](../include/map_manager/map_manager.h), and
-the seven observation paths in [`mapping.cpp`](../src/mapping.cpp). In
+the eight observation paths in [`mapping.cpp`](../src/mapping.cpp), plus
+[`hvox_observation.cpp`](../src/map_manager/hvox_observation.cpp). In
 particular, `size()` counts voxel entries, KD-tree points, iVox grids, or
 OctVox LRU grids depending on the selected backend; R-VoxelMap `size()` counts
-root voxels while its `point_count()` traverses retained native points. Do not
+root voxels while its `point_count()` traverses retained native points; hVox
+`size()` is its L0 voxel count, `point_count()` uses native retained-point
+count, and `snapshot()` contains L0 centroids. hVox `clear()` reconstructs the
+native map because upstream `Clear()` does not reset its window center. Do not
 compare these values as if they all counted points.
 
 ### Unmatched-query outputs
 
 The common `MapManager::search(MapPointList, ...)` entry point clears `matches`
 and `non_match` before dispatch. ikd-tree, iVox, OctVox, and R-VoxelMap append
-individual queries that fail their backend-specific search to `non_match`. The
-native OMP residual builders for VoxelMap, VoxelMap++, and C3P do not guarantee
+individual queries that fail their backend-specific search to `non_match`;
+hVox also appends failed exact-key surfel lookups. The native OMP residual
+builders for VoxelMap, VoxelMap++, and C3P do not guarantee
 that list contains one entry per failed query. The common guarantee is only
 that `matches` is empty when no valid match was produced; callers must not
 assume that `non_match` is a complete per-query complement.
@@ -74,7 +83,9 @@ rejects geometric-window mode and uses its native root LRU; its `clear()`
 destroys the native map so it can be initialized again. `snapshot()` and
 `point_count()` generally use common retained point records; ikd-tree snapshots
 are flattened from its native tree, and R-VoxelMap snapshots traverse its
-native recursive map. Neither `size()` nor `point_count()` is a normalized
+native recursive map. hVox uses a native moving box instead of the public
+geometric window, snapshots L0 centroids, and reconstructs its native map on
+clear. Neither `size()` nor `point_count()` is a normalized
 cross-backend map-cell count.
 
 ## Synthetic verification
@@ -100,7 +111,7 @@ world coordinates, or queries with only one through four neighbors. The producti
 and `float` cast, native weights, and plane gates were checked statically; the
 synthetic tests do not exercise those production observation branches end to
 end. Actual build and runtime records are in
-[`STAGE1_RESULTS.json`](workspace/evidence/STAGE1_RESULTS.json).
+[`STAGE1_RESULTS.json`](../doc/workspace/evidence/STAGE1_RESULTS.json).
 
 R-VoxelMap's separate isolated suite passed CTest **4/4** with **23 GTest
 cases**. The positive ASan fixture passed 30 repetitions. One full-suite ASan
@@ -114,7 +125,32 @@ passed `ldd -r` with no missing or unresolved libraries. Its three regular
 CTest targets passed **3/3** with **22 GTest cases**; ASan was off in the main
 configuration. This is separate from the isolated ASan-enabled suite above.
 Detailed counts and limitations are in
-[`R_VOXELMAP_RESULTS.json`](workspace/evidence/R_VOXELMAP_RESULTS.json).
+[`R_VOXELMAP_RESULTS.json`](../doc/workspace/evidence/R_VOXELMAP_RESULTS.json).
+
+## hVox verification
+
+Feature `997c00a` imports the fixed Surfel-LIO author map at `73348c1e` and
+adapts its two-level map and PKO observation to the shared `MapManager` and
+IKFoM loop. The feature node built with exit code 0 and passed `ldd -r`.
+Independent math/source review passed. Its combined isolated suite passed CTest
+**6/6**, with **34 GTest cases**. This does not parameterize hVox through the
+original six-backend lifecycle suite. The machine record is
+[`HVOX_RESULTS.json`](workspace/evidence/HVOX_RESULTS.json).
+
+The 30-second, 0.5 m regression received the full **301 LiDAR / 6088 IMU**
+input and wrote **288 trajectory/timing rows**. Every frame had effective
+constraints (minimum 374, median 1455, maximum 2044); timing columns were finite
+and nonnegative, and the final map cloud was nonempty.
+
+The 141-second, 0.5 m regression received **1414 LiDAR / 28595 IMU** messages
+and wrote **1402 trajectory/timing rows**. Every frame had effective
+constraints (minimum 243, median 1115, maximum 2193); native L0 map size ranged
+from 3341 to 112385, all timing columns were finite and nonnegative, and the
+maximum quaternion norm error was below `7.0e-7`. These are complete-input
+regression checks, not ground-truth accuracy or controlled-performance
+results. Both replays used non-isolated workload. The main-line cherry-pick `c81f12f` built and passed `ldd -r`, CTest 5/5
+with 33 GTest cases, and a separate 30-second complete-input replay (288 rows).
+All seven main build targets use Eigen 3.4.0; ASan is off in that configuration.
 
 ## Complete-input runtime regression
 
@@ -137,14 +173,16 @@ at bag EOF and truncated queued work, so those earlier runs are excluded from
 complete-window claims. The accepted run waits for connected sensor transports,
 checks input header hashes, and drains to the final IMU-supported scan.
 
-Stage 1's six original backends were rerun after the monotonic-clock fix on the
-same 30-second, 0.5 m profile; each produced 288 rows with finite, nonnegative
-durations. An earlier 141-second `9fa3111` run completed all input and
-trajectory checks with 1402 rows per backend, but wall-clock rollback yielded
-negative durations; rerun that long profile with the clock fix before using it
-as a timing baseline. An earlier directory named “coarse” actually used the
-0.1 m configuration and is not the 0.5 m profile. These phase-1 facts are
-tracked separately in [`STAGE1_RESULTS.json`](workspace/evidence/STAGE1_RESULTS.json).
+Stage 1's six original backends passed both the corrected-clock 30-second,
+0.5 m profile (288 rows each) and the corrected-clock 141-second profile.
+Each long run received 1414 LiDAR / 28595 IMU messages, wrote 1402 trajectory
+and timing rows, had nonzero effective constraints in every frame, and finite,
+nonnegative values in all eight timing columns. The earlier `9fa3111` long run
+had complete input/trajectory records but negative durations from wall-clock
+rollback; it remains historical and is not used as timing evidence. An earlier
+directory named “coarse” actually used the 0.1 m configuration, not the 0.5 m
+profile. The phase-1 record is
+[`STAGE1_RESULTS.json`](../doc/workspace/evidence/STAGE1_RESULTS.json).
 
 R-VoxelMap's 30-second and 141-second replays passed complete-input checks,
 with 288 and 1402 output rows respectively. The 141-second record matched
@@ -155,9 +193,9 @@ quaternion norm error stayed below `5e-6`, and the final PCD contained points.
 The replay has no independent ground truth and does not establish accuracy
 improvement. Timings were collected under non-isolated CPU load and are not a
 controlled performance ranking. Full measurements are in
-[`R_VOXELMAP_RESULTS.json`](workspace/evidence/R_VOXELMAP_RESULTS.json).
+[`R_VOXELMAP_RESULTS.json`](../doc/workspace/evidence/R_VOXELMAP_RESULTS.json).
 
 The R ASan limitation above remains: one invocation hung, its cause is unknown,
-and leak checking was disabled for ptrace incompatibility. Stage 1 remains
-partially complete pending a corrected-clock long run. The current R node
-build/link check and main worktree conventional tests have passed.
+and leak checking was disabled for ptrace incompatibility. Stage 1 flow
+regression is complete; it does not establish ground-truth accuracy or a
+controlled performance comparison. hVox main-line build, conventional tests, and short replay passed.

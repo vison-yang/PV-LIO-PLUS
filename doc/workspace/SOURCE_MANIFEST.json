@@ -81,11 +81,11 @@
       "branch": "main",
       "build_group": "catkin-src",
       "scope": "integrated recursive probabilistic plane map and corresponding covariance-aware observation; selector r_voxelmap; source pin, local compatibility revision, and patch provenance retained",
-      "integration": "PV-LIO-PLUS native adapter and selector cherry-picked as b820b08; isolated tests/replays and main-node build evidence: doc/workspace/evidence/R_VOXELMAP_RESULTS.json",
       "local_changes": [],
       "compatibility_patch": "patches/R-VoxelMap.patch",
       "patch_base_commit": "50ffbbab3626e384d77f0da91a7e51d5e4b14ff7",
-      "patch_sha256": "21806edabb5389d2e3dbc47562d9a0804d5cf96847dcddabbb2a550238af7d44"
+      "patch_sha256": "21806edabb5389d2e3dbc47562d9a0804d5cf96847dcddabbb2a550238af7d44",
+      "integration": "PV-LIO-PLUS native adapter and selector cherry-picked as b820b08; isolated tests/replays and main-node build evidence: doc/workspace/evidence/R_VOXELMAP_RESULTS.json"
     },
     {
       "name": "Super-LIO",
@@ -189,11 +189,12 @@
       "local_commit": "2ed04104a3e166582e9c7560640c919c4e7bb93b",
       "branch": "master",
       "build_group": "isolated-upstream",
-      "scope": "candidate precomputed L1 surfel map and corresponding residuals; fixed author snapshot 73348c1",
+      "scope": "integrated hVox precomputed L1 surfel map and hvox_pko_ikfom signed plane observation; fixed author snapshot retained",
       "local_changes": [],
       "compatibility_patch": "patches/Surfel-LIO.patch",
       "patch_base_commit": "73348c1e5560eccd2df1ff9f87683b2326a396d4",
-      "patch_sha256": "f1386330653cd949658d7944c48992c202e2f89b0d9a78f44b2397dc82478dbe"
+      "patch_sha256": "f1386330653cd949658d7944c48992c202e2f89b0d9a78f44b2397dc82478dbe",
+      "integration": "PV-LIO-PLUS selector cherry-picked as c81f12f; isolated tests/math/30s and141s replays, main-node build/link,5/5 CTest and30s replay passed; doc/workspace/evidence/HVOX_RESULTS.json"
     },
     {
       "name": "i-Octree",
@@ -288,6 +289,6 @@
   },
   "patches_note": "Patches are full worktree deltas against the pinned author commit, including relevant compatibility edits already present when this task began. They do not replace the source repositories. Apply only to the matching clean author baseline.",
   "scope_reviewed_on": "2026-11-15",
-  "scope_note": "Active integration scope requires a new or improved map data structure among the method contributions; qualifying maps and their corresponding residual models are compared in the shared framework. Source pins and upstream build outcomes retain the 2026-11-14 snapshot; later selector, node-build, and replay evidence is recorded separately per implementation. Seven selectors are integrated and six source-available qualifying candidates remain. Scope classification was reviewed on 2026-11-15. See PLAN.md and paper/notes/MAP_BACKEND_SCOPE_REVIEW.md.",
+  "scope_note": "Active integration scope requires a new or improved map data structure among method contributions. Eight map selectors and their corresponding observation profiles are integrated; five source-available qualifying candidates remain. Original source pins and upstream build outcomes retain the 2026-11-14 snapshot; implementation builds, tests and complete-input replay evidence are recorded separately. See PLAN.md and paper/notes/MAP_BACKEND_SCOPE_REVIEW.md.",
   "map_structure_eligibility_reviewed_on": "2026-11-15"
 }

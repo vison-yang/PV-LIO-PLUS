@@ -112,8 +112,8 @@ Surfel-LIO 是一个很明确的“预计算换查询”方案：如果地图几
 
 ---
 
-## 2026-11-15 对 PV-LIO-PLUS 的范围说明
+## 2026-11-15 PV-LIO-PLUS 集成状态
 
-- 本地固定作者基线 `73348c1` 位于 `upstream/Surfel-LIO`；本地兼容构建有记录，但该地图尚未接入 PV-LIO-PLUS。
-- 移植须保留更新期预计算的 L1 surfel 与 `GetSurfelAtPoint` 查询，不能只以通用点容器替代；配套 surfel 观测、平面度、不确定性和 Huber 权重须独立定义。旧版本查询路径以本地快照为准。
-- 排除原 Estimator/滤波的隐式集成；论文指标不是本地复现结果。版本变化前需重审地图和消费者代码。详见[范围审查](MAP_BACKEND_SCOPE_REVIEW.md)。
+- 固定作者基线 `73348c1` 位于 `upstream/Surfel-LIO`。hVox 已在 feature `997c00a` 接入，并 cherry-pick 至主线 `c81f12f`；主线构建、链接、CTest 5/5（33 个 GTest 条目）及30秒完整回归通过。
+- 集成保留 L0/L1 层级、更新期预计算 surfel、原生移动盒及 `GetSurfelAtPoint` 的包含体素查询；未以通用点容器代替该结构。对应的 `hvox_pko_ikfom` 使用分组内固定匹配、带符号点面残差、PKO 自适应尺度及 Huber 信息权重，适配共用 IKFoM 回调。
+- 该观测适配不是作者 `Estimator` 的双循环复现。功能工作树构建、CTest 6/6（34 个 GTest 条目）、独立数学/源码核验和 30/141 秒完整输入回归通过；它们不是作者论文精度结果或受控性能比较。具体验证边界见[集成状态](../../doc/INTEGRATION_STATUS.md)和[hVox 机器记录](../../doc/workspace/evidence/HVOX_RESULTS.json)。

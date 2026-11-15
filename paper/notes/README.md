@@ -4,7 +4,7 @@
 
 当前候选须把新的或实质改进的地图数据结构作为创新点之一；复用已有地图而只改残差、采样、查询算法或估计流程不满足结构准入。获准移植还须保留支撑资格的结构，不能只抽取通用点容器后仍以原方法名义评估。主路线在共享 PV-LIO-PLUS 框架内比较**合格地图结构及其对应观测**。同步、去畸变、IMU 传播、状态、滤波循环和输出由同一框架管理；后端可保留匹配、残差、Jacobian、不确定性和鲁棒权重。严格统一点面观测/权重是单独可选的地图表示或索引消融。完整上游系统是独立端到端基线。资格证据见[地图与观测范围审查](MAP_BACKEND_SCOPE_REVIEW.md)。
 
-## 当前已集成的七个地图与观测分支
+## 当前已集成的八个地图与观测分支
 
 | 方法 | 独立笔记 / 本地 PDF | 当前框架路径 |
 | --- | --- | --- |
@@ -15,18 +15,18 @@
 | C3P-VoxelMap | [笔记](C3P-VoxelMap.md) / [PDF](../C3P-VoxelMap.pdf) | 概率体素平面及其原生不确定性观测。 |
 | Super-LIO / OctVox | [笔记](Super-LIO.md) / [PDF](../Super-LIO.pdf) | 八分体代表点图及 TopK 平面观测，使用固定信息量。 |
 | R-VoxelMap | [笔记](R-VoxelMap.md) / [PDF](../R-VoxelMap.pdf) | 递归内部/子层平面地图及原生概率平面观测；集成与运行验证边界见[状态记录](../../doc/INTEGRATION_STATUS.md)。 |
+| Surfel-LIO / hVox | [笔记](Surfel-LIO.md) / [PDF](../Surfel-LIO.pdf) | L0/L1 双层地图、更新期预计算 surfel 与适配共享 IKFoM 的 PKO 加权有符号平面观测。 |
 
-七条分支共用状态估计循环，但其观测模型并不相同；本表不表示严格地图消融或已完成数据集精度复现。
+八条分支共用状态估计循环，但其观测模型并不相同；本表不表示严格地图消融或已完成数据集精度复现。
 
-2026-11-15 的原有六后端契约回归包括两个合成 gtest 目标 CTest 2/2（11 个 GTest 条目），其中六个生命周期用例针对原有六后端。R-VoxelMap 另有隔离 CTest 4/4、23 个 GTest 用例，正向 ASan fixture 连续 30 次通过（ptrace 限制下未启用泄漏检测）；主节点构建并通过链接检查，主线常规 CTest 3/3（22 个 GTest 条目）通过。R 的 30 秒和 141 秒完整输入回放通过，其中 141 秒记录每帧都有有效约束、时长有限且非负。以上均不构成精度或受控性能结论；细节和缺口见[集成状态](../../doc/INTEGRATION_STATUS.md)与[R 结果记录](../../doc/workspace/evidence/R_VOXELMAP_RESULTS.json)。
+2026-11-15 的原有六后端契约回归包括两个合成 gtest 目标 CTest 2/2（11 个 GTest 条目），其中六个生命周期用例针对原有六后端。R-VoxelMap 另有隔离 CTest 4/4、23 个 GTest 用例，正向 ASan fixture 连续 30 次通过（ptrace 限制下未启用泄漏检测）；主节点构建并通过链接检查，主线常规 CTest 3/3（22 个 GTest 条目）通过。R 的 30 秒和 141 秒完整输入回放通过，其中 141 秒记录每帧都有有效约束、时长有限且非负。hVox 功能工作树构建、CTest 6/6（34 个 GTest 条目）、数学核验和 30/141 秒完整输入回放通过；hVox 已 cherry-pick 至主线 `c81f12f`，主线构建、链接、CTest 5/5（33 个 GTest 条目）及30秒完整回归通过。上述回归均不构成精度或受控性能结论；细节和缺口见[集成状态](../../doc/INTEGRATION_STATUS.md)、[R 结果记录](../../doc/workspace/evidence/R_VOXELMAP_RESULTS.json)和[hVox 结果记录](../../doc/workspace/evidence/HVOX_RESULTS.json)。
 
-## 已收集、结构资格通过的六项待集成源码
+## 已收集、结构资格通过的五项待集成源码
 
 这些工作仍需逐项完成地图/观测适配，不是当前 selector。表中注明的结构创新必须在移植后保留。源码固定版本及本地上游构建范围见[集成计划](../../PLAN.md)；构建通过只代表指定目标通过。
 
 | 方法 | 独立笔记 / 本地 PDF | 后续地图与观测设计 |
 | --- | --- | --- |
-| Surfel-LIO / hVox | [笔记](Surfel-LIO.md) / [PDF](../Surfel-LIO.pdf) | 保留本地 `73348c1` 的预计算 L1 surfel 及其查询路径，再定义对应观测。 |
 | i-Octree | [笔记](i-Octree.md) / [PDF](../i-Octree.pdf) | 保留动态点八叉树、kNN/半径查询、生命周期与盒删除；点面适配只是观测变体。 |
 | iG-LIO / incremental VoxelMap | [笔记](iG-LIO.md) / [PDF](../iG-LIO.pdf) | 保留增量充分统计和原生地图维护；可先评估点面变体，GICP 另作观测设计并核对完整信息矩阵与鲁棒二阶项。 |
 | Hybrid-VoxelMap | [笔记](Hybrid-VoxelMap.md) / [PDF](../Hybrid-VoxelMap.pdf) | 保留语义地图层级并评估 Plane/NDT 观测；标签、缺失输入和两种观测分别记录。 |
