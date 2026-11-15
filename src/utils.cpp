@@ -339,6 +339,7 @@ std::string result_file_stem(const std::string& backend_name)
     if (backend_name == "ivox") return "pv_lio_ivox";
     if (backend_name == "c3p_voxelmap") return "pv_lio_c3p_voxelmap";
     if (backend_name == "octvox") return "pv_lio_octvox";
+    if (backend_name == "r_voxelmap") return "pv_lio_r_voxelmap";
     return "pv_lio";
 }
 

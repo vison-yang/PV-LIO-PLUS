@@ -83,6 +83,7 @@
 #include "imu_processing.hpp"
 #include "map_manager/map_manager.h"
 #include "map_manager/point_plane_jacobian.h"
+#include "map_manager/r_voxelmap_observation.h"
 #include "preprocess.h"
 #include "utils.hpp"
 // The native PV map headers define non-inline functions.  Keep the manager
@@ -706,6 +707,53 @@ void Mapping::ObservationModelC3P(state_ikfom& s, esekfom::dyn_share_datastruct<
     res_mean_last_ = total_residual_ / effective_feature_num_;
 }
 
+/** Builds R-VoxelMap observations with its native measurement-noise model. */
+void Mapping::ObservationModelRVoxelMap(state_ikfom& s, esekfom::dyn_share_datastruct<double>& ekfom_data)
+{
+    total_residual_ = 0.0;
+    PointCloudXYZI::Ptr feats_world(new PointCloudXYZI);
+    transformLidar2World(s, feats_undistort_down_, feats_world);
+    const MapPointList points = make_manager_points(feats_undistort_down_, feats_world, var_down_lidar_);
+
+    const auto start = TimingClock::now();
+    PlaneMatchList matches;
+    std::vector<V3D> non_match;
+    map_manager_->search(points, matches, non_match);
+    search_time_ += ElapsedMilliseconds(start);
+
+    std::vector<RVoxelMapMeasurement, Eigen::aligned_allocator<RVoxelMapMeasurement>> measurements;
+    measurements.reserve(matches.size());
+    for (const PlaneMatch &match : matches)
+    {
+        RVoxelMapMeasurement measurement;
+        if (MakeRVoxelMapMeasurement(match.point, match.point_world, match.normal, match.center, match.d,
+                                     match.plane_cov, match.lidar_cov, s.rot, s.offset_R_L_I, s.offset_T_L_I,
+                                     config_.extrinsic_est_en_, measurement))
+        {
+            total_residual_ += std::abs(measurement.residual);
+            measurements.push_back(measurement);
+        }
+    }
+    effective_feature_num_ = static_cast<int>(measurements.size());
+    if (effective_feature_num_ == 0)
+    {
+        ekfom_data.valid = false;
+        ROS_WARN("No Effective Points!");
+        return;
+    }
+    ekfom_data.h_x.resize(effective_feature_num_, 12);
+    ekfom_data.h.resize(effective_feature_num_);
+    ekfom_data.R.resize(effective_feature_num_, 1);
+    for (int i = 0; i < effective_feature_num_; ++i)
+    {
+        const RVoxelMapMeasurement &measurement = measurements[static_cast<std::size_t>(i)];
+        ekfom_data.h_x.row(i) = measurement.jacobian;
+        ekfom_data.h(i) = measurement.residual;
+        ekfom_data.R(i) = measurement.information;
+    }
+    res_mean_last_ = total_residual_ / effective_feature_num_;
+}
+
 /**
  * @brief Dispatches the EKF observation model to the selected map backend.
  * @param s Current iterated filter state.
@@ -728,6 +776,10 @@ void Mapping::ObservationModel(state_ikfom& s, esekfom::dyn_share_datastruct<dou
     else if (config_.map_manager_config().type == pv_lio_plus::MapType::OctVox)
     {
         ObservationModelOctVox(s, ekfom_data);
+    }
+    else if (config_.map_manager_config().type == pv_lio_plus::MapType::RVoxelMap)
+    {
+        ObservationModelRVoxelMap(s, ekfom_data);
     }
     else
     {
@@ -766,6 +818,15 @@ void Mapping::UpdateMap()
     transformLidar2World(state_point_, feats_undistort_down_, feats_world);
 
     MapPointList map_points = make_manager_points(feats_undistort_down_, feats_world, var_down_lidar_);
+    if (config_.map_manager_config().type == MapType::RVoxelMap)
+    {
+        // The native backend rejects nonfinite inputs. Remove them before the
+        // covariance sort too, because NaNs do not define a strict ordering.
+        map_points.erase(std::remove_if(map_points.begin(), map_points.end(), [](const MapPoint& point) {
+                             return !point.point_world.allFinite() || !point.cov_world.allFinite();
+                         }),
+                         map_points.end());
+    }
     std::sort(map_points.begin(), map_points.end(),
               [](const pv_lio_plus::MapPoint& lhs, const pv_lio_plus::MapPoint& rhs) {
                   return lhs.cov_world.diagonal().norm() < rhs.cov_world.diagonal().norm();
@@ -820,7 +881,7 @@ void Mapping::OpenTimingLog()
 
     timing_output_ << "frame,stamp_sec,elapsed_sec,converged,pos_x_m,pos_y_m,pos_z_m,quat_w,quat_x,quat_y,quat_z,"
                    << "search_ms,search_avg_ms,ikf_update_ms,ikf_update_avg_ms,map_update_ms,map_update_avg_ms,"
-                   << "total_ms,total_avg_ms\n";
+                   << "total_ms,total_avg_ms,effective_points,map_size_native\n";
     timing_output_ << std::fixed << std::setprecision(6);
     ROS_INFO("Per-frame timing log: %s", timing_output_path_.c_str());
 }
@@ -849,7 +910,7 @@ void Mapping::WriteTimingLog(double lidar_end_time, bool converged)
                    << state_point_.pos(2) << ',' << geo_quat_.w << ',' << geo_quat_.x << ',' << geo_quat_.y << ','
                    << geo_quat_.z << ',' << search_time_ << ',' << avg_search_time_ << ',' << eseikf_time_ << ','
                    << avg_eseikf_time_ << ',' << update_time_ << ',' << avg_update_time_ << ',' << total_time_ << ','
-                   << avg_total_time_ << '\n';
+                   << avg_total_time_ << ',' << effective_feature_num_ << ',' << map_manager_->size() << '\n';
 }
 
 /** @brief Closes the optional timing log once the single-threaded mapping loop stops. */
@@ -874,7 +935,15 @@ int Mapping::Run()
     }
 
     // 2. Apply backend configuration and initialize the estimator.
-    map_manager_->configure(config_.map_manager_config());
+    try
+    {
+        map_manager_->configure(config_.map_manager_config());
+    }
+    catch (const std::exception& exception)
+    {
+        ROS_FATAL("Invalid map configuration: %s", exception.what());
+        return 1;
+    }
     if (!map_manager_->supports_selected_backend())
     {
         ROS_FATAL("Selected map backend is not supported: %s",

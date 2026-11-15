@@ -12,6 +12,7 @@
  */
 
 #include "map_manager/map_manager.h"
+#include "map_manager/native/r_voxelmap/r_voxelmap.hpp"
 
 // ikd-tree is a header/template implementation.  Keep the native source in
 // the PV translation unit so the imported backend is self-contained.
@@ -26,6 +27,72 @@
 
 namespace pv_lio_plus
 {
+namespace
+{
+r_voxelmap_ns::voxel_map_config MakeRVoxelConfig(const MapManagerConfig &config)
+{
+    r_voxelmap_ns::voxel_map_config native{};
+    native.voxel_size = static_cast<float>(config.voxel_size);
+    native.max_layer = config.max_layer;
+    native.planer_threshold = static_cast<float>(config.plane_threshold);
+    native.max_points_size = config.max_points_size;
+    native.max_cov_points_size = config.max_cov_points_size;
+    native.max_root_points_size = config.r_max_root_points_size;
+    native.update_size_threshold = config.r_update_size_threshold;
+    native.update_inlier_distance_threshold = config.r_update_inlier_distance_threshold;
+    native.reinit_size_vec = config.r_reinit_size_vec;
+    native.lru_capacity = config.r_lru_capacity;
+    native.ransac_max_iter = config.r_ransac_max_iter;
+    native.ransac_sample_num = config.r_ransac_sample_num;
+    native.ransac_inlier_distance_threshold = config.r_ransac_inlier_distance_threshold;
+    native.ransac_isplane_p_threshold = config.r_ransac_isplane_p_threshold;
+    native.sample_seed = config.r_sample_seed;
+    native.valid_check_max_layer = config.r_valid_check_max_layer;
+    native.valid_check_min_points_size = config.r_valid_check_min_points_size;
+    native.valid_check_resolution = config.r_valid_check_resolution;
+
+    const auto positive = [](double value) { return std::isfinite(value) && value > 0.0; };
+    if (!positive(config.voxel_size) || !positive(native.voxel_size) || native.max_layer < 0 || native.max_layer > 32 ||
+        !positive(std::ldexp(native.voxel_size, -native.max_layer - 2)) || !positive(native.planer_threshold) ||
+        native.max_points_size <= 0 || native.max_cov_points_size <= 0 || native.max_root_points_size <= 0 ||
+        native.update_size_threshold <= 0 || !positive(native.update_inlier_distance_threshold) ||
+        native.lru_capacity <= 0 || native.ransac_max_iter <= 0 || native.ransac_sample_num < 3 ||
+        !positive(native.ransac_inlier_distance_threshold) ||
+        !std::isfinite(native.ransac_isplane_p_threshold) || native.ransac_isplane_p_threshold <= 0.0 ||
+        native.ransac_isplane_p_threshold >= 1.0 || native.valid_check_max_layer < -1 ||
+        native.valid_check_min_points_size < 3 || native.valid_check_resolution <= 0 ||
+        native.valid_check_resolution > 1000000 || native.reinit_size_vec.empty())
+    {
+        throw std::invalid_argument("invalid mapping/r_voxelmap parameters or common voxel size/layer parameters");
+    }
+    int previous = 0;
+    for (const int value : native.reinit_size_vec)
+    {
+        if (value <= previous)
+        {
+            throw std::invalid_argument("mapping/r_voxelmap_reinit_size_vec must contain increasing positive values");
+        }
+        previous = value;
+    }
+    native.layer_point_size = config.layer_point_size;
+    const std::size_t layers = static_cast<std::size_t>(native.max_layer) + 1;
+    if (native.layer_point_size.empty()) native.layer_point_size.assign(layers, 5);
+    else if (native.layer_point_size.size() < layers) native.layer_point_size.resize(layers, native.layer_point_size.back());
+    if (std::any_of(native.layer_point_size.begin(), native.layer_point_size.end(), [](int n) { return n < 2; }))
+    {
+        throw std::invalid_argument("mapping/layer_point_size entries for R-VoxelMap must be at least 2");
+    }
+    return native;
+}
+
+std::vector<r_voxelmap_ns::pointWithCov> ToRVoxelPoints(const MapPointList &points)
+{
+    std::vector<r_voxelmap_ns::pointWithCov> native;
+    native.reserve(points.size());
+    for (const MapPoint &point : points) native.push_back({point.point_world, point.cov_world});
+    return native;
+}
+}  // namespace
 /**
  * @brief Parses a configured local-map backend name.
  * @param name Backend name; an empty name selects the original VoxelMap.
@@ -63,6 +130,10 @@ MapType ParseMapType(const std::string &name)
     {
         return MapType::OctVox;
     }
+    if (name == "r_voxelmap" || name == "r_voxel_map" || name == "r-voxelmap")
+    {
+        return MapType::RVoxelMap;
+    }
 
     throw std::invalid_argument("unknown mapping/map_type: " + name);
 }
@@ -88,6 +159,8 @@ const char *MapTypeName(const MapType type)
             return "c3p_voxelmap";
         case MapType::OctVox:
             return "octvox";
+        case MapType::RVoxelMap:
+            return "r_voxelmap";
     }
     return "unknown";
 }
@@ -122,10 +195,18 @@ void MapManager::configure(const MapManagerConfig &config)
         throw std::invalid_argument(
             "mapping/nearest_max_range must be positive and finite in metres, with a finite nonzero square");
     }
+    if (config.type == MapType::RVoxelMap)
+    {
+        static_cast<void>(MakeRVoxelConfig(config));
+    }
     if (config.type == MapType::OctVox && config.local_window_enabled)
     {
         throw std::invalid_argument(
             "mapping/local_window_en is not supported by Super-LIO OctVox; it only owns capacity/LRU eviction");
+    }
+    if (config.type == MapType::RVoxelMap && config.local_window_enabled)
+    {
+        throw std::invalid_argument("mapping/local_window_en is not supported by R-VoxelMap; it uses native LRU eviction");
     }
 
     if (initialized_)
@@ -178,7 +259,7 @@ bool MapManager::supports_selected_backend() const
 {
     return config_.type == MapType::VoxelMap || config_.type == MapType::VoxelMapPlus ||
            config_.type == MapType::IKDTree || config_.type == MapType::IVox || config_.type == MapType::C3PVoxelMap ||
-           config_.type == MapType::OctVox;
+           config_.type == MapType::OctVox || config_.type == MapType::RVoxelMap;
 }
 
 /**
@@ -199,6 +280,7 @@ void MapManager::configure_point_backends()
     ikd_tree_.reset();
     ivox_.reset();
     octvox_.reset();
+    r_voxelmap_.reset();
 
     if (config_.type == MapType::IKDTree)
     {
@@ -238,6 +320,11 @@ void MapManager::configure_point_backends()
         options.capacity   = std::max<std::size_t>(config_.octvox_capacity, 1);
         octvox_            = std::make_unique<OctVoxBackend>(options);
     }
+    else if (config_.type == MapType::RVoxelMap)
+    {
+        r_voxelmap_ = std::make_unique<r_voxelmap_ns::VoxelMap>();
+        r_voxelmap_->init(MakeRVoxelConfig(config_));
+    }
 }
 
 /** @brief Clears all backend data, retained points, and window state. */
@@ -266,6 +353,7 @@ void MapManager::clear()
     ivox_.reset();
     ikd_tree_.reset();
     octvox_.reset();
+    r_voxelmap_.reset();
 
     map_points_.clear();
     initialized_ = false;
@@ -482,10 +570,34 @@ void MapManager::initialize(const MapPointList &points)
     {
         initialize_octvox(points);
     }
+    else if (config_.type == MapType::RVoxelMap)
+    {
+        initialize_r_voxelmap(points);
+    }
     else
     {
         initialize_point_backend(points);
     }
+}
+
+void MapManager::initialize_r_voxelmap(const MapPointList &points)
+{
+    clear();
+    configure_point_backends();
+    r_voxelmap_->build(ToRVoxelPoints(points));
+    r_voxelmap_->lru_cache_update();
+    initialized_ = true;
+}
+
+void MapManager::update_r_voxelmap(const MapPointList &points)
+{
+    if (!initialized_)
+    {
+        initialize_r_voxelmap(points);
+        return;
+    }
+    r_voxelmap_->update(ToRVoxelPoints(points));
+    r_voxelmap_->lru_cache_update();
 }
 
 /**
@@ -719,6 +831,10 @@ void MapManager::update(const MapPointList &points, const std::uint32_t frame_nu
         {
             update_octvox(points);
         }
+    }
+    else if (config_.type == MapType::RVoxelMap)
+    {
+        update_r_voxelmap(points);
     }
     else
     {
@@ -1140,9 +1256,48 @@ void MapManager::search(const MapPointList &points, PlaneMatchList &matches, std
     {
         search_octvox(points, matches, non_match);
     }
+    else if (config_.type == MapType::RVoxelMap)
+    {
+        search_r_voxelmap(points, matches, non_match);
+    }
     else
     {
         search_point_backend(points, matches, non_match);
+    }
+}
+
+void MapManager::search_r_voxelmap(const MapPointList &points, PlaneMatchList &matches,
+                                   std::vector<V3D> &non_match)
+{
+    matches.clear();
+    non_match.clear();
+    if (!r_voxelmap_)
+    {
+        for (const auto &point : points) non_match.push_back(point.point_world);
+        return;
+    }
+    std::vector<r_voxelmap_ns::ptpl> native_matches;
+    std::vector<int> useful_indices;
+    r_voxelmap_->build_residual_omp(ToRVoxelPoints(points), config_.max_layer, native_matches, useful_indices,
+                                     non_match);
+    matches.reserve(native_matches.size());
+    for (std::size_t i = 0; i < native_matches.size(); ++i)
+    {
+        const auto &native = native_matches[i];
+        const MapPoint &point = points.at(static_cast<std::size_t>(useful_indices.at(i)));
+        PlaneMatch match;
+        match.map_type = MapType::RVoxelMap;
+        match.point = point.point_lidar;
+        match.point_world = point.point_world;
+        match.point_cov = point.cov_world;
+        match.lidar_cov = point.cov_lidar;
+        match.normal = native.normal;
+        match.center = native.center;
+        match.plane_cov = native.plane_cov;
+        match.d = native.d;
+        match.distance = native.normal.dot(point.point_world) + native.d;
+        match.layer = native.layer;
+        matches.emplace_back(match);
     }
 }
 
@@ -1462,6 +1617,10 @@ void MapManager::move_window(const V3D &center, const V3D &half_extent)
 void MapManager::erase_outside_window(const MapWindow &window)
 {
     require_supported_backend();
+    if (config_.type == MapType::RVoxelMap)
+    {
+        throw std::logic_error("R-VoxelMap does not support geometric local-window deletion");
+    }
     if (!window.initialized)
     {
         return;
@@ -1671,6 +1830,10 @@ size_t MapManager::size() const
     {
         return octvox_ ? octvox_->size() : 0;
     }
+    if (config_.type == MapType::RVoxelMap)
+    {
+        return r_voxelmap_ ? r_voxelmap_->feat_map.size() : 0;
+    }
     return 0;
 }
 
@@ -1680,6 +1843,13 @@ size_t MapManager::size() const
  */
 size_t MapManager::point_count() const
 {
+    if (config_.type == MapType::RVoxelMap)
+    {
+        std::size_t count = 0;
+        if (r_voxelmap_)
+            for (const auto &entry : r_voxelmap_->feat_map) count += entry.second->point_count();
+        return count;
+    }
     return map_points_.size();
 }
 
@@ -1690,6 +1860,18 @@ size_t MapManager::point_count() const
 PointCloudXYZI::Ptr MapManager::snapshot() const
 {
     PointCloudXYZI::Ptr result(new PointCloudXYZI());
+    if (config_.type == MapType::RVoxelMap)
+    {
+        if (r_voxelmap_)
+        {
+            std::vector<r_voxelmap_ns::pointWithCov> stored_points;
+            for (const auto &entry : r_voxelmap_->feat_map) entry.second->append_points(stored_points);
+            result->reserve(stored_points.size());
+            for (const auto &point : stored_points)
+                result->push_back(ToPointType(point.point, static_cast<float>(point.point.norm())));
+        }
+        return result;
+    }
     if (config_.type == MapType::IKDTree && ikd_tree_ && ikd_tree_->Root_Node)
     {
         PointVector stored_points;

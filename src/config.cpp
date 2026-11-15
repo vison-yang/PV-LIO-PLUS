@@ -66,6 +66,11 @@ bool Config::Load(ros::NodeHandle& nh)
         ROS_FATAL("mapping/local_window_en is not supported by Super-LIO OctVox; disable it or select another map_type");
         return false;
     }
+    if (map_manager_config_->type == MapType::RVoxelMap && map_manager_config_->local_window_enabled)
+    {
+        ROS_FATAL("mapping/local_window_en is not supported by R-VoxelMap; it uses native LRU eviction");
+        return false;
+    }
     nh.param<int>("mapping/nearest_point_count", map_manager_config_->nearest_point_count, NUM_MATCH_POINTS);
     nh.param<double>("mapping/nearest_max_range", map_manager_config_->nearest_max_range, 5.0);
     if ((map_manager_config_->type == MapType::IKDTree || map_manager_config_->type == MapType::IVox) &&
@@ -100,6 +105,25 @@ bool Config::Load(ros::NodeHandle& nh)
                      map_manager_config_->c3p_merge_cov_min_eigen_val_thresh, 0.002);
     nh.param<double>("mapping/c3p_merge_x_coord_diff_thresh", map_manager_config_->c3p_merge_x_coord_diff_thresh, 5.0);
     nh.param<double>("mapping/c3p_merge_y_coord_diff_thresh", map_manager_config_->c3p_merge_y_coord_diff_thresh, 5.0);
+
+    nh.param<int>("mapping/r_voxelmap_max_root_points_size", map_manager_config_->r_max_root_points_size, 1000);
+    nh.param<int>("mapping/r_voxelmap_update_size_threshold", map_manager_config_->r_update_size_threshold, 5);
+    nh.param<double>("mapping/r_voxelmap_update_inlier_distance_threshold",
+                     map_manager_config_->r_update_inlier_distance_threshold, 0.1);
+    nh.param<std::vector<int>>("mapping/r_voxelmap_reinit_size_vec", map_manager_config_->r_reinit_size_vec,
+                               std::vector<int>{100, 200, 300, 500, 700, 1000});
+    nh.param<int>("mapping/r_voxelmap_lru_capacity", map_manager_config_->r_lru_capacity, 1000000);
+    nh.param<int>("mapping/r_voxelmap_ransac_max_iter", map_manager_config_->r_ransac_max_iter, 10);
+    nh.param<int>("mapping/r_voxelmap_ransac_sample_num", map_manager_config_->r_ransac_sample_num, 4);
+    nh.param<double>("mapping/r_voxelmap_ransac_inlier_distance_threshold",
+                     map_manager_config_->r_ransac_inlier_distance_threshold, 0.1);
+    nh.param<double>("mapping/r_voxelmap_ransac_isplane_p_threshold",
+                     map_manager_config_->r_ransac_isplane_p_threshold, 0.8);
+    nh.param<int>("mapping/r_voxelmap_sample_seed", map_manager_config_->r_sample_seed, 42);
+    nh.param<int>("mapping/r_voxelmap_valid_check_max_layer", map_manager_config_->r_valid_check_max_layer, 0);
+    nh.param<int>("mapping/r_voxelmap_valid_check_min_points_size",
+                  map_manager_config_->r_valid_check_min_points_size, 10);
+    nh.param<int>("mapping/r_voxelmap_valid_check_resolution", map_manager_config_->r_valid_check_resolution, 5);
 
     // ------------------------------ Noise and output --------------------------
     nh.param<double>("noise_model/ranging_cov", ranging_cov_, 0.02);

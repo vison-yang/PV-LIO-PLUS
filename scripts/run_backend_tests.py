@@ -45,7 +45,9 @@ BACKENDS = {
     "ivox": "pv_lio_ivox",
     "c3p_voxelmap": "pv_lio_c3p_voxelmap",
     "octvox": "pv_lio_octvox",
+    "r_voxelmap": "pv_lio_r_voxelmap",
 }
+DEFAULT_BACKENDS = ("voxelmap", "voxelmap_plus", "ikdtree", "ivox", "c3p_voxelmap", "octvox")
 BACKEND_ALIASES = {
     "voxel_map": "voxelmap",
     "voxel": "voxelmap",
@@ -58,6 +60,8 @@ BACKEND_ALIASES = {
     "c3p-voxelmap": "c3p_voxelmap",
     "oct_vox": "octvox",
     "oct-vox": "octvox",
+    "r_voxel_map": "r_voxelmap",
+    "r-voxelmap": "r_voxelmap",
 }
 LIDAR_TYPES = {
     "1": (1, "livox_ros_driver/CustomMsg"),
@@ -669,7 +673,7 @@ def main() -> int:
     if args.algorithms:
         raw_algorithms = args.algorithms.split(",")
     else:
-        raw_algorithms = data.get("algorithms", list(BACKENDS))
+        raw_algorithms = data.get("algorithms", DEFAULT_BACKENDS)
     algorithms = list(dict.fromkeys(canonical_backend(value) for value in raw_algorithms))
     if not algorithms:
         die("at least one backend is required")

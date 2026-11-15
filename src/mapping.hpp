@@ -64,6 +64,7 @@ class Mapping
     void ObservationModelPointBackend(state_ikfom& state, esekfom::dyn_share_datastruct<double>& ekfom_data);
     void ObservationModelC3P(state_ikfom& state, esekfom::dyn_share_datastruct<double>& ekfom_data);
     void ObservationModelOctVox(state_ikfom& state, esekfom::dyn_share_datastruct<double>& ekfom_data);
+    void ObservationModelRVoxelMap(state_ikfom& state, esekfom::dyn_share_datastruct<double>& ekfom_data);
 
     // ---------------------- Geometry and conversion --------------------------
     void transformLidar2World(const state_ikfom& state, const PointCloudXYZI::Ptr& input_cloud,

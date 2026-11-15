@@ -6,7 +6,8 @@ project(pv_lio_plus)
 SET(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS "-O3 -pthread -Wall")
 
-add_definitions(-DROOT_DIR=\"${CMAKE_CURRENT_SOURCE_DIR}/../../output/\")
+set(PV_LIO_PLUS_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../output" CACHE PATH "Output root for this build")
+add_definitions(-DROOT_DIR=\"${PV_LIO_PLUS_OUTPUT_DIR}/\")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fexceptions" )
 set(CMAKE_CXX_STANDARD 17)
@@ -83,13 +84,31 @@ target_link_libraries(pv_lio_plus_node ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PY
 target_include_directories(pv_lio_plus_node PRIVATE ${PYTHON_INCLUDE_DIRS})
 
 if(CATKIN_ENABLE_TESTING)
+  option(PV_LIO_PLUS_ENABLE_ASAN_TESTS "Build the R-VoxelMap AddressSanitizer test" OFF)
   catkin_add_gtest(pv_lio_plus_observation_tests tests/observation_tests.cpp)
   catkin_add_gtest(pv_lio_plus_map_contract_tests tests/map_contract_tests.cpp)
+  catkin_add_gtest(pv_lio_plus_r_voxelmap_tests tests/r_voxelmap_tests.cpp src/utils.cpp src/preprocess.cpp)
+  if(PV_LIO_PLUS_ENABLE_ASAN_TESTS)
+    catkin_add_gtest(pv_lio_plus_r_voxelmap_asan_tests tests/r_voxelmap_asan_tests.cpp)
+  endif()
   if(TARGET pv_lio_plus_map_contract_tests)
     # Native map headers define non-inline functions; the test includes the
     # manager implementation in one translation unit, just as mapping.cpp does.
     target_include_directories(pv_lio_plus_map_contract_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     add_dependencies(pv_lio_plus_map_contract_tests ${catkin_EXPORTED_TARGETS})
     target_link_libraries(pv_lio_plus_map_contract_tests ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+  endif()
+  if(TARGET pv_lio_plus_r_voxelmap_tests)
+    target_include_directories(pv_lio_plus_r_voxelmap_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    add_dependencies(pv_lio_plus_r_voxelmap_tests ${catkin_EXPORTED_TARGETS})
+    # Keep Eigen bounds assertions active for degenerate and rebuild tests.
+    target_compile_options(pv_lio_plus_r_voxelmap_tests PRIVATE -UNDEBUG -UEIGEN_NO_DEBUG)
+    target_link_libraries(pv_lio_plus_r_voxelmap_tests ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+  endif()
+  if(TARGET pv_lio_plus_r_voxelmap_asan_tests)
+    target_compile_options(pv_lio_plus_r_voxelmap_asan_tests PRIVATE
+      -O1 -UNDEBUG -UEIGEN_NO_DEBUG -fsanitize=address -fno-omit-frame-pointer)
+    set_target_properties(pv_lio_plus_r_voxelmap_asan_tests PROPERTIES LINK_FLAGS "-fsanitize=address")
+    target_link_libraries(pv_lio_plus_r_voxelmap_asan_tests ${catkin_LIBRARIES})
   endif()
 endif()

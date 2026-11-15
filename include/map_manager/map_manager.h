@@ -30,6 +30,7 @@
 #include <vector>
 
 class ImuProcess;
+namespace r_voxelmap_ns { class VoxelMap; }
 
 #include "common_lib.h"
 #include "native/c3p_voxelmap/c3p_voxel_map_util.hpp"
@@ -55,7 +56,9 @@ enum class MapType
     /// C3P-VoxelMap's compact probabilistic voxel-plane map.
     C3PVoxelMap,
     /// Super-LIO's LRU octant-aggregated OctVox point map.
-    OctVox
+    OctVox,
+    /// R-VoxelMap with recursive inlier/outlier planes and native LRU.
+    RVoxelMap
 };
 
 MapType ParseMapType(const std::string &name);
@@ -111,6 +114,8 @@ struct PlaneMatch
     V3D omega = V3D::Zero();
     /// Query-point covariance in the world frame.
     M3D point_cov = M3D::Zero();
+    /// Original sensor covariance in the LiDAR frame (R-VoxelMap).
+    M3D lidar_cov = M3D::Zero();
     /// Six-dimensional plane covariance, when provided by the backend.
     Eigen::Matrix<double, 6, 6> plane_cov = Eigen::Matrix<double, 6, 6>::Zero();
     /// Plane equation offset or native equivalent.
@@ -195,6 +200,21 @@ struct MapManagerConfig
     double c3p_merge_x_coord_diff_thresh = 5.0;
     /// Maximum C3 merge distance along the y axis.
     double c3p_merge_y_coord_diff_thresh = 5.0;
+
+    /// R-VoxelMap root retention, rebuilding, RANSAC and plane validation.
+    int r_max_root_points_size = 1000;
+    int r_update_size_threshold = 5;
+    double r_update_inlier_distance_threshold = 0.1;
+    std::vector<int> r_reinit_size_vec = {100, 200, 300, 500, 700, 1000};
+    int r_lru_capacity = 1000000;
+    int r_ransac_max_iter = 10;
+    int r_ransac_sample_num = 4;
+    double r_ransac_inlier_distance_threshold = 0.1;
+    double r_ransac_isplane_p_threshold = 0.8;
+    int r_sample_seed = 42;
+    int r_valid_check_max_layer = 0;
+    int r_valid_check_min_points_size = 10;
+    int r_valid_check_resolution = 5;
 
     /// Enables moving-window maintenance; disabled by default.
     bool local_window_enabled = false;
@@ -310,6 +330,12 @@ class MapManager
 
     void update_octvox(const MapPointList &points);
 
+    void initialize_r_voxelmap(const MapPointList &points);
+
+    void update_r_voxelmap(const MapPointList &points);
+
+    void search_r_voxelmap(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
+
     void search_point_backend(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
 
     void search_ikd_tree(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
@@ -366,6 +392,8 @@ class MapManager
     std::unique_ptr<IVoxBackend> ivox_;
     /// Native Super-LIO OctVox instance.
     std::unique_ptr<OctVoxBackend> octvox_;
+    /// Native R-VoxelMap hierarchy and its LRU-managed root voxels.
+    std::unique_ptr<r_voxelmap_ns::VoxelMap> r_voxelmap_;
     /// Native C3P-VoxelMap storage.
     std::unordered_map<c3p_map_ns::VOXEL_LOC, c3p_map_ns::OctoTree *> c3p_voxel_map_;
     /// C3P plane descriptors and merged planes.
