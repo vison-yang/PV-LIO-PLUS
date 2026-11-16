@@ -1,0 +1,208 @@
+{
+  "checked_on": "2026-11-16",
+  "workspace": "/home/yxy/src/lio_map_ws",
+  "repository": "/home/yxy/src/lio_map_ws/src/PV-LIO-PLUS",
+  "branch": "master",
+  "implementation_base_commit": "7a83f0cb9ebcb4b723766d03f32111e78f8c5487",
+  "plan_commit": "7a83f0c",
+  "status": "source_integration_build_and_synthetic_tests_passed",
+  "selectors": 11,
+  "new_map": "bievr",
+  "bievr_author_commit": "2306022e341e98ce84244f92ba7d26f047b41dbc",
+  "gm_weight_model": "geman_mcclure",
+  "gm_compatible_backends": [
+    "ikdtree",
+    "ivox",
+    "i_octree",
+    "ig_lio_plane"
+  ],
+  "genz_hybrid": "not_implemented",
+  "archive_dir": "/home/yxy/output/agent/pv_lio_plus_two_tracks/20261116_round3",
+  "source_manifest": "/home/yxy/output/agent/pv_lio_plus_two_tracks/20261116_round3/source_manifest.json",
+  "source_files_checked": 130,
+  "source_drift": [],
+  "build": {
+    "argv": [
+      "cmake",
+      "--build",
+      "/home/yxy/src/lio_map_ws/build",
+      "--target",
+      "pv_lio_plus_node",
+      "pv_lio_plus_observation_tests",
+      "pv_lio_plus_map_contract_tests",
+      "pv_lio_plus_r_voxelmap_tests",
+      "pv_lio_plus_hvox_map_tests",
+      "pv_lio_plus_hvox_observation_tests",
+      "pv_lio_plus_i_octree_tests",
+      "pv_lio_plus_i_octree_numeric_oracle_tests",
+      "pv_lio_plus_ig_lio_tests",
+      "pv_lio_plus_bievr_map_tests",
+      "pv_lio_plus_bievr_observation_tests",
+      "pv_lio_plus_weight_model_tests",
+      "--",
+      "-j2"
+    ],
+    "exit_code": 0,
+    "elapsed_sec": 5.2371952389949,
+    "finished_utc": "2026-11-16T12:42:16.766225+00:00"
+  },
+  "ctest": {
+    "argv": [
+      "ctest",
+      "-R",
+      "^(_ctest_pv_lio_plus_gtest_|pv_lio_plus_config_profiles)",
+      "--output-on-failure"
+    ],
+    "exit_code": 0,
+    "elapsed_sec": 14.635657188016921,
+    "finished_utc": "2026-11-16T12:44:34.141067+00:00",
+    "total": 12,
+    "passed": 12,
+    "failed": 0
+  },
+  "gtest": {
+    "tests": 89,
+    "failures": 0,
+    "errors": 0,
+    "disabled": 0,
+    "xml_files": [
+      {
+        "file": "gtest-pv_lio_plus_bievr_map_tests.xml",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "disabled": 0,
+        "sha256": "a989d0b9907be550d4bb4a56818807ddcd7d1dbca2d485790c697fbfa136053d"
+      },
+      {
+        "file": "gtest-pv_lio_plus_bievr_observation_tests.xml",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "disabled": 0,
+        "sha256": "970daad09d01d223b2e68821eaa377ee3d7ddd1982178ab31b22cfa32235c80b"
+      },
+      {
+        "file": "gtest-pv_lio_plus_hvox_map_tests.xml",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "disabled": 0,
+        "sha256": "15fb88589495385f5d7379416e0c9289c2ead56354083432eadeaf262d51db77"
+      },
+      {
+        "file": "gtest-pv_lio_plus_hvox_observation_tests.xml",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "disabled": 0,
+        "sha256": "6b7b2c26e0d75c125d11330ede721f07c7d0bb3533b3e425009bcd372b6e0eca"
+      },
+      {
+        "file": "gtest-pv_lio_plus_i_octree_numeric_oracle_tests.xml",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "disabled": 0,
+        "sha256": "3dfe4808ce78d1baba15d1c5add853bc35a8118c1b030d3e8f49b7d8bc2e347f"
+      },
+      {
+        "file": "gtest-pv_lio_plus_i_octree_tests.xml",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "disabled": 0,
+        "sha256": "5a061242ecc7d370072d6cd5651713e196863ca16c7679cf632cc2ba84f218b4"
+      },
+      {
+        "file": "gtest-pv_lio_plus_ig_lio_tests.xml",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "disabled": 0,
+        "sha256": "7fbd37ee3b8c5d5a4de3cec5023f887f109c3f79edc6d0ec21038c17729c5255"
+      },
+      {
+        "file": "gtest-pv_lio_plus_map_contract_tests.xml",
+        "tests": 17,
+        "failures": 0,
+        "errors": 0,
+        "disabled": 0,
+        "sha256": "4a1eb00c1b98a84e77e266f505727c9d34cf3eb422833e34f98b7b10d3393275"
+      },
+      {
+        "file": "gtest-pv_lio_plus_observation_tests.xml",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "disabled": 0,
+        "sha256": "0b0b3ac7ea585732ca1b749be7da26cac550693d9e8493c6c0ac7b2b6cbcc0b3"
+      },
+      {
+        "file": "gtest-pv_lio_plus_r_voxelmap_tests.xml",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "disabled": 0,
+        "sha256": "bcf9f57cd04855fcb773644a87792b53adc2ecb3337e6b731463e947a3b02aef"
+      },
+      {
+        "file": "gtest-pv_lio_plus_weight_model_tests.xml",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "disabled": 0,
+        "sha256": "b5179da42d4b63a68072f4e8e2ef190dd302b48ecd2fb618aa4ce393835a329a"
+      }
+    ]
+  },
+  "python_config_tests": 9,
+  "ldd": {
+    "argv": [
+      "ldd",
+      "-r",
+      "/home/yxy/src/lio_map_ws/devel/lib/pv_lio_plus/pv_lio_plus_node"
+    ],
+    "exit_code": 0,
+    "has_missing_or_undefined": false
+  },
+  "asan_enabled": false,
+  "node": {
+    "path": "/home/yxy/src/lio_map_ws/devel/lib/pv_lio_plus/pv_lio_plus_node",
+    "size": 1933048,
+    "sha256": "06df747003ca830e8ffb860019f4c0482ce802417a4b4da2d26d41dcf37de783"
+  },
+  "compile_flags_audit": {
+    "comparisons": 18,
+    "all_match": true,
+    "path": "/home/yxy/output/agent/pv_lio_plus_two_tracks/20261116_round3/compile_flags_audit.json"
+  },
+  "previous_attempts": [
+    {
+      "path": "../20261116_round1",
+      "result": "build failed: missing native gtest main; fixed"
+    },
+    {
+      "path": "../20261116_round2",
+      "result": "build passed; 11/12 CTest passed; one incorrect same-voxel fixture assertion fixed with distinct-voxel input"
+    }
+  ],
+  "replay": {
+    "performed": false,
+    "configured_bags_exist": {
+      "/home/yxy/data/avia/outdoor_Mainbuilding_100Hz_2020-12-24-16-46-29.bag": false,
+      "/home/yxy/src/lio_map_ws/bags/S3_2026-08-04_08-40-43_intensity_continuous.bag": false
+    },
+    "note": "Other local bags exist but were not selected; their calibration/time/point-format provenance was not established for this run."
+  },
+  "limitations": [
+    "No replay, GUI/device, accuracy or controlled performance A/B",
+    "Height sigma requires calibration; fixed-scale GM is a normalized point-to-plane component variant, not complete KISS-ICP",
+    "GenZ hybrid, adaptive gate and map-guided sampling remain unimplemented",
+    "Fewer than 23 rows or rejected/nonfinite updates restore prediction and skip map updates; sparse maps may stall",
+    "Row count and n>=4 maturity do not prove observability or resolve degenerate normals",
+    "Invalid parameter/input prechecks preserve map; resource/numerical update exceptions may partially commit and propagate",
+    "Full-state/P finite postcheck reviewed statically; no direct solver failure injection or SPD proof",
+    "Current source contract and boxplus oracle do not assert a fresh equation-by-equation PDF review"
+  ]
+}

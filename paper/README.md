@@ -35,8 +35,8 @@
 
 ## 本项目的集成与复现状态
 
-- 当前有十个地图 selector；`ig_lio_plane` 已接入，round 2 node build/link 与九个指定构建目标通过，CTest 9/9（65 个 GTest 条目，ASan 关闭）及配置合成测试通过。本轮尚无回放或精度/性能验证，详见[iG-LIO 结果记录](../doc/workspace/evidence/IG_LIO_RESULTS.json)。i-Octree feature `5c27a79` 已以 `6876a8e` 合入主线；feature 隔离测试、数值审查和 30/141 秒回放通过，主线构建/链接、CTest 7/7（49 个 GTest 条目，ASan 关闭）及 30 秒完整输入回放通过。详见[i-Octree 结果记录](../doc/workspace/evidence/I_OCTREE_RESULTS.json)。R-VoxelMap 与 hVox 的主线状态和证据见[集成状态](../doc/INTEGRATION_STATUS.md)、[R 结果记录](../doc/workspace/evidence/R_VOXELMAP_RESULTS.json)和[hVox 结果记录](../doc/workspace/evidence/HVOX_RESULTS.json)。历史回归不构成独立真值精度或受控性能结论。
-- 另有三项满足结构准入条件的地图候选（Hybrid-VoxelMap、BIEVR-LIO、LIO-GVM）。BIEVR-LIO 未集成，仅有移植设计草稿；作者上游独立构建已通过，PV-LIO-PLUS 框架适配尚未实现。LIO-GVM 因作者发布缺少定制头文件而阻塞；两项结构合格论文（FR-LIO、SV-LIO）本地收集记录尚未确认作者源码。完整 iG-LIO GICP 观测属于独立后续设计，不计作尚未接入的新地图。逐项状态见[集成计划](../PLAN.md)。
+- 当前有十一个地图 selector；`ig_lio_plane` 已接入，round 2 node build/link 与九个指定构建目标通过，CTest 9/9（65 个 GTest 条目，ASan 关闭）及配置合成测试通过。本轮尚无回放或精度/性能验证，详见[iG-LIO 结果记录](../doc/workspace/evidence/IG_LIO_RESULTS.json)。i-Octree feature `5c27a79` 已以 `6876a8e` 合入主线；feature 隔离测试、数值审查和 30/141 秒回放通过，主线构建/链接、CTest 7/7（49 个 GTest 条目，ASan 关闭）及 30 秒完整输入回放通过。详见[i-Octree 结果记录](../doc/workspace/evidence/I_OCTREE_RESULTS.json)。R-VoxelMap 与 hVox 的主线状态和证据见[集成状态](../doc/INTEGRATION_STATUS.md)、[R 结果记录](../doc/workspace/evidence/R_VOXELMAP_RESULTS.json)和[hVox 结果记录](../doc/workspace/evidence/HVOX_RESULTS.json)。历史回归不构成独立真值精度或受控性能结论。
+- BIEVR 的定向高度图变体 `bievr` 与第二类 GM 权重组件现已源码接入；本轮构建/合成验收见[结果记录](../doc/workspace/evidence/TWO_TRACK_RESULTS.json)，尚未回放。仍待接入的第一类为 Hybrid-VoxelMap 与 LIO-GVM；GenZ 混合观测保留为第二类候选。结构合格的 FR-LIO、SV-LIO 仍是论文储备。
 - 本地构建退出 0 不等于数据集精度复现。作者论文中的精度、耗时和运行条件不代表本工作区的实验结果。
 
 ## 源码核查边界

@@ -86,6 +86,8 @@
 #include "map_manager/map_manager.h"
 #include "map_manager/point_plane_jacobian.h"
 #include "map_manager/r_voxelmap_observation.h"
+#include "observation/measurement.h"
+#include "observation/update_guard.h"
 #include "preprocess.h"
 #include "utils.hpp"
 // The native PV map headers define non-inline functions.  Keep the manager
@@ -105,6 +107,32 @@ namespace pv_lio_plus
 namespace
 {
 using TimingClock = std::chrono::steady_clock;
+
+/** @brief 完整去畸变云以 double 变换到世界系；不用 PCL 世界坐标的 float 往返。 */
+MapPointList MakeBievrPoints(const state_ikfom& state, const PointCloudXYZI& cloud)
+{
+    MapPointList points;
+    points.reserve(cloud.size());
+    for (const auto& point : cloud.points)
+    {
+        MapPoint converted;
+        converted.point_lidar = V3D(point.x, point.y, point.z);
+        converted.point_world =
+            state.rot * (state.offset_R_L_I * converted.point_lidar + state.offset_T_L_I) + state.pos;
+        points.push_back(converted);
+    }
+    return points;
+}
+
+/** @brief 外参和点来自同一滤波状态，保证地图点与 IMU 系量程逐项绑定。 */
+MapUpdateContext MakeBievrContext(const state_ikfom& state)
+{
+    MapUpdateContext context;
+    context.rotImuLidar_   = state.offset_R_L_I.toRotationMatrix();
+    context.transImuLidar_ = V3D(state.offset_T_L_I);
+    return context;
+}
+
 static_assert(TimingClock::is_steady, "Elapsed-time measurements require a monotonic clock");
 
 double ElapsedMilliseconds(const TimingClock::time_point start)
@@ -883,6 +911,59 @@ void Mapping::ObservationModelHVox(state_ikfom& s, esekfom::dyn_share_datastruct
     res_mean_last_ = total_residual_ / effective_feature_num_;
 }
 
+/** @brief 每次线性化重新查询高度图；地图在整次滤波期间只读，不复用体素指针。 */
+void Mapping::ObservationModelBievr(state_ikfom& s, esekfom::dyn_share_datastruct<double>& data)
+{
+    total_residual_        = 0.0;
+    effective_feature_num_ = 0;
+    std::vector<observation::ObservationRow, Eigen::aligned_allocator<observation::ObservationRow>> rows;
+    rows.reserve(feats_undistort_down_->size());
+    const auto start = TimingClock::now();
+    for (const auto& point : feats_undistort_down_->points)
+    {
+        const V3D lidar(point.x, point.y, point.z);
+        const V3D world = s.rot * (s.offset_R_L_I * lidar + s.offset_T_L_I) + s.pos;
+        observation::HeightSample sample;
+        try
+        {
+            if (!map_manager_->FindBievrHeight(world, sample)) continue;
+        } catch (const std::invalid_argument&)
+        {
+            data.valid = false;
+            return;
+        }
+        observation::ObservationRow row;
+        if (!observation::EvaluateBievrObservation(
+                lidar, s.rot.toRotationMatrix(), s.offset_R_L_I.toRotationMatrix(), V3D(s.offset_T_L_I), sample,
+                config_.map_manager_config().bievrHeightSigmaM_, config_.map_manager_config().bievrHuberDeltaM_,
+                config_.extrinsic_est_en_, row))
+        {
+            data.valid = false;
+            return;
+        }
+        rows.push_back(row);
+        total_residual_ += std::abs(row.innovation_);
+    }
+    search_time_ += ElapsedMilliseconds(start);
+    effective_feature_num_ = static_cast<int>(rows.size());
+    if (rows.empty())
+    {
+        data.valid = false;
+        return;
+    }
+    data.h_x.resize(effective_feature_num_, 12);
+    data.h.resize(effective_feature_num_);
+    data.R.resize(effective_feature_num_, 1);
+    for (int i = 0; i < effective_feature_num_; ++i)
+    {
+        const auto& row = rows[static_cast<std::size_t>(i)];
+        data.h_x.row(i) = row.jacobian_;
+        data.h(i)       = row.innovation_;
+        data.R(i)       = row.information_;
+    }
+    res_mean_last_ = total_residual_ / effective_feature_num_;
+}
+
 /**
  * @brief Dispatches the EKF observation model to the selected map backend.
  * @param s Current iterated filter state.
@@ -890,7 +971,18 @@ void Mapping::ObservationModelHVox(state_ikfom& s, esekfom::dyn_share_datastruct
  */
 void Mapping::ObservationModel(state_ikfom& s, esekfom::dyn_share_datastruct<double>& ekfom_data)
 {
-    if (config_.map_manager_config().type == pv_lio_plus::MapType::VoxelMap)
+    const bool usesGuard =
+        config_.map_manager_config().type == MapType::BIEVR || config_.observationWeightModel_ == "geman_mcclure";
+    if (usesGuard && isObservationRejected_)
+    {
+        ekfom_data.valid = false;
+        return;
+    }
+    if (config_.map_manager_config().type == MapType::BIEVR)
+    {
+        ObservationModelBievr(s, ekfom_data);
+    }
+    else if (config_.map_manager_config().type == pv_lio_plus::MapType::VoxelMap)
     {
         ObservationModelVoxelMap(s, ekfom_data);
     }
@@ -918,12 +1010,46 @@ void Mapping::ObservationModel(state_ikfom& s, esekfom::dyn_share_datastruct<dou
     {
         ObservationModelPointBackend(s, ekfom_data);
     }
+    if (config_.observationWeightModel_ == "geman_mcclure" && ekfom_data.valid)
+    {
+        // 只改变信息权重一次，原 h/H、查询域和匹配集合保持原值。
+        for (Eigen::Index i = 0; i < ekfom_data.h.size(); ++i)
+        {
+            if (!std::isfinite(ekfom_data.h(i)) || !std::isfinite(ekfom_data.R(i)) || ekfom_data.R(i) <= 0.0)
+            {
+                ekfom_data.valid = false;
+                break;
+            }
+            ekfom_data.R(i) *= observation::GemanMcClureWeight(ekfom_data.h(i), config_.gmScaleM_);
+            if (!std::isfinite(ekfom_data.R(i)) || ekfom_data.R(i) <= 0.0) ekfom_data.valid = false;
+        }
+    }
+    if (usesGuard && !observation::ValidScalarRows(ekfom_data, state_ikfom::DOF))
+    {
+        // 现有求解器的 m<DOF 分支未完成；新路径拒绝且由帧边界恢复预测 x/P。
+        isObservationRejected_ = true;
+        ekfom_data.valid       = false;
+        ROS_WARN_THROTTLE(1.0, "Observation update rejected (invalid or fewer than %d rows); map update skipped",
+                          state_ikfom::DOF);
+    }
 }
 
 /** @brief Builds the initial local map after EKF initialization. */
 void Mapping::InitializeMap()
 {
     const auto t1 = TimingClock::now();
+    if (config_.map_manager_config().type == MapType::BIEVR)
+    {
+        try
+        {
+            map_manager_->initialize(MakeBievrPoints(state_point_, *feats_undistort_), MakeBievrContext(state_point_));
+            map_initialized_ = true;
+        } catch (const std::invalid_argument& error)
+        {
+            ROS_WARN_THROTTLE(1.0, "BIEVR initialization rejected: %s", error.what());
+        }
+        return;
+    }
 
     // Transform the first scan and build the backend-independent point list.
     PointCloudXYZI::Ptr feats_world(new PointCloudXYZI);
@@ -964,6 +1090,19 @@ void Mapping::InitializeMap()
 /** @brief Inserts the current scan into the selected local-map backend. */
 void Mapping::UpdateMap()
 {
+    if (config_.map_manager_config().type == MapType::BIEVR)
+    {
+        try
+        {
+            map_manager_->update(MakeBievrPoints(state_point_, *feats_undistort_),
+                                 static_cast<std::uint32_t>(scan_total_count_), MakeBievrContext(state_point_));
+        } catch (const std::invalid_argument& error)
+        {
+            ROS_WARN_THROTTLE(1.0, "BIEVR update rejected: %s", error.what());
+        }
+        return;
+    }
+
     // Transform the filtered scan once and pass one common point type to MapManager.
     PointCloudXYZI::Ptr feats_world(new PointCloudXYZI);
     if (config_.map_manager_config().type == MapType::IOctree)
@@ -1221,7 +1360,25 @@ int Mapping::Run()
             if (hvox_observations_) hvox_observations_->BeginFrame();
             search_time_     = 0.;
             const auto t2 = TimingClock::now();
-            bool bConverged  = kf_.update_iterated_dyn_share_diagonal();
+            const bool usesGuard = config_.map_manager_config().type == MapType::BIEVR ||
+                                   config_.observationWeightModel_ == "geman_mcclure";
+            bool bConverged;
+            if (usesGuard)
+                bConverged = observation::RunGuardedUpdate(kf_, isObservationRejected_, [this]() {
+                    const bool isConverged = kf_.update_iterated_dyn_share_diagonal();
+                    const auto& estimate   = kf_.get_x();
+                    if (!kf_.get_P().allFinite() || !estimate.pos.allFinite() || !estimate.vel.allFinite() ||
+                        !estimate.bg.allFinite() || !estimate.ba.allFinite() || !estimate.grav.get_vect().allFinite() ||
+                        !estimate.offset_T_L_I.allFinite() || !estimate.rot.coeffs().allFinite() ||
+                        !estimate.offset_R_L_I.coeffs().allFinite())
+                    {
+                        isObservationRejected_ = true;
+                        ROS_WARN("Observation update produced nonfinite state or covariance; restoring prediction");
+                    }
+                    return isConverged;
+                });
+            else
+                bConverged = kf_.update_iterated_dyn_share_diagonal();
             eseikf_time_     = ElapsedMilliseconds(t2);
             // Extract the corrected state and update the local map.
             state_point_ = kf_.get_x();
@@ -1231,7 +1388,7 @@ int Mapping::Run()
             geo_quat_.w  = state_point_.rot.coeffs()[3];
 
             const auto t3 = TimingClock::now();
-            UpdateMap();
+            if (!usesGuard || !isObservationRejected_) UpdateMap();
             update_time_ = ElapsedMilliseconds(t3);
 
             // std::printf("BA: %.4f %.4f %.4f   \nBG: %.4f %.4f %.4f   \ng: %.4f %.4f %.4f\n",

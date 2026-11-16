@@ -96,6 +96,16 @@ struct MapManagerConfig
     int igSearchMethod_  = 7;        ///< 邻域模式 1/7/19/26；26 包含中心，共 27 格。
     int igCapacity_      = 5000000;  ///< 原生淘汰触发值，至少为 2；稳态最多保留 capacity−1 格。
     int igGridMaxPoints_ = 20;       ///< 整批追加存点门限，初始批次不受硬点数上限约束。
+
+    double bievrVoxelSize_          = 0.5;      ///< BIEVR 体素边长，米。
+    double bievrPixelSize_          = 0.05;     ///< 定向高度图像素边长，米。
+    int bievrCapacity_              = 1000000;  ///< 更新触碰的体素 LRU 容量。
+    int bievrMaxImagePixels_        = 1048576;  ///< 单体素图像的本地安全上限。
+    bool bievrWeighted_             = true;     ///< 按真实 IMU 系量程融合像素。
+    bool bievrSmooth_               = true;     ///< 使用有效掩码 Gaussian 平滑高度。
+    double bievrNormalToleranceDeg_ = 3.0;      ///< 触发重投影的法向变化角度，度。
+    double bievrHeightSigmaM_       = 0.1;      ///< 公共滤波高度残差噪声尺度，米；需按数据标定。
+    double bievrHuberDeltaM_        = 0.1;      ///< Huber 转折尺度，米。
 };
 
 }  // namespace pv_lio_plus

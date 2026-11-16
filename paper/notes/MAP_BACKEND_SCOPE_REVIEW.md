@@ -1,6 +1,6 @@
 # 地图结构与框架接入边界
 
-状态核对日期：**2026-11-16**，当前代码基线为 `3a21000`。地图结构依据固定版本论文和来源记录；当前十个 selector 的接入、构建、合成测试及各自回放边界见[集成状态](../../doc/INTEGRATION_STATUS.md)。`ig_lio_plane` 已接入并通过本轮构建及合成测试，尚无本轮回放。**BIEVR-LIO 尚未集成，仅有移植设计草稿**；上游独立工程构建通过不代表已接入本框架。历史验证记录分别保留其日期、源码和二进制范围。
+状态核对日期：**2026-11-16**；本轮开发基线 `7a83f0c`。当前十一个地图 selector 包含新 `bievr` 高度图变体；第二类固定尺度 GM 权重独立可选。构建、合成测试、源码身份及回放边界见[本轮结果](../../doc/workspace/evidence/TWO_TRACK_RESULTS.json)；本轮尚未回放，不沿用旧上游构建作为新版本验收。
 
 本页的地图结构准入条件适用于第一类。独立观测与权重组件可按[第二类方案](../../doc/OBSERVATION_INTEGRATION_PLAN.md)另行准入，不要求创新地图结构；两类共用状态与滤波，开关和验证分开记录。
 
@@ -36,15 +36,15 @@
 | [i-Octree](../i-Octree.pdf) | **已接入** | p1 摘要，p2 §II-A：叶端连续内存点块、仅叶保存点、局部树上更新/降采样和盒删除；明确提出动态八叉树数据结构。 |
 | [iG-LIO](../iG-LIO.pdf) | **已接入 `ig_lio_plane`** | p2 第三项贡献，pp3–4 §II-C、式 (7)–(9)/算法 1：每格 `(N,Σp,Σppᵀ,μ,Σ)`，活跃格增量分布更新及 LRU 地图维护。资格不靠 VSCE 扫描协方差或 GICP 残差。 |
 | [Hybrid-VoxelMap](../Hybrid-VoxelMap.pdf) | **未集成** | p1 第一项贡献，p3 §III-B：语义决定每格 Plane/Gaussian 表示并动态转换；改变实际几何单元类型与维护，区别于只按语义调残差权重。 |
-| [BIEVR-LIO](../BIEVR-LIO.pdf) | **未集成，仅有设计草稿** | p2 贡献 1，p3 §III-A：每体素存定向 bump image、高度/权重像素与局部坐标变换，迭代融合细节；资格来自新地图单元，不依赖采样创新。 |
+| [BIEVR-LIO](../BIEVR-LIO.pdf) | **已接入 `bievr` 高度图变体** | p2 贡献 1，p3 §III-A：每体素存定向 bump image、高度/权重像素与局部坐标变换，迭代融合细节；资格来自新地图单元，不依赖采样创新。 |
 | [LIO-GVM](../LIO-GVM.pdf) | **未集成，固定源码不完整** | p2 第二项贡献，p5 §IV-D/式 (18)：将 VGICP 式分布提升为可插入/更新/删除的全局哈希高斯地图，维护均值/协方差/计数并以 `M=max(M,N)` 防止历史统计冻结。不是仅更改 Gaussian 残差。 |
 | [FR-LIO / RC-Vox](../FR-LIO.pdf) | **保留论文地图储备，源码未核验** | p2 第二项贡献，p4 §V-A/B：机器人中心、固定大小双层 3D 数组及滚动重用索引，明确提出 RC-Vox 结构；完整子帧与 smoother 不随地图移植。 |
 | [SV-LIO](../SV-LIO.pdf) | **保留论文地图储备，源码/语义输入未核验** | p3 贡献 2，pp9–11 §4.3/式 (10)–(14)：语义引导聚类，离群点下推八个子体素，剩余内点重估平面并维护叶平面的类别概率。改的是递归构建与单元统计，不只是 §4.4/4.5 的语义关联/加权。 |
 | [FAST-LIO](../FAST-LIO.pdf) | **框架来源，不单列地图候选** | p1 贡献为紧耦合滤波、去畸变与 Kalman gain 计算；不能把 FAST-LIO2/ikd-Tree 的结构创新回填给 FAST-LIO 原论文。 |
 
-PV-LIO、FAST-LIO 属于框架来源。当前十个地图 selector 的实现与验证范围以[集成状态](../../doc/INTEGRATION_STATUS.md)为准；结构依据不代替代码接入或运行验收。
+PV-LIO、FAST-LIO 属于框架来源。当前十一个地图 selector 的实现与验证范围以[集成状态](../../doc/INTEGRATION_STATUS.md)为准；结构依据不代替代码接入或运行验收。
 
-## 十个已接入后端的观测边界
+## 十一个已接入后端的观测边界
 
 [公共循环](../../src/mapping.cpp)共用滤波初始化、`imu_process_->Process` 与 `update_iterated_dyn_share_diagonal`；[ObservationModel 分派](../../src/mapping.cpp)保留不同观测实现。下表 `w` 为 `ekfom_data.R` 中的逆方差/信息量。
 
@@ -60,6 +60,8 @@ PV-LIO、FAST-LIO 属于框架来源。当前十个地图 selector 的实现与�
 | hVox | 原生 L0/L1 层级与更新期预计算 surfel；[`search_hvox`](../../src/map_manager/map_manager.cpp)按包含点的 L1 键调用 `GetSurfelAtPoint`，`hvox_pko_ikfom` 通过[`HVoxObservationGroup`](../../src/map_manager/hvox_observation.cpp#L38)保留有符号残差和 PKO 分组尺度。 | 固定匹配组内重算当前状态残差、Jacobian 和 PKO/Huber 信息；不重建作者双循环。`size()` 是 L0 voxel 数，snapshot 为 L0 质心，point count 使用原生点数；原生 moving box，拒绝公共几何窗口。 |
 | i-Octree | 动态八叉树、RAII 连续叶块与树上增删/降采样；数值适配采用实点 AABB 和 binary64 查询/距离。[`search_i_octree`](../../src/map_manager/map_manager.cpp)走全树 kNN，再拟合公共点面平面。 | 第五近邻按 `d² <= R²` 通过；native radius 查询为严格 `<r²`。`size()`/`point_count()` 为存活点数，snapshot 为 XYZ；闭合局部窗口调用树上 retain，不重建全树。 |
 | iG-LIO 点面变体 | [增量统计与 LRU 地图](../../include/map_manager/native/ig_lio/voxel_map.cpp)、[适配器](../../src/map_manager/backends/ig_lio_backend.cpp)保留统计冻结、整批存点、实际邻域及严格半径；用公共五点 float QR 拟平面。 | `plane_cov=0`，点协方差信息沿公共点面路径；完整 GICP 未接入。`size()` 为格数，存点数与统计样本数不同；拒绝公共几何滑窗。[来源与差异](../../include/map_manager/native/ig_lio/SOURCE.md)。 |
+
+| BIEVR 高度图变体 | 定向像素图、IMU 量程加权、法向重投影与更新触碰 LRU；独立 bilinear 高度残差及 Huber/σ² 信息。 | `size` 为体素数，`point_count` 为当前驻留体素统计点数；snapshot 为原始有效像素。拒绝公共滑窗，完整云写图；不是 LM/Ceres 或 MID 复现。 |
 
 [calc_lidar_cov_for_backend](../../src/mapping.cpp)还为 VoxelMap++ 选择单独的传感器协方差实现。这些差异属于当前地图与观测组合，应如实记录；现有结果不能直接称为严格地图表示消融。
 
@@ -91,22 +93,22 @@ PV-LIO、FAST-LIO 属于框架来源。当前十个地图 selector 的实现与�
 | `upstream/lio_gvm` | `c80c968ed7ff` | README、`laserMapping.cpp` 与文件清单，定制地图头仍缺失。 |
 | `upstream/i-Octree` | `25903a33dd7a` | 作者基线 `5b640e05`；固定作者快照及本地兼容性 patch 见 manifest；主线适配 feature `5c27a79`。 |
 
-## 三项待接入地图的实施边界
+## 两项待接入地图的实施边界
 
-当前已有十个地图 selector。Hybrid-VoxelMap、BIEVR-LIO、LIO-GVM 尚未接入；其中 BIEVR 只有[移植设计草稿](../../doc/BIEVR_IKFOM_PORT.md)，下表均为后续实施边界。iG-LIO 的增量地图点面变体已接入，完整 GICP 是另行设计的观测任务。
+Hybrid-VoxelMap 与 LIO-GVM 尚未接入。BIEVR 当前实现和边界见[设计与实施记录](../../doc/BIEVR_IKFOM_PORT.md)；iG-LIO 的完整 GICP 是另行设计的观测任务。
 
 | 地图 | 必须保留的结构与对应观测 / 实施前置条件 |
 | --- | --- |
 | Hybrid-VoxelMap | [UnionFindNode](../../../../src/Hybrid-VoxelMap/include/voxelmapplus_util.hpp#L123)的 Plane/Gaussian 类型及语义驱动切换；[NDT 残差](../../../../src/Hybrid-VoxelMap/include/voxelmapplus_util.hpp#L707)和[消费端](../../../../src/Hybrid-VoxelMap/src/voxelMapping.cpp#L915)可抽取。须补标签来源、类别转换、缺标签和退化协方差语义；只留普通平面会丢失支撑资格的混合结构。 |
-| BIEVR-LIO | [BIEVRMap](../../../../upstream/BIEVR-LIO/BIEVR/include/bievr_lio/bievr_map.h#L14)的定向高度图/像素融合及 [linearize](../../../../upstream/BIEVR-LIO/BIEVR/src/ls_optimizer.cpp#L55)的 `r=p_o.z-I(x,y)`、图像梯度和 Huber。设计拟适配共同状态，不引入 `computeTransformation/stepLm` 或惯性后端；[地图引导采样](../../../../upstream/BIEVR-LIO/BIEVR/src/pipeline.cpp#L239)单列实验。 |
 | LIO-GVM | 保留全局高斯地图增量融合统计；[h_share_model](../../../../upstream/LIO-GVM/src/laserMapping.cpp#L671)调用 `kalmanCalculate`。但 [README](../../../../upstream/LIO-GVM/README.md#L9)仍注明 `.hpp` 待更新，[包含处](../../../../upstream/LIO-GVM/src/laserMapping.cpp#L62)依赖缺失的 `fast_vgicp/fast_vgicp.hpp`；补齐完整作者实现后才能核对地图/信息模型。 |
 | FR-LIO / RC-Vox；SV-LIO | 论文证明结构资格，尚未核验作者实现；分别跟踪双层数组地图、语义引导递归地图的官方源码与可分离性，不进入当前源码移植排期。 |
+
 
 **历史版本观察：** 11-14 审核记录 Surfel 远程 `2cbfad9` 的 [GetClosestSurfel](https://github.com/93won/lidar_inertial_odometry/blob/2cbfad923583b44d04d3ab078888bd9fe55450db/src/core/VoxelMap.cpp#L533)使用 KD-tree/PCA，以及 Hybrid 远程 `fb60275` 的[无语义 Gaussian-only 说明](https://github.com/haiyang2022/Hybrid-VoxelMap/blob/fb60275e78e010ef85f5c7574fa330774f714373/README.md)。它们不是本地基线。当前本地 Surfel 查询入口仍是 `UpdateWithLidar → FindCorrespondences → GetSurfelAtPoint`，`GetL1Surfels` 供 viewer 遍历；不得跨版本替换这些事实。
 
 ## 未来接口与验收
 
-当前 `PlaneMatch` 和十个 selector 已有实现。hVox 通过专用适配将原生 surfel 对应关系转换为 `PlaneMatch`；通用带类型的 `Surfel`、`Gaussian`、`HeightImage` 匹配，以及通用标量/向量残差、状态 Jacobian 和信息接口，仍是**未来设计，本轮未实现**。现有滤波使用对角信息，向量观测需处理相关协方差，可评估白化为标量行，不能直接丢掉非对角项或照搬上游状态列顺序。
+当前已有十一个 selector；BIEVR 使用独立 `HeightSample`，其它既有分支使用原生类型或 `PlaneMatch`。hVox 通过专用适配将原生 surfel 对应关系转换为 `PlaneMatch`；通用带类型的 `Surfel`、`Gaussian`、`HeightImage` 匹配，以及通用标量/向量残差、状态 Jacobian 和信息接口，仍是**未来设计，本轮未实现**。现有滤波使用对角信息，向量观测需处理相关协方差，可评估白化为标量行，不能直接丢掉非对角项或照搬上游状态列顺序。
 
 - **资格验收：** 导入文件、实际数据布局和维护调用链须保留论文支撑资格的结构创新；裁剪/改写须说明保留机制及影响，不能以原项目名包装通用索引。
 - **地图 oracle：** 点图在声明的搜索域内对照暴力排序；概率平面、surfel 和高度图按各自的构造/查询规则建立可穷举参照。检查充分统计、层级/合并、像素融合、淘汰和快照，覆盖空图、少于 k 点、等距、负坐标与边界及插入删除。有限邻域 kNN 不得称为全图精确 kNN。
@@ -114,4 +116,4 @@ PV-LIO、FAST-LIO 属于框架来源。当前十个地图 selector 的实现与�
 - **噪声与数值：** 明确坐标、单位、平面参数不确定性与散点分布协方差的区别；检查方差/信息有限性、下界和白化二次型一致性。iG 鲁棒二阶项须单独证明等价条件或记录近似。
 - **实验真实性：** 先合成、再短回放和长序列，记录数据版本、输入/语义条件、采样、门限、地图预算、观测、有效匹配、时间/内存及 ATE/RPE。源码收集、上游构建、共同框架集成和性能复现分别陈述，不把完整系统论文数字归因于抽取组件。
 
-可机械执行的后续是同步 README/PLAN、论文笔记与源码清单中的资格和状态、补各合格地图的版本/生产者/消费者证据。带类型观测、结构保真移植、状态/噪声映射、Hybrid 双结构、BIEVR 高度图、iG GICP 及其关键验证属于后续设计与实现。源码不完整或边界未核验者继续保持阻断/论文储备状态。
+可机械执行的后续是同步 README/PLAN、论文笔记与源码清单中的资格和状态、补各合格地图的版本/生产者/消费者证据。带类型观测、结构保真移植、状态/噪声映射、Hybrid 双结构、BIEVR 采样扩展、iG GICP 及其关键验证属于后续设计与实现。源码不完整或边界未核验者继续保持阻断/论文储备状态。

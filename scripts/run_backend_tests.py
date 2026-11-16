@@ -2,12 +2,14 @@
 """Run PV-LIO-PLUS over dataset/backend combinations.
 
 The input is a JSON manifest.  Each dataset explicitly declares the bag,
-LiDAR message mode/topic, and IMU message type/topic.  A temporary launch file
-overrides only those runtime parameters and ``mapping/map_type``; the package
-source and checked-in YAML files are not modified.
+LiDAR message mode/topic, and IMU message type/topic. A temporary launch file
+overrides runtime topics, ``mapping/map_type``, and any selected YAML profiles;
+the package source and checked-in YAML files are not modified.
 With ``--backend-presets``, the selected backend YAML is loaded after the
 dataset configuration and archived with its SHA-256; the default retains the
 dataset YAML tuning used by earlier runs.
+With ``--observation-profile``, an observation YAML is loaded after the backend
+configuration and copied into each run directory with its SHA-256.
 
 Example:
   python3 scripts/run_backend_tests.py \
@@ -53,8 +55,10 @@ BACKENDS = {
     "hvox": "pv_lio_hvox",
     "i_octree": "pv_lio_i_octree",
     "ig_lio_plane": "pv_lio_ig_lio_plane",
+    "bievr": "pv_lio_bievr",
 }
 DEFAULT_BACKENDS = ("voxelmap", "voxelmap_plus", "ikdtree", "ivox", "c3p_voxelmap", "octvox")
+OBSERVATION_PROFILES = ("backend_default", "geman_mcclure")
 BACKEND_ALIASES = {
     "voxel_map": "voxelmap",
     "voxel": "voxelmap",
@@ -313,12 +317,48 @@ def backend_preset_path(backend: str) -> Path:
     return path
 
 
-def launch_text(dataset: Dataset, backend: str, backend_config: Optional[Path] = None) -> str:
+def observation_profile_path(profile: str) -> Path:
+    """返回已知观测预设；未知名称和缺失文件均拒绝。"""
+    if profile not in OBSERVATION_PROFILES:
+        die(f"unknown observation profile '{profile}'; choose from {', '.join(OBSERVATION_PROFILES)}")
+    path = Path(__file__).resolve().parents[1] / "config" / "observations" / f"{profile}.yaml"
+    if not path.is_file():
+        die(f"observation profile not found: {path}")
+    return path
+
+
+def archive_observation_profile(profile: Optional[str], run_dir: Path) -> Optional[Dict[str, str]]:
+    """保存观测预设副本并返回其来源、归档路径和 SHA-256。"""
+    if profile is None:
+        return None
+    source = observation_profile_path(profile)
+    archive = run_dir / "observation_config.yaml"
+    shutil.copy2(source, archive)
+    return {
+        "name": profile,
+        "source": str(source),
+        "archive": str(archive),
+        "sha256": hashlib.sha256(archive.read_bytes()).hexdigest(),
+    }
+
+
+def observation_profile_metadata(profile: Optional[str], run_dir: Path) -> Dict[str, Any]:
+    """构造可写入 dataset.json 的观测选项与档案记录。"""
+    return {
+        "observation_profile_option": profile,
+        "observation_profile": archive_observation_profile(profile, run_dir),
+    }
+
+
+def launch_text(dataset: Dataset, backend: str, backend_config: Optional[Path] = None,
+                observation_config: Optional[Path] = None) -> str:
     preset_tag = (f'  <rosparam command="load" file="{xml_escape(str(backend_config))}"/>\n'
                   if backend_config is not None else "")
+    observation_tag = (f'  <rosparam command="load" file="{xml_escape(str(observation_config))}"/>\n'
+                       if observation_config is not None else "")
     return f'''<launch>
   <rosparam command="load" file="{xml_escape(str(dataset.config))}"/>
-{preset_tag}  <param name="common/lid_topic" value="{xml_escape(dataset.lidar_topic)}"/>
+{preset_tag}{observation_tag}  <param name="common/lid_topic" value="{xml_escape(dataset.lidar_topic)}"/>
   <param name="common/imu_topic" value="{xml_escape(dataset.imu_topic)}"/>
   <param name="preprocess/lidar_type" value="{dataset.lidar_type}" type="int"/>
   <param name="mapping/map_type" value="{backend}"/>
@@ -582,7 +622,11 @@ def terminate_process(process: subprocess.Popen[Any], label: str) -> int:
 
 def run_one(dataset: Dataset, backend: str, args: argparse.Namespace,
             env: Dict[str, str], output_root: Path, run_id: str = "unknown",
-            source_commit: str = "unknown") -> Dict[str, Any]:
+            source_commit: str = "unknown",
+            observation_profile: Optional[str] = None) -> Dict[str, Any]:
+    profile_name = observation_profile
+    if profile_name is not None:
+        observation_profile_path(profile_name)
     run_dir = Path(args.results_root).expanduser().resolve() / dataset.name / backend / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
     dataset_record = dict(dataset.__dict__)
@@ -604,11 +648,15 @@ def run_one(dataset: Dataset, backend: str, args: argparse.Namespace,
             "archive": str(backend_config),
             "sha256": hashlib.sha256(backend_config.read_bytes()).hexdigest(),
         }
+    observation_metadata = observation_profile_metadata(profile_name, run_dir)
+    dataset_record.update(observation_metadata)
+    observation_record = observation_metadata["observation_profile"]
     (run_dir / "dataset.json").write_text(json.dumps(dataset_record, indent=2, ensure_ascii=False) + "\n",
                                            encoding="utf-8")
     shutil.copy2(dataset.config, run_dir / "base_config.yaml")
     launch_file = run_dir / "generated.launch"
-    launch_file.write_text(launch_text(dataset, backend, backend_config), encoding="utf-8")
+    observation_config = Path(observation_record["archive"]) if observation_record else None
+    launch_file.write_text(launch_text(dataset, backend, backend_config, observation_config), encoding="utf-8")
 
     run_env = dict(env)
     run_env["ROS_HOME"] = str(run_dir / "ros_home")
@@ -623,6 +671,7 @@ def run_one(dataset: Dataset, backend: str, args: argparse.Namespace,
     (run_dir / "commands.json").write_text(json.dumps({
         "run_id": run_id,
         "source_commit": source_commit,
+        "observation_profile": profile_name,
         "roslaunch": launch_command,
         "rosbag": bag_command,
     }, indent=2) + "\n", encoding="utf-8")
@@ -673,6 +722,7 @@ def run_one(dataset: Dataset, backend: str, args: argparse.Namespace,
         "run_id": run_id,
         "source_commit": source_commit,
         "dataset": dataset.name, "backend": backend,
+        "observation_profile": profile_name,
         "success": error is None and bag_code == 0 and output_checks["valid"],
         "error": error, "roslaunch_exit_code": launch_code, "rosbag_exit_code": bag_code,
         "duration_sec": round(time.time() - started, 3), "copied_results": copied,
@@ -699,9 +749,13 @@ def main() -> int:
     parser.add_argument("--continue-on-error", action="store_true")
     parser.add_argument("--backend-presets", action="store_true",
                         help="load backend YAML after dataset config; default preserves dataset YAML tuning")
+    parser.add_argument("--observation-profile", choices=OBSERVATION_PROFILES,
+                        help="load an observation YAML after the backend profile; default keeps sensor values")
     parser.add_argument("--dry-run", action="store_true",
                         help="print the test matrix and commands without building, starting ROS, or creating files")
     args = parser.parse_args()
+    observation_config = (observation_profile_path(args.observation_profile)
+                          if args.observation_profile is not None else None)
 
     manifest_path = args.manifest.expanduser().resolve()
     data = read_manifest(manifest_path)
@@ -729,6 +783,9 @@ def main() -> int:
         print(f"Dry run: run_id={run_id} source_commit={source_commit}")
         print(f"Workspace: {workspace_root}")
         print(f"Matrix: {len(datasets) * len(algorithms)} combination(s)")
+        print(f"Observation profile: {args.observation_profile or 'sensor/default'}")
+        if observation_config is not None:
+            print(f"  profile: {observation_config}")
         for dataset in datasets:
             print(f"[DATASET] {dataset.name}")
             print(f"  bag: {dataset.bag}")
@@ -762,7 +819,8 @@ def main() -> int:
                 verify_topics(dataset, env)
             for backend in algorithms:
                 print(f"[RUN] dataset={dataset.name} backend={backend}", flush=True)
-                status = run_one(dataset, backend, args, env, output_root, run_id, source_commit)
+                status = run_one(dataset, backend, args, env, output_root, run_id, source_commit,
+                                 observation_profile=args.observation_profile)
                 results.append(status)
                 print(f"[{'PASS' if status['success'] else 'FAIL'}] dataset={dataset.name} backend={backend}", flush=True)
                 if not status["success"] and not args.continue_on_error:
@@ -776,6 +834,7 @@ def main() -> int:
     summary = {
         "run_id": run_id,
         "source_commit": source_commit,
+        "observation_profile": args.observation_profile,
         "workspace": str(workspace_root),
         "results": results,
         "count": len(results),

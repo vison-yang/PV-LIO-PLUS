@@ -38,6 +38,14 @@ namespace pv_lio_plus::ig_lio_native
 {
 class VoxelMap;
 }
+namespace pv_lio_plus::bievr_native
+{
+class Map;
+}
+namespace pv_lio_plus::observation
+{
+struct HeightSample;
+}
 
 #include "common_lib.h"
 #include "map_manager/map_types.h"
@@ -78,6 +86,8 @@ class MapManager
     MapType type() const;
     bool initialized() const;
     bool supports_selected_backend() const;
+
+    bool FindBievrHeight(const V3D &pointWorld, observation::HeightSample &sample) const;
 
     void clear();
 
@@ -233,6 +243,7 @@ class MapManager
     std::unique_ptr<r_voxelmap_ns::VoxelMap> r_voxelmap_;
     std::unique_ptr<lio::VoxelMap> hvox_;
     std::unique_ptr<i_octree_native::Octree> i_octree_;
+    std::unique_ptr<bievr_native::Map> bievr_;  ///< 与公共点面匹配分离的定向高度图。
     /// Native C3P-VoxelMap storage.
     std::unordered_map<c3p_map_ns::VOXEL_LOC, c3p_map_ns::OctoTree *> c3p_voxel_map_;
     /// C3P plane descriptors and merged planes.

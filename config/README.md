@@ -20,6 +20,7 @@
 | hVox | `backends/hvox.yaml` | 分辨率 0.4 m、层级倍率 3、平面性 0.01、最大距离 50 m、盒倍率 2、LiDAR 噪声标准差 0.05 | 不支持通用滑窗；层级倍率必须为正奇数，距离/倍率/体素尺寸须为正有限值且乘积、比值可表示，平面性与噪声标准差须有限且非负。 |
 | i-Octree | `backends/i_octree.yaml` | 共用最近点数 5、半径 5 m、平面阈值 0.1；桶容量 32、最小范围 0.01 m、树内降采样关闭 | 半径须为正有限值且平方仍有限；桶容量为正，平面阈值有限且非负，最小范围须落在原生浮点范围内。 |
 | iG-LIO 点面变体 | `backends/ig_lio_plane.yaml` | 共用最近点数 5、半径 5 m、平面阈值 0.1；分辨率 0.5 m、搜索方法 7、容量 5,000,000、批追加门限 20 | 不支持通用滑窗；使用严格半径判断。搜索方法仅 1/7/19/26；26 对应实际查询中心周围 27 个网格。容量至少为 2，原生地图最多保留 `capacity-1` 个网格；`grid_max_points` 是批追加门限，不是硬上限。该模式是增量地图加共享五点 float QR 点面观测，不是原生 GICP 或原生至少三点 double 平面模型。 |
+| BIEVR | `backends/bievr.yaml` | 体素 0.5 m、像素 0.05 m、容量 1,000,000；加权和平滑开启；法向容差 3°；高度噪声初值 0.1 m、Huber 阈值 0.1 m | `bievr_height_sigma_m` 表示高度观测噪声模型的初始标准差，不表示传感器、外参或地图的校准精度。`bievr_max_image_pixels=1,048,576` 是本地实现的图像像素安全上限，不是作者算法参数。 |
 
 共享 `nearest_max_range` 的物理单位是米，不是平方值；iVox 对半径边界使用严格小于判定，ikd-tree 接受等于边界的点。`plane_fit_threshold` 使用现有共享观测实现的残差阈值语义。`mapping/plannar_threshold` 保留历史拼写，因为节点实际读取的参数名就是该键。
 
@@ -34,14 +35,21 @@ roslaunch pv_lio_plus mapping.launch sensor_config:=$(rospack find pv_lio_plus)/
 
 `backend` 留空时不载入预设，直接沿用传感器 YAML 中的 selector。兼容入口 `mapping_avia.launch`、`mapping_mid360.launch`、`mapping_solid.launch` 默认都将 `backend` 留空，并分别继续使用 Avia 的 `voxelmap_plus`、Mid360 的 `voxelmap_plus`、Solid 的 `ivox`；三个入口仍默认启动 RViz，也可传 `backend:=i_octree rviz:=false` 选择其它预设。
 
+`observation` 是独立可选项，默认空字符串，不载入观测预设，因此传感器 YAML 已设置的观测参数保持原值。指定后，配置按传感器 YAML、后端 YAML、观测 YAML 的顺序加载；三个兼容入口均透传该参数。`backend_default` 只显式选择后端默认权重；`geman_mcclure` 提供固定尺度 `gm_scale_m=0.1` m，作为首轮配置值而非传感器噪声标定结果或作者自适应尺度复现。该权重目前只允许用于 `ikdtree`、`ivox`、`i_octree` 和 `ig_lio_plane`，不改变原有匹配门限。
+
+```bash
+roslaunch pv_lio_plus mapping.launch sensor_config:=$(rospack find pv_lio_plus)/config/solid.yaml backend:=ivox observation:=geman_mcclure rviz:=false
+```
+
 未知且非空的 `backend` 会因对应 YAML 文件不存在而使 `roslaunch` 配置解析失败。可用 `roslaunch --dump-params` 检查叶参数覆盖，不启动节点或 master。
 
 ## 批量后端测试
 
-`scripts/run_backend_tests.py` 默认使用 manifest 指定的完整数据集 YAML 和 runner 选择的后端 selector，不额外载入后端 preset；这样保留历史实验的地图参数。若希望 batch 参数与上面的通用 launch 一样采用显式后端基线，必须主动启用 `--backend-presets`：
+`scripts/run_backend_tests.py` 默认使用 manifest 指定的完整数据集 YAML 和 runner 选择的后端 selector，不额外载入后端或观测预设；这样保留历史实验参数。若希望 batch 参数与上面的通用 launch 一样采用显式后端基线，必须主动启用 `--backend-presets`。观测预设通过独立的 `--observation-profile` 选择：
 
 ```bash
 python3 scripts/run_backend_tests.py --manifest <...> --algorithms ig_lio_plane --backend-presets
+python3 scripts/run_backend_tests.py --manifest <...> --algorithms ivox --backend-presets --observation-profile geman_mcclure
 ```
 
-启用后，runner 将后端 preset 叠加到数据集 YAML，并在每次结果中归档 `backend_config.yaml`、preset 来源路径与 SHA-256；`dataset.json` 记录 `backend_config_mode` 和基础数据集 YAML 的 SHA-256。未启用该选项的结果标记为 `dataset_yaml`，不能与 `backend_preset` 模式混作同一组参数实验。
+runner 将后端与观测 preset 依次叠加到数据集 YAML，并在每次结果中归档所选 YAML、副本路径和 SHA-256；`dataset.json` 记录 `backend_config_mode`、观测选项和基础数据集 YAML 的 SHA-256。默认未指定观测预设时不生成观测 YAML 副本，旧的六后端默认列表和数据集参数流程保持不变。

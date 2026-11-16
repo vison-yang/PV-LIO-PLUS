@@ -1,11 +1,15 @@
 <launch>
     <arg name="sensor_config" default="$(find pv_lio_plus)/config/avia.yaml"/>
     <arg name="backend" default="voxelmap_plus"/>
+    <arg name="observation" default=""/>
     <arg name="rviz" default="true"/>
 
     <rosparam command="load" file="$(arg sensor_config)"/>
     <group if="$(eval arg('backend') != '')">
         <rosparam command="load" file="$(find pv_lio_plus)/config/backends/$(arg backend).yaml"/>
+    </group>
+    <group if="$(eval arg('observation') != '')">
+        <rosparam command="load" file="$(find pv_lio_plus)/config/observations/$(arg observation).yaml"/>
     </group>
 
     <node pkg="pv_lio_plus" type="pv_lio_plus_node"

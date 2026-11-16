@@ -41,7 +41,9 @@ enum class MapType
     /// 使用原生叶块和数据 AABB 搜索的增量八叉树。
     IOctree,
     /// iG-LIO 增量统计地图，使用公共五点点面观测。
-    IGLIOPlane
+    IGLIOPlane,
+    /// 定向像素高度图及公共滤波高度观测。
+    BIEVR
 };
 
 MapType ParseMapType(const std::string &name);
@@ -66,6 +68,8 @@ using MapPointList = std::vector<MapPoint, Eigen::aligned_allocator<MapPoint>>;
 struct MapUpdateContext
 {
     std::optional<V3D> imu_position_world;  ///< 世界系 IMU 位置；缺省时不提供上下文位置。
+    std::optional<M3D> rotImuLidar_;        ///< BIEVR 量程所需的当前 LiDAR 到 IMU 旋转。
+    std::optional<V3D> transImuLidar_;      ///< BIEVR 量程所需的当前 LiDAR 到 IMU 平移，单位米。
 };
 
 /** @brief 后端返回的点面匹配及其观测所需数据。 */

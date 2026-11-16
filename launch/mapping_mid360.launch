@@ -1,9 +1,11 @@
 <launch>
     <arg name="backend" default=""/>
+    <arg name="observation" default=""/>
     <arg name="rviz" default="true"/>
     <include file="$(find pv_lio_plus)/launch/mapping.launch">
         <arg name="sensor_config" value="$(find pv_lio_plus)/config/mid360_indoor.yaml"/>
         <arg name="backend" value="$(arg backend)"/>
+        <arg name="observation" value="$(arg observation)"/>
         <arg name="rviz" value="$(arg rviz)"/>
     </include>
 </launch>

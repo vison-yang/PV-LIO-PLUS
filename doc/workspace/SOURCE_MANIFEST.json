@@ -7,7 +7,7 @@
     "checked_on": "2026-11-16",
     "project_checkout": {
       "branch": "master",
-      "base_commit": "e666799",
+      "base_commit": "7a83f0c",
       "local_paths_relative_to": "PV-LIO-PLUS checkout root",
       "workspace_paths_relative_to": "lio_map_ws workspace root"
     },
@@ -40,24 +40,49 @@
         "scope": "Build evidence for the earlier complete author checkout, not evidence that the complete checkout is currently present or builds from this snapshot."
       }
     },
-    "status_checked_at_commit": "3a21000",
+    "status_checked_at_commit": "7a83f0c",
     "bievr_lio": {
-      "framework_status": "not_integrated",
-      "implementation_status": "port_design_draft_only",
-      "selector": null,
-      "framework_map_implementation": false,
-      "framework_height_observation": false,
-      "framework_backend_config": false,
-      "framework_integration_tests": false,
+      "framework_status": "source_integrated",
+      "implementation_status": "oriented_height_map_shared_ikfom_bilinear",
+      "selector": "bievr",
+      "framework_map_implementation": true,
+      "framework_height_observation": true,
+      "framework_backend_config": true,
+      "framework_integration_tests": true,
       "framework_replay": false,
       "design_record": "doc/BIEVR_IKFOM_PORT.md",
       "upstream_source": {
         "workspace_path": "upstream/BIEVR-LIO",
-        "author_commit": "38f98b900dad0e562cddfff16f85f681288a95ed"
+        "author_commit": "2306022e341e98ce84244f92ba7d26f047b41dbc",
+        "note": "Current shallow checkout; old 38f98b9 object unavailable. Historical build evidence is not transferred."
       },
       "upstream_build_record": {
         "path": "doc/workspace/BUILD_REPORT.md",
         "scope": "Historical independent upstream build, not a PV-LIO-PLUS backend integration result."
+      },
+      "native_path": "include/map_manager/native/bievr",
+      "validation_record": "doc/workspace/evidence/TWO_TRACK_RESULTS.json"
+    },
+    "implementation_record": "doc/workspace/evidence/TWO_TRACK_RESULTS.json",
+    "observation_components": {
+      "geman_mcclure": {
+        "status": "source_integrated",
+        "option": "observation/weight_model",
+        "default": "backend_default",
+        "compatible_backends": [
+          "ikdtree",
+          "ivox",
+          "i_octree",
+          "ig_lio_plane"
+        ],
+        "scale": "fixed metres; zero-residual-normalized component variant, not complete KISS-ICP"
+      },
+      "genz_hybrid": {
+        "status": "not_implemented",
+        "workspace_path": "src/GenZ-ICP",
+        "commit": "b19b2455e9b1272a68990969271685af54126b0d",
+        "existing_dirty_file": "ros/CMakeLists.txt",
+        "note": "Observed only; untouched. No upstream build evidence transferred."
       }
     }
   },
@@ -235,10 +260,10 @@
       "local_commit": "38f98b900dad0e562cddfff16f85f681288a95ed",
       "branch": "main",
       "build_group": "isolated-upstream",
-      "scope": "not integrated into PV-LIO-PLUS; directional-height map port design draft only; historical independent upstream build",
+      "scope": "Historical independent upstream collection/build at the pinned 38f98b9 author snapshot; current 2306022e-derived framework integration is recorded only in current_snapshot.bievr_lio.",
       "local_changes": [],
       "compatibility_patch": null,
-      "integration_status": "not_implemented"
+      "historical_framework_status": "not_implemented_at_prior_documentation_snapshot"
     },
     {
       "name": "Surfel-LIO",
@@ -349,6 +374,6 @@
   },
   "patches_note": "Patches are full worktree deltas against the pinned author commit, including relevant compatibility edits already present when this task began. They do not replace the source repositories. Apply only to the matching clean author baseline.",
   "scope_reviewed_on": "2026-11-16",
-  "scope_note": "Active integration scope requires a new or improved map data structure among method contributions. Ten map selectors are in the current integration inventory, including the ig_lio_plane point-plane variant; round-2 node build/link, specified build targets and synthetic tests passed, while replay remains pending. Three source-available qualifying map candidates remain. Full iG-LIO GICP is a separate open observation design. Original source pins and 2026-11-14 upstream build outcomes remain historical snapshots; current source presence and implementation evidence are recorded in current_snapshot and doc/workspace/evidence/IG_LIO_RESULTS.json. See PLAN.md and paper/notes/MAP_BACKEND_SCOPE_REVIEW.md.",
+  "scope_note": "Two integration tracks: first, new or improved map structures with their observations; second, separable observation/weight components without importing another estimator or substantial pre/postprocessing. Eleven map selectors are source-integrated including bievr; two map candidates still lack selectors. Fixed-scale GM is opt-in on four common point-plane backends; GenZ hybrid and full iG-LIO GICP remain open. Current build/synthetic verification is in doc/workspace/evidence/TWO_TRACK_RESULTS.json; replay remains pending. Original source pins and 2026-11-14 upstream build outcomes are historical; current implementation identities are separate in current_snapshot.",
   "map_structure_eligibility_reviewed_on": "2026-11-15"
 }

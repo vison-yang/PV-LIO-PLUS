@@ -91,6 +91,9 @@ set_target_properties(pv_lio_plus_i_octree_native PROPERTIES INTERPROCEDURAL_OPT
 
 set(PV_LIO_PLUS_MAP_MANAGER_ADAPTER_SOURCES
   # Compile Eigen/SVD native code per consumer to keep assertion macros consistent.
+  include/map_manager/native/bievr/voxel_map.cpp
+  src/map_manager/backends/bievr_backend.cpp
+  src/observation/measurement.cpp
   include/map_manager/native/ig_lio/voxel_map.cpp
   src/map_manager/backends/i_octree_backend.cpp
   src/map_manager/backends/ig_lio_backend.cpp
@@ -113,6 +116,17 @@ if(CATKIN_ENABLE_TESTING)
   add_test(NAME pv_lio_plus_config_profiles
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/config_profiles_tests.py)
   catkin_add_gtest(pv_lio_plus_observation_tests tests/observation_tests.cpp)
+  catkin_add_gtest(pv_lio_plus_bievr_map_tests tests/bievr_map_tests.cpp
+    include/map_manager/native/bievr/voxel_map.cpp)
+  catkin_add_gtest(pv_lio_plus_bievr_observation_tests tests/bievr_observation_tests.cpp src/observation/measurement.cpp)
+  catkin_add_gtest(pv_lio_plus_weight_model_tests tests/weight_model_tests.cpp src/observation/measurement.cpp)
+  foreach(bievr_test pv_lio_plus_bievr_map_tests pv_lio_plus_bievr_observation_tests pv_lio_plus_weight_model_tests)
+    if(TARGET ${bievr_test})
+      target_include_directories(${bievr_test} BEFORE PRIVATE ${PV_LIO_PLUS_EIGEN_INCLUDE_DIRS})
+      target_compile_options(${bievr_test} PRIVATE -UNDEBUG -UEIGEN_NO_DEBUG)
+      target_link_libraries(${bievr_test} ${catkin_LIBRARIES})
+    endif()
+  endforeach()
   catkin_add_gtest(pv_lio_plus_map_contract_tests tests/map_contract_tests.cpp ${PV_LIO_PLUS_MAP_MANAGER_ADAPTER_SOURCES})
   catkin_add_gtest(pv_lio_plus_r_voxelmap_tests tests/r_voxelmap_tests.cpp src/utils.cpp src/preprocess.cpp
     ${PV_LIO_PLUS_MAP_MANAGER_ADAPTER_SOURCES})

@@ -13,6 +13,7 @@
 
 #include "map_manager/map_manager.h"
 
+#include "backends/bievr_backend.h"
 #include "backends/i_octree_backend.h"
 #include "backends/ig_lio_backend.h"
 #include "map_manager/native/hvox/VoxelMap.h"
@@ -214,6 +215,8 @@ MapType ParseMapType(const std::string &name)
         return MapType::IGLIOPlane;
     }
 
+    if (name == "bievr") return MapType::BIEVR;
+
     throw std::invalid_argument("unknown mapping/map_type: " + name);
 }
 
@@ -246,8 +249,17 @@ const char *MapTypeName(const MapType type)
             return "i_octree";
         case MapType::IGLIOPlane:
             return "ig_lio_plane";
+        case MapType::BIEVR:
+            return "bievr";
     }
     return "unknown";
+}
+
+/** @brief 按当前地图查询高度与世界梯度；结果按值返回，不跨更新保存体素指针。 */
+bool MapManager::FindBievrHeight(const V3D &pointWorld, observation::HeightSample &sample) const
+{
+    if (config_.type != MapType::BIEVR) throw std::logic_error("height query requires BIEVR backend");
+    return bievr_ && backend_bievr::Sample(*bievr_, config_, pointWorld, sample);
 }
 
 /** @brief Constructs an unconfigured map manager. */
@@ -303,6 +315,11 @@ void MapManager::configure(const MapManagerConfig &config)
         throw std::invalid_argument("mapping/local_window_en is not supported by R-VoxelMap; it uses native LRU eviction");
     }
 
+    if (config.type == MapType::BIEVR)
+    {
+        bievr_native::Map validated(backend_bievr::MakeConfig(config));
+    }
+
     if (initialized_)
     {
         clear();
@@ -355,7 +372,7 @@ bool MapManager::supports_selected_backend() const
     return config_.type == MapType::VoxelMap || config_.type == MapType::VoxelMapPlus ||
            config_.type == MapType::IKDTree || config_.type == MapType::IVox || config_.type == MapType::C3PVoxelMap ||
            config_.type == MapType::OctVox || config_.type == MapType::RVoxelMap || config_.type == MapType::HVox ||
-           config_.type == MapType::IOctree || config_.type == MapType::IGLIOPlane;
+           config_.type == MapType::IOctree || config_.type == MapType::IGLIOPlane || config_.type == MapType::BIEVR;
 }
 
 /**
@@ -380,6 +397,7 @@ void MapManager::configure_point_backends()
     hvox_.reset();
     i_octree_.reset();
     igLio_.reset();
+    bievr_.reset();
 
     if (config_.type == MapType::IKDTree)
     {
@@ -439,6 +457,10 @@ void MapManager::configure_point_backends()
     {
         igLio_ = backend_ig_lio::Create(config_);
     }
+    else if (config_.type == MapType::BIEVR)
+    {
+        bievr_ = std::make_unique<bievr_native::Map>(backend_bievr::MakeConfig(config_));
+    }
 }
 
 /** @brief Clears all backend data, retained points, and window state. */
@@ -471,6 +493,7 @@ void MapManager::clear()
     hvox_.reset();
     i_octree_.reset();
     igLio_.reset();
+    bievr_.reset();
 
     map_points_.clear();
     initialized_ = false;
@@ -647,6 +670,14 @@ void MapManager::initialize(const MapPointList &points, const MapUpdateContext &
     else if (config_.type == MapType::IGLIOPlane)
     {
         InitializeIGLio(points);
+    }
+    else if (config_.type == MapType::BIEVR)
+    {
+        auto replacement = backend_bievr::Build(config_, points, context);
+        clear();
+        bievr_       = std::move(replacement);
+        initialized_ = true;
+        ++revision_;
     }
     else
     {
@@ -998,6 +1029,26 @@ void MapManager::update(const MapPointList &points, const std::uint32_t frame_nu
     else if (config_.type == MapType::IGLIOPlane)
     {
         UpdateIGLio(points);
+    }
+    else if (config_.type == MapType::BIEVR)
+    {
+        if (!initialized_ || !bievr_)
+        {
+            initialize(points, context);
+            return;
+        }
+        try
+        {
+            backend_bievr::Update(*bievr_, points, context);
+        } catch (const std::invalid_argument &)
+        {
+            throw;  // 全批参数预检不修改地图。
+        } catch (...)
+        {
+            ++revision_;  // 资源异常可能已部分提交，使所有借用结果失效。
+            throw;
+        }
+        ++revision_;
     }
     else
     {
@@ -1376,6 +1427,8 @@ PlaneMatch MapManager::FromVoxelPlusMatch(const voxel_map_plus_ns::ptpl &match)
  */
 void MapManager::search(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match)
 {
+    if (config_.type == MapType::BIEVR)
+        throw std::logic_error("BIEVR requires typed height observations, not PlaneMatch");
     require_supported_backend();
     matches.clear();
     non_match.clear();
@@ -1847,6 +1900,7 @@ void MapManager::erase_outside_window(const MapWindow &window)
     {
         throw std::logic_error("ig_lio_plane does not support geometric local-window deletion; it uses native LRU");
     }
+    if (config_.type == MapType::BIEVR) throw std::invalid_argument("BIEVR does not support a common geometric window");
     if (!window.initialized)
     {
         return;
@@ -2085,6 +2139,7 @@ size_t MapManager::size() const
     {
         return backend_ig_lio::Size(igLio_.get());
     }
+    if (config_.type == MapType::BIEVR) return bievr_ ? bievr_->Size() : 0;
     return 0;
 }
 
@@ -2094,6 +2149,7 @@ size_t MapManager::size() const
  */
 size_t MapManager::point_count() const
 {
+    if (config_.type == MapType::BIEVR) return bievr_ ? bievr_->PointCount() : 0;
     if (config_.type == MapType::IGLIOPlane) return backend_ig_lio::PointCount(igLio_.get());
     if (config_.type == MapType::IOctree) return backend_i_octree::Size(i_octree_.get());
     if (config_.type == MapType::HVox) return hvox_ ? hvox_->GetPointCount() : 0;
@@ -2114,6 +2170,12 @@ size_t MapManager::point_count() const
 PointCloudXYZI::Ptr MapManager::snapshot() const
 {
     PointCloudXYZI::Ptr result(new PointCloudXYZI());
+    if (config_.type == MapType::BIEVR)
+    {
+        if (bievr_)
+            for (const auto &point : bievr_->Snapshot()) result->push_back(ToPointType(point));
+        return result;
+    }
     if (config_.type == MapType::IGLIOPlane)
     {
         const auto points = backend_ig_lio::Snapshot(igLio_.get());

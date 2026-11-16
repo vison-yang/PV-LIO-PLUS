@@ -67,6 +67,7 @@ class Mapping
     void ObservationModelOctVox(state_ikfom& state, esekfom::dyn_share_datastruct<double>& ekfom_data);
     void ObservationModelRVoxelMap(state_ikfom& state, esekfom::dyn_share_datastruct<double>& ekfom_data);
     void ObservationModelHVox(state_ikfom& state, esekfom::dyn_share_datastruct<double>& ekfom_data);
+    void ObservationModelBievr(state_ikfom& state, esekfom::dyn_share_datastruct<double>& ekfom_data);
 
     // ---------------------- Geometry and conversion --------------------------
     void transformLidar2World(const state_ikfom& state, const PointCloudXYZI::Ptr& input_cloud,
@@ -110,6 +111,7 @@ class Mapping
     std::unique_ptr<pv_lio_plus::MapManager> map_manager_;
     std::unique_ptr<HVoxObservationGroup> hvox_observations_;
     bool map_initialized_ = false;
+    bool isObservationRejected_ = false;  ///< 新观测在任一迭代拒绝后，本帧恢复预测且不写地图。
 
     // -------------------------- ROS transport state ---------------------------
     PublishSubscribe publish_subscribe_;

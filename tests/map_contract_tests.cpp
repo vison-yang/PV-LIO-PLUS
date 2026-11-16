@@ -435,6 +435,64 @@ TEST(NativeMapSearch, VoxelMapPlusFieldsAndWrongBackend)
     manager.configure(Config(MapType::VoxelMap));
     EXPECT_THROW(manager.search(points, matches, nonMatch), std::logic_error);
 }
+/** @brief 高度图走类型化查询；外参/重配置拒绝不得破坏旧图。 */
+TEST(BievrMapContract, TypedHeightAndRejectedUpdatePreserveMap)
+{
+    auto config           = Config(MapType::BIEVR);
+    config.bievrSmooth_   = false;
+    config.bievrCapacity_ = 64;
+    MapManager manager(config);
+    pv_lio_plus::MapUpdateContext context;
+    context.rotImuLidar_   = M3D::Identity();
+    context.transImuLidar_ = V3D::Zero();
+    MapPointList points;
+    for (int x = 0; x < 7; ++x)
+        for (int y = 0; y < 7; ++y)
+        {
+            auto point        = Point(0.05 + 0.05 * x, 0.05 + 0.05 * y, 0.17);
+            point.point_lidar = point.point_world;
+            points.push_back(point);
+        }
+    EXPECT_EQ(pv_lio_plus::ParseMapType("bievr"), MapType::BIEVR);
+    EXPECT_STREQ(pv_lio_plus::MapTypeName(MapType::BIEVR), "bievr");
+    manager.initialize(points, context);
+    EXPECT_EQ(manager.size(), 1u);
+    EXPECT_EQ(manager.point_count(), points.size());
+    EXPECT_FALSE(manager.snapshot()->empty());
+    pv_lio_plus::observation::HeightSample sample;
+    ASSERT_TRUE(manager.FindBievrHeight(V3D(0.15, 0.15, 0.18), sample));
+    EXPECT_NEAR(std::abs(sample.residual_), 0.01, 1e-6);
+    EXPECT_NEAR(std::abs(sample.gradientWorld_.z()), 1.0, 1e-6);
+
+    PlaneMatchList matches;
+    std::vector<V3D> nonMatch;
+    EXPECT_THROW(manager.search(points, matches, nonMatch), std::logic_error);
+    const auto revision = manager.revision();
+    EXPECT_THROW(manager.update(points, 1), std::invalid_argument);
+    EXPECT_EQ(manager.revision(), revision);
+    EXPECT_EQ(manager.point_count(), points.size());
+    config.bievrHeightSigmaM_ = 0.0;
+    EXPECT_THROW(manager.configure(config), std::invalid_argument);
+    EXPECT_EQ(manager.revision(), revision);
+    EXPECT_EQ(manager.size(), 1u);
+    EXPECT_THROW(manager.erase_outside_window(pv_lio_plus::MapWindow()), std::invalid_argument);
+    manager.clear();
+    EXPECT_EQ(manager.size(), 0u);
+    EXPECT_FALSE(manager.FindBievrHeight(V3D(0.15, 0.15, 0.18), sample));
+}
+
+/** @brief 缺外参或公共滑窗配置在新地图生效前明确拒绝。 */
+TEST(BievrMapContract, UnsupportedWindowAndMissingExtrinsics)
+{
+    auto config                 = Config(MapType::BIEVR);
+    config.local_window_enabled = true;
+    EXPECT_THROW(MapManager{config}, std::invalid_argument);
+    config.local_window_enabled = false;
+    MapManager manager(config);
+    EXPECT_THROW(manager.initialize(MapPointList{Point(0.1, 0.1, 0.1)}), std::invalid_argument);
+    EXPECT_FALSE(manager.initialized());
+    EXPECT_EQ(manager.size(), 0u);
+}
 }  // namespace
 
 int main(int argc, char **argv)

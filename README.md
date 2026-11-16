@@ -16,7 +16,7 @@ framework**. PV-LIO-PLUS first integrated
 then substantially refactored and optimized the code framework, and subsequently
 incorporated more map structures and their corresponding residual models.
 
-`MapManager` currently selects ten map backends from a common
+`MapManager` currently selects eleven map backends from a common
 configuration. Their map implementations are bundled in this package. Official
 upstream projects collected in the surrounding workspace supply provenance and
 independent baselines; their complete estimation nodes are built separately.
@@ -27,9 +27,10 @@ independent baselines; their complete estimation nodes are built separately.
 - Integrate VoxelMap and VoxelMap++ maps and their probabilistic plane residuals.
 - Refactor configuration, map management, observation dispatch, and result output
   into a common C++17 framework.
-- Add ikd-tree, iVox, C3P-VoxelMap, OctVox, R-VoxelMap, hVox, i-Octree, and
-  the iG-LIO incremental voxel map with their corresponding matching and
-  observation paths, giving ten selectable backends.
+- Add ikd-tree, iVox, C3P-VoxelMap, OctVox, R-VoxelMap, hVox, i-Octree,
+  iG-LIO's incremental voxel map, and a BIEVR-derived oriented height map with
+  their corresponding matching and observation paths, giving eleven
+  selectable backends.
 - Provide trajectory, world-frame map-cloud, and per-frame timing outputs for
   reproducible comparisons.
 
@@ -56,7 +57,7 @@ after removing that contribution cannot stand in for the original map.
 
 ### Integrated local-map backends
 
-All ten map families below meet the structural-contribution criterion.
+All eleven map families below meet the structural-contribution criterion.
 FAST-LIO2 is represented by its ikd-tree contribution, not by FAST-LIO1.
 
 | Algorithm / map | Bundled map source | Selector | Map and residual model |
@@ -71,6 +72,7 @@ FAST-LIO2 is represented by its ikd-tree contribution, not by FAST-LIO1.
 | Surfel-LIO / hVox | `include/map_manager/native/hvox` | `hvox` | Two-level L0-centroid/L1-precomputed-surfel map with native moving-box maintenance and a PKO-based signed plane observation adapted to the shared IKFoM loop. |
 | i-Octree | `include/map_manager/native/i_octree` | `i_octree` | Dynamic octree with contiguous RAII leaf blocks, data-AABB-pruned full-tree kNN, and the shared point-plane observation adapter. |
 | iG-LIO / incremental VoxelMap | `include/map_manager/native/ig_lio` | `ig_lio_plane` | Incremental voxel sufficient statistics and native retained-point maintenance; bounded local search feeds the shared five-point float-QR scalar plane observation. This is not the author GICP observation. |
+| BIEVR-LIO-derived height map | `include/map_manager/native/bievr` | `bievr` | Oriented voxel height images with weighted pixel fusion and a bilinear height residual; this local adaptation uses the shared 12-column IKFoM update, not the author LM/Ceres pipeline. |
 
 FAST-LIO2 and Faster-LIO are represented through ikd-tree and iVox, using this
 framework's observation adapter. Official full-system copies are collected in
@@ -84,24 +86,27 @@ the [source manifest](doc/workspace/SOURCE_MANIFEST.json). iG-LIO's full
 `src/ig_lio` checkout is absent from the current workspace; the bundled native
 map core is a safety-focused reimplementation based on author commit
 `2d79259e3aaa5bbb10d6b13234398760bbacf8f5`. Its 2026-11-14 shared-build record
-describes the earlier complete checkout only. The new `ig_lio_plane` selector
-source integration is complete; the round-2 node build/link and synthetic tests
-passed, while runtime replay remains pending. See the
-[iG-LIO result record](doc/workspace/evidence/IG_LIO_RESULTS.json).
-Three map candidates remain without selectors; full iG-LIO GICP is a separate
+describes the earlier complete checkout only. The `ig_lio_plane` selector is
+source-integrated; its prior build and synthetic-test evidence is recorded
+separately, while runtime replay remains pending. See the
+[iG-LIO result record](doc/workspace/evidence/IG_LIO_RESULTS.json). BIEVR's
+local height-map backend is source-integrated from author baseline
+`2306022e341e98ce84244f92ba7d26f047b41dbc`; its current build and synthetic-test evidence is recorded in the
+[two-track results](doc/workspace/evidence/TWO_TRACK_RESULTS.json); replay remains pending. The old `38f98b9` source/build record is
+historical. See [`doc/BIEVR_IKFOM_PORT.md`](doc/BIEVR_IKFOM_PORT.md).
+Two map candidates remain without selectors; full iG-LIO GICP is a separate
 observation-design task.
 
 | Map / method | Collected official source | Recorded build | Integration work |
 | --- | --- | --- | --- |
-| Hybrid-VoxelMap | `src/Hybrid-VoxelMap` | Shared ROS1 build passed | Conditional candidate: define semantic-label inputs and typed Plane/NDT matches, then adapt both residuals. Identify plane-only or label-free variants explicitly. |
-| BIEVR-LIO | `upstream/BIEVR-LIO` | Standalone upstream ROS1 targets passed | Not integrated; only a port-design draft exists in [`doc/BIEVR_IKFOM_PORT.md`](doc/BIEVR_IKFOM_PORT.md). The proposed adapter retains the oriented height map and maps its residual to the shared filter; map-guided sampling is separate. |
+| Hybrid-VoxelMap | `src/Hybrid-VoxelMap` | Earlier shared ROS1 build is historical; the current checkout is dirty and the pinned object is unavailable | Conditional candidate: define semantic-label inputs and typed Plane/NDT matches, then adapt both residuals. Identify plane-only or label-free variants explicitly. |
 | LIO-GVM | `upstream/lio_gvm` | Blocked by incomplete author release | Incremental Gaussian voxel map storing centroids/covariances; obtain missing author-specific Fast-VGICP/IKFoM and map source before implementing its map/residual adapter. |
 
 FR-LIO/RC-Vox and SV-LIO also have paper evidence of map-structure contributions,
 but the local collection records do not establish official implementations.
 They remain paper reserves, pending source verification.
 
-A second integration track covers observation and weighting components, independently of `mapping/map_type`, with existing backend behavior as the default. The initial plan covers a KISS-ICP-inspired GM point-to-plane weighting component and GenZ-ICP hybrid observations, without importing their solvers or preprocessing pipelines. Map structures take priority; see the [component plan and option status](doc/OBSERVATION_INTEGRATION_PLAN.md).
+A second integration track covers observation and weighting components, independently of `mapping/map_type`, with existing backend behavior as the default. The fixed-scale KISS-ICP-inspired Geman–McClure weight is source-integrated for `ikdtree`, `ivox`, `i_octree`, and `ig_lio_plane`; it changes information weight only and keeps each backend's matches, residual, Jacobian, and gates. `observation/model: backend_default` is supported; `genz_hybrid` is explicitly rejected until typed hybrid observations are implemented. Map structures take priority; see the [component plan and option status](doc/OBSERVATION_INTEGRATION_PLAN.md).
 
 ### Comparison controls
 
@@ -112,14 +117,19 @@ method. Record residual type, covariance/information, robust kernel, matching
 gates, scan sampling, and map budget/eviction with each result. Semantic inputs
 or map-guided sampling need explicit experiment profiles and ablations.
 
-The current ten paths use plane-based observations, with different
+The existing point-to-plane paths use scalar observations, with different
 parameterizations, uncertainty models, and gates; OctVox uses fixed information.
 R-VoxelMap uses its recursive probabilistic planes and native 3-sigma matching.
 hVox uses fixed L1 surfels within a correspondence group and PKO weighting
 adapted to the shared IKFoM loop. `ig_lio_plane` retains the incremental voxel
 map but uses the shared five-point float-QR scalar plane fit; it is not the author's
 GICP residual or complete iG-LIO estimator.
-VoxelMap++ now follows `extrinsic_est_en`: when enabled, its analytic Jacobian
+The eleventh path, `bievr`, uses an oriented height map and bilinear height
+observation with Huber information in the common filter. It requires at least
+23 valid scalar rows for an update, but that count does not guarantee
+observability; mature map cells also require four supporting points. The
+configured height sigma is an initial model value that needs calibration, not a
+calibration-accuracy claim. VoxelMap++ now follows `extrinsic_est_en`: when enabled, its analytic Jacobian
 includes the right-perturbation extrinsic rotation and translation columns;
 when disabled, those columns are zero. Its `h = -float(dist)`, native weights,
 and plane gates are unchanged. Details and test limits are in the
@@ -134,7 +144,8 @@ physical unit but do not imply identical boundary or search-domain behavior.
 To reproduce an old ikd-tree threshold configured as squared-distance value
 `v`, set the new radius to `sqrt(v)` metres; existing iVox values are unchanged.
 
-The example dataset manifest lists all ten selectors. The prior eight-selector
+The example dataset manifest still lists the previous ten-selector baseline;
+add `bievr` to the selected algorithms to include the new backend. The prior eight-selector
 baseline passed main-line build/link, CTest 5/5 (33 GTest cases), and the hVox
 30-second replay. i-Octree's feature build/link, independent numerical review,
 isolated tests, and complete-input 30/141-second replays passed. On main-line
@@ -177,7 +188,8 @@ MapManager: map storage, updates, matching
     |-- R-VoxelMap     --> recursive probabilistic plane observation
     |-- hVox          --> PKO-weighted precomputed-surfel observation
     |-- i-Octree      --> shared point-plane observation
-    `-- iG-LIO        --> shared five-point float-QR scalar plane observation
+    |-- iG-LIO        --> shared five-point float-QR scalar plane observation
+    `-- BIEVR         --> oriented height-map observation
     |
     v
 Backend observation dispatch --> shared IKFoM update
@@ -188,8 +200,9 @@ Map update, trajectory / map / timing outputs
 
 Map storage and query are managed by `MapManager`; residuals, Jacobians, and
 information are constructed by the corresponding observation paths. `hvox`
-uses a dedicated surfel-to-`PlaneMatch` adapter. General typed `Surfel`,
-`Gaussian`, and `HeightImage` observation interfaces remain future work.
+uses a dedicated surfel-to-`PlaneMatch` adapter, and `bievr` has a dedicated
+height-sample path. General typed `Surfel`, `Gaussian`, and reusable
+`HeightImage` observation interfaces remain future work.
 
 ## Requirements and build
 
@@ -216,7 +229,7 @@ Set the backend in the PV-LIO-PLUS YAML configuration:
 
 ```yaml
 mapping:
-  map_type: octvox    # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap, octvox, r_voxelmap, hvox, i_octree, ig_lio_plane
+  map_type: octvox    # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap, octvox, r_voxelmap, hvox, i_octree, ig_lio_plane, bievr
 ```
 
 The local-window mode is selected with the existing `mapping` window
@@ -226,12 +239,16 @@ overlays its leaves; common observation parameters remain shared. See the
 
 ```bash
 roslaunch pv_lio_plus mapping_avia.launch backend:=ig_lio_plane rviz:=false
+roslaunch pv_lio_plus mapping_avia.launch backend:=ikdtree observation:=geman_mcclure rviz:=false
 ```
 
 The batch runner preserves each dataset's full YAML settings by default. Pass
 `--backend-presets` to opt into the same backend-profile overlay used by the
 generic launch; the run archive records the effective `backend_config.yaml`
 and `backend_config_mode` so results from the two modes stay distinguishable.
+Pass `--observation-profile geman_mcclure` to opt into the independent fixed-scale
+weight profile; the runner archives its profile and SHA-256. Its `gm_scale_m=0.1`
+is a starting value, not a sensor-noise or calibration-accuracy claim.
 
 `octvox` retains Super-LIO's
 capacity/LRU eviction and rejects geometric local-window mode. `hvox` uses its
@@ -270,6 +287,7 @@ files are written under the configured output directory:
 | `hvox` | `pv_lio_hvox_pos.txt` | `pv_lio_hvox.pcd` |
 | `i_octree` | `pv_lio_i_octree_pos.txt` | `pv_lio_i_octree.pcd` |
 | `ig_lio_plane` | `pv_lio_ig_lio_plane_pos.txt` | `pv_lio_ig_lio_plane.pcd` |
+| `bievr` | `pv_lio_bievr_pos.txt` | `pv_lio_bievr.pcd` |
 
 The trajectory is stored as timestamped pose records. Point-cloud chunks may
 also be written under `output/PCD/` according to the configured scan-saving
@@ -346,3 +364,5 @@ python3 src/PV_LIO_PLUS/scripts/build_upstream.py --jobs 2
 
 The upstream script records and continues individual failures; LIO-GVM still
 requires missing author source. These commands validate builds, not map quality.
+
+The current two-track increment passed all 12 build targets, node dynamic-link checking and CTest 12/12 (89 GTest cases and 9 Python configuration tests), with ASan disabled. No replay or accuracy/performance A/B was run; see [the evidence](doc/workspace/evidence/TWO_TRACK_RESULTS.json).

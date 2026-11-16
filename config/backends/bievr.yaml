@@ -1,0 +1,13 @@
+# 初始观测噪声用于高度残差加权，不代表传感器或外参的校准精度。
+mapping:
+  map_type: bievr
+  local_window_en: false
+  bievr_voxel_size: 0.5
+  bievr_pixel_size: 0.05
+  bievr_capacity: 1000000
+  bievr_weighted: true
+  bievr_smooth: true
+  bievr_normal_tolerance_deg: 3.0
+  bievr_height_sigma_m: 0.1
+  bievr_huber_delta_m: 0.1
+  bievr_max_image_pixels: 1048576

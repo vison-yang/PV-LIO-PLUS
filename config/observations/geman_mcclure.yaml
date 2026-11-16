@@ -1,0 +1,3 @@
+observation:
+  weight_model: geman_mcclure
+  gm_scale_m: 0.1

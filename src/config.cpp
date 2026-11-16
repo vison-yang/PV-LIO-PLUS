@@ -9,6 +9,7 @@
 #include <exception>
 
 #include "map_manager/map_manager.h"
+#include "observation/weight_config.h"
 
 namespace pv_lio_plus
 {
@@ -152,6 +153,37 @@ bool Config::Load(ros::NodeHandle& nh)
     nh.param<int>("mapping/ig_lio_search_method", map_manager_config_->igSearchMethod_, 7);
     nh.param<int>("mapping/ig_lio_capacity", map_manager_config_->igCapacity_, 5000000);
     nh.param<int>("mapping/ig_lio_grid_max_points", map_manager_config_->igGridMaxPoints_, 20);
+
+    // 高度图独立参数；实际量程在每帧按当前 LiDAR 到 IMU 外参计算。
+    nh.param<double>("mapping/bievr_voxel_size", map_manager_config_->bievrVoxelSize_, 0.5);
+    nh.param<double>("mapping/bievr_pixel_size", map_manager_config_->bievrPixelSize_, 0.05);
+    nh.param<int>("mapping/bievr_capacity", map_manager_config_->bievrCapacity_, 1000000);
+    nh.param<int>("mapping/bievr_max_image_pixels", map_manager_config_->bievrMaxImagePixels_, 1048576);
+    nh.param<bool>("mapping/bievr_weighted", map_manager_config_->bievrWeighted_, true);
+    nh.param<bool>("mapping/bievr_smooth", map_manager_config_->bievrSmooth_, true);
+    nh.param<double>("mapping/bievr_normal_tolerance_deg", map_manager_config_->bievrNormalToleranceDeg_, 3.0);
+    nh.param<double>("mapping/bievr_height_sigma_m", map_manager_config_->bievrHeightSigmaM_, 0.1);
+    nh.param<double>("mapping/bievr_huber_delta_m", map_manager_config_->bievrHuberDeltaM_, 0.1);
+
+    // 权重组件独立于地图；不支持的组合必须在初始化前拒绝，不能静默忽略。
+    nh.param<std::string>("observation/weight_model", observationWeightModel_, "backend_default");
+    nh.param<double>("observation/gm_scale_m", gmScaleM_, 0.1);
+    try
+    {
+        observation::ValidateWeightConfig(observationWeightModel_, MapTypeName(map_manager_config_->type), gmScaleM_);
+    } catch (const std::invalid_argument& error)
+    {
+        ROS_FATAL("Invalid observation configuration: %s", error.what());
+        return false;
+    }
+    // 预留接口尚未实现，显式拒绝误配，避免启动后误以为 GenZ 已启用。
+    std::string observationModel;
+    nh.param<std::string>("observation/model", observationModel, "backend_default");
+    if (observationModel != "backend_default")
+    {
+        ROS_FATAL("observation/model is not implemented: %s", observationModel.c_str());
+        return false;
+    }
 
     // ------------------------------ Noise and output --------------------------
     nh.param<double>("noise_model/ranging_cov", ranging_cov_, 0.02);

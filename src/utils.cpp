@@ -343,6 +343,7 @@ std::string result_file_stem(const std::string& backend_name)
     if (backend_name == "hvox") return "pv_lio_hvox";
     if (backend_name == "i_octree") return "pv_lio_i_octree";
     if (backend_name == "ig_lio_plane") return "pv_lio_ig_lio_plane";
+    if (backend_name == "bievr") return "pv_lio_bievr";
     return "pv_lio";
 }
 

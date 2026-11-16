@@ -84,6 +84,9 @@ class Config
     std::vector<double> layer_point_size_;
     std::vector<int> layer_size_;
 
+    std::string observationWeightModel_ = "backend_default";  ///< 第二类权重组件；默认保留后端行为。
+    double gmScaleM_                    = 0.1;  ///< 固定 GM 尺度，米；不隐式启用自适应匹配门限。
+
     // --------------------------------- Noise ----------------------------------
     double ranging_cov_ = 0.0;
     double angle_cov_   = 0.0;

@@ -1,0 +1,53 @@
+{
+  "repository": "ethz-asl/BIEVR-LIO",
+  "remote": "https://github.com/ethz-asl/BIEVR-LIO.git",
+  "commit": "2306022e341e98ce84244f92ba7d26f047b41dbc",
+  "license": "BSD 3-Clause; fixed upstream LICENSE copied verbatim",
+  "implementation": "C++17 serial Eigen/STL reimplementation; not byte-for-byte source import",
+  "files": [
+    {
+      "path": "BIEVR/include/bievr_lio/bievr_map.h",
+      "blob_sha": "2da0af666ff21767ac8bdec3ae3fb0a40eb73804",
+      "sha256": "1a1e8cc7d73be752abc467c210516d6fb0cbe5c0e1c2bdd76182b7c6ea6e3ed1",
+      "url": "https://github.com/ethz-asl/BIEVR-LIO/blob/2306022e341e98ce84244f92ba7d26f047b41dbc/BIEVR/include/bievr_lio/bievr_map.h",
+      "use": "voxel state, lifecycle, and public map behavior reference"
+    },
+    {
+      "path": "BIEVR/src/bievr_map.cpp",
+      "blob_sha": "6470d7393f3fe91001a179fff874c378f768593f",
+      "sha256": "223e12c3494fe0d46ed26e3f51fb860c2c257da918cd9e6376c7c9136acb2e71",
+      "url": "https://github.com/ethz-asl/BIEVR-LIO/blob/2306022e341e98ce84244f92ba7d26f047b41dbc/BIEVR/src/bievr_map.cpp",
+      "use": "moment updates, normal estimation, projection, weighted image fusion, smoothing, and LRU reference"
+    },
+    {
+      "path": "BIEVR/include/bievr_lio/common.h",
+      "blob_sha": "ed68d45f6577236f112769ee47bc0fea2bdacf6c",
+      "sha256": "1999da36724a9d48a0d9da6c316067f5e479da6f9bbe8db34dd2d12be6ec6bd1",
+      "url": "https://github.com/ethz-asl/BIEVR-LIO/blob/2306022e341e98ce84244f92ba7d26f047b41dbc/BIEVR/include/bievr_lio/common.h",
+      "use": "point and transform conventions, Morton bit interleave reference"
+    },
+    {
+      "path": "BIEVR/src/utils.cpp",
+      "blob_sha": "385c435a2ff407aac3454bbf2a15d106f67c1d8b",
+      "sha256": "a743538a5f70581ce941b0bf4a711dd6ffb90fc20677be6d8c36b7adcf8dcc78",
+      "url": "https://github.com/ethz-asl/BIEVR-LIO/blob/2306022e341e98ce84244f92ba7d26f047b41dbc/BIEVR/src/utils.cpp",
+      "use": "neighbor order and Gaussian kernel reference"
+    },
+    {
+      "path": "LICENSE",
+      "blob_sha": "19a8a41b5e82fd07c6f23ddf08942ec83a3b0237",
+      "sha256": "2d3bd64d93384c0048f574b2dde52cc5ac1fa13d61696b590e62aafa82625b42",
+      "url": "https://github.com/ethz-asl/BIEVR-LIO/blob/2306022e341e98ce84244f92ba7d26f047b41dbc/LICENSE",
+      "use": "copied verbatim to this directory's LICENSE"
+    }
+  ],
+  "local_differences": [
+    "Replaces TBB and unordered_dense with stable serial grouping, std::unordered_map, and std::list LRU.",
+    "Builds group starts with zero, every transition, and the N sentinel to retain all points in one-voxel batches.",
+    "Checks finite XYZ, matched positive ranges, floor/round casts, 21-bit Morton domain, finite moments, and image allocation bounds.",
+    "Bounds image storage by Config.maxImagePixels_ (default 1048576 pixels) and throws on image/numeric failures.",
+    "Uses complete Morton keys without aliasing and checked signed neighbor offsets.",
+    "Adds GetVoxel, FindVoxel, Size, PointCount, and raw-pixel world Snapshot contracts for the native consumer.",
+    "Does not import the author's registration optimizer, Ceres inertial window, or pipeline."
+  ]
+}

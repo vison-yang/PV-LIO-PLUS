@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""验证传感器配置与地图后端预设的 roslaunch 合并契约。"""
+"""验证传感器、地图后端与观测预设的 Noetic roslaunch 合并契约。"""
 
 import importlib.util
+import hashlib
 import os
 import re
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -30,7 +32,10 @@ BACKEND_PROFILES = {
     "hvox": "hvox",
     "i_octree": "i_octree",
     "ig_lio_plane": "ig_lio_plane",
+    "bievr": "bievr",
 }
+GM_COMPATIBLE_BACKENDS = ("ikdtree", "ivox", "i_octree", "ig_lio_plane")
+OBSERVATION_PROFILES = ("backend_default", "geman_mcclure")
 LEGACY_WRAPPERS = {
     "mapping_avia.launch": "voxelmap_plus",
     "mapping_mid360.launch": "voxelmap_plus",
@@ -139,6 +144,53 @@ class MapConfigProfileTests(unittest.TestCase):
                 self.assertTrue(keys.issubset({f"/{key}" for key in consumed_keys}))
                 self.assertFalse(preset["mapping"]["local_window_en"])
 
+        bievr = yaml.safe_load(
+            (REPO_ROOT / "config/backends/bievr.yaml").read_text(encoding="utf-8")
+        )["mapping"]
+        self.assertEqual(bievr["map_type"], "bievr")
+        self.assertEqual(bievr["bievr_voxel_size"], 0.5)
+        self.assertEqual(bievr["bievr_pixel_size"], 0.05)
+        self.assertEqual(bievr["bievr_capacity"], 1000000)
+        self.assertTrue(bievr["bievr_weighted"])
+        self.assertTrue(bievr["bievr_smooth"])
+        self.assertEqual(bievr["bievr_normal_tolerance_deg"], 3.0)
+        self.assertEqual(bievr["bievr_height_sigma_m"], 0.1)
+        self.assertEqual(bievr["bievr_huber_delta_m"], 0.1)
+        self.assertEqual(bievr["bievr_max_image_pixels"], 1048576)
+
+    def test_observation_profile_yaml_contract(self):
+        profiles = {
+            "backend_default": {"weight_model": "backend_default"},
+            "geman_mcclure": {"weight_model": "geman_mcclure", "gm_scale_m": 0.1},
+        }
+        for name, expected in profiles.items():
+            with self.subTest(profile=name):
+                path = REPO_ROOT / "config/observations" / f"{name}.yaml"
+                self.assertEqual(yaml.safe_load(path.read_text(encoding="utf-8")),
+                                 {"observation": expected})
+
+    def test_generic_launch_observation_profiles_cover_supported_backends(self):
+        generic = REPO_ROOT / "launch/mapping.launch"
+        expected = {
+            "backend_default": {"weight_model": "backend_default"},
+            "geman_mcclure": {"weight_model": "geman_mcclure", "gm_scale_m": 0.1},
+        }
+        for sensor, sensor_path in SENSOR_PROFILES.items():
+            for backend in GM_COMPATIBLE_BACKENDS:
+                for profile in OBSERVATION_PROFILES:
+                    with self.subTest(sensor=sensor, backend=backend, profile=profile):
+                        launch_config = self.load_launch(
+                            generic,
+                            (("sensor_config", sensor_path), ("backend", backend),
+                             ("observation", profile), ("rviz", "false")),
+                        )
+                        values = self.param_values(launch_config)
+                        self.assertEqual(values["/mapping/map_type"], backend)
+                        self.assertEqual(
+                            {key: values[f"/observation/{key}"] for key in expected[profile]},
+                            expected[profile],
+                        )
+
     def test_three_sensor_profiles_with_all_backend_overlays(self):
         for sensor, sensor_path in SENSOR_PROFILES.items():
             sensor_values = flatten_mapping(yaml.safe_load(sensor_path.read_text(encoding="utf-8")))
@@ -188,6 +240,7 @@ class MapConfigProfileTests(unittest.TestCase):
         generic = REPO_ROOT / "launch/mapping.launch"
         default_config = self.load_launch(generic)
         self.assertEqual(self.param_values(default_config)["/mapping/map_type"], "voxelmap_plus")
+        self.assertNotIn("/observation/weight_model", self.param_values(default_config))
         self.assertTrue(any(node.package == "rviz" for node in default_config.nodes))
 
         no_rviz = self.load_launch(generic, (("rviz", "false"),))
@@ -197,6 +250,19 @@ class MapConfigProfileTests(unittest.TestCase):
 
         with self.assertRaises(Exception):
             self.load_launch(generic, (("backend", "unknown_backend"),))
+        with self.assertRaises(Exception):
+            self.load_launch(generic, (("observation", "unknown_profile"),))
+        with self.assertRaises(RuntimeError):
+            self._runner.observation_profile_path("unknown_profile")
+
+        with tempfile.TemporaryDirectory(prefix="pv_lio_missing_observation_") as temporary:
+            fake_root = Path(temporary)
+            (fake_root / "scripts").mkdir()
+            with mock.patch.object(
+                self._runner, "__file__", str(fake_root / "scripts/run_backend_tests.py")
+            ):
+                with self.assertRaises(RuntimeError):
+                    self._runner.observation_profile_path("geman_mcclure")
 
     def test_legacy_wrappers_keep_sensor_selectors_and_rviz_defaults(self):
         for filename, selector in LEGACY_WRAPPERS.items():
@@ -206,6 +272,15 @@ class MapConfigProfileTests(unittest.TestCase):
                 values = self.param_values(launch_config)
                 self.assertEqual(values["/mapping/map_type"], selector)
                 self.assertTrue(any(node.package == "rviz" for node in launch_config.nodes))
+
+                with_profile = self.load_launch(
+                    wrapper,
+                    (("observation", "backend_default"), ("rviz", "false")),
+                )
+                self.assertEqual(
+                    self.param_values(with_profile)["/observation/weight_model"],
+                    "backend_default",
+                )
 
                 no_rviz = self.load_launch(wrapper, (("rviz", "false"),))
                 self.assertFalse(any(node.package == "rviz" for node in no_rviz.nodes))
@@ -303,6 +378,73 @@ class MapConfigProfileTests(unittest.TestCase):
                         path: value for path, value in generic_values.items() if path.startswith("/mapping/")
                     }
                     self.assertEqual(runner_mapping, generic_mapping)
+
+    def test_observation_profiles_overlay_after_backend_and_archive_metadata(self):
+        sensor_path = SENSOR_PROFILES["solid"]
+        sensor_values = yaml.safe_load(sensor_path.read_text(encoding="utf-8"))
+        sensor_values["observation"] = {"weight_model": "sensor_custom", "gm_scale_m": 0.25}
+        custom_sensor_path = Path(self._temporary.name) / "sensor_with_observation.yaml"
+        custom_sensor_path.write_text(yaml.safe_dump(sensor_values), encoding="utf-8")
+        sensor_flat = flatten_mapping(sensor_values)
+        dataset = SimpleNamespace(
+            config=custom_sensor_path,
+            lidar_topic=sensor_flat["/common/lid_topic"],
+            imu_topic=sensor_flat["/common/imu_topic"],
+            lidar_type=sensor_flat["/preprocess/lidar_type"],
+        )
+        backend = "ivox"
+        backend_path = self._runner.backend_preset_path(backend)
+
+        # The unset option preserves any observation values already supplied by the sensor YAML.
+        default_launch = self.load_launch_text(
+            "runner_observation_default.launch",
+            self._runner.launch_text(dataset, backend, backend_path),
+        )
+        default_values = self.param_values(default_launch)
+        self.assertEqual(default_values["/observation/weight_model"], "sensor_custom")
+        self.assertEqual(default_values["/observation/gm_scale_m"], 0.25)
+        self.assertEqual(default_values["/mapping/map_type"], backend)
+
+        expected = {
+            "backend_default": {"weight_model": "backend_default", "gm_scale_m": 0.25},
+            "geman_mcclure": {"weight_model": "geman_mcclure", "gm_scale_m": 0.1},
+        }
+        for supported_backend in GM_COMPATIBLE_BACKENDS:
+            supported_backend_path = self._runner.backend_preset_path(supported_backend)
+            for profile in OBSERVATION_PROFILES:
+                with self.subTest(backend=supported_backend, profile=profile):
+                    archive_dir = Path(self._temporary.name) / f"archive_{supported_backend}_{profile}"
+                    archive_dir.mkdir()
+                    metadata = self._runner.observation_profile_metadata(profile, archive_dir)
+                    self.assertEqual(metadata["observation_profile_option"], profile)
+                    record = metadata["observation_profile"]
+                    self.assertIsNotNone(record)
+                    self.assertEqual(record["name"], profile)
+                    self.assertEqual(record["source"], str(self._runner.observation_profile_path(profile)))
+                    self.assertEqual(record["archive"], str(archive_dir / "observation_config.yaml"))
+                    archived_bytes = Path(record["archive"]).read_bytes()
+                    self.assertEqual(record["sha256"], hashlib.sha256(archived_bytes).hexdigest())
+
+                    launch_text = self._runner.launch_text(
+                        dataset,
+                        supported_backend,
+                        supported_backend_path,
+                        Path(record["archive"]),
+                    )
+                    launch_config = self.load_launch_text(
+                        f"runner_{supported_backend}_{profile}.launch", launch_text
+                    )
+                    values = self.param_values(launch_config)
+                    self.assertEqual(values["/mapping/map_type"], supported_backend)
+                    self.assertEqual(
+                        {key: values[f"/observation/{key}"] for key in expected[profile]},
+                        expected[profile],
+                    )
+
+        self.assertEqual(
+            self._runner.observation_profile_metadata(None, Path(self._temporary.name)),
+            {"observation_profile_option": None, "observation_profile": None},
+        )
 
 
 if __name__ == "__main__":

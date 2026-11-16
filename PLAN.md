@@ -30,7 +30,7 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 | --- | --- | --- |
 | **源码已收集** | 本地保存可追溯的作者源码快照；作者基线、当前本地提交与兼容性差异见 `doc/workspace/SOURCE_MANIFEST.json`。 | 上游完整、可构建或已接入本框架。 |
 | **上游构建通过 / 阻塞** | 指定的完整包、组件或示例有实际构建退出码；范围与遗漏见 `doc/workspace/BUILD_REPORT.md`。 | 地图/残差已由 `MapManager` 使用，或数据集效果有效。 |
-| **框架已集成** | 地图实现及对应观测分支进入 PV-LIO-PLUS selector 和估计循环；当前共有十个 selector。iG-LIO 源码已接入，round-2 指定构建和合成测试通过，回放仍待验证。 | 十个后端已有相同权重，或结果构成严格地图消融。 |
+| **框架已集成** | 地图实现及对应观测分支进入 PV-LIO-PLUS selector 和估计循环；当前共有十一个 selector。iG-LIO 源码已接入，round-2 指定构建和合成测试通过，回放仍待验证。 | 所有后端已有相同权重，或结果构成严格地图消融。 |
 | **精度/运行复现** | 有逐次运行清单、输入和配置标识、完整输出及明确的数值检查。 | 不能由编译日志、符号检查、旧地图文件或论文作者结果替代。 |
 
 ### 当前验证基线
@@ -45,9 +45,11 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 - hVox feature `997c00a` 已 cherry-pick 至主线 `c81f12f`。功能工作树构建、`ldd -r`、CTest 6/6（34 个 GTest 条目）、独立数学/源码核验及 30/141 秒完整输入回放通过。长回放含 1414 个 LiDAR、28595 个 IMU、1402 行；每帧有非零有效约束（243–2193），地图大小为 3341–112385，四元数单位范数误差小于 `7.0e-7`，时长列有限且非负。记录见[hVox 结果](doc/workspace/evidence/HVOX_RESULTS.json)。这是回归检查，不构成真值精度或受控性能结论；主线构建、链接、CTest 5/5（33 个 GTest 条目）及30秒完整回归通过。
 - 2026-11-16 在 `master` 基线 `e666799` 接入 `ig_lio_plane`：当前代码保留 iG-LIO 增量体素充分统计与地图维护，并使用共享五点 float QR 标量点面观测；这是适配变体，不是作者 GICP。固定作者提交为 `2d79259e3aaa5bbb10d6b13234398760bbacf8f5`。原完整 checkout `src/ig_lio` 当前缺失；本包基于固定源文件安全重实现 native 地图，2026-11-14 对原完整 checkout 的 ROS1 共享构建记录仅作历史证据。Round 2 指定九个构建目标退出码 0，node `ldd -r` 通过，CTest 9/9（65 个 GTest 条目，ASan 未启用）及配置合成测试通过；本轮尚未回放。完整记录见[iG-LIO 结果](doc/workspace/evidence/IG_LIO_RESULTS.json)及[源码清单](doc/workspace/SOURCE_MANIFEST.json)。
 
-## 3. 十个已集成后端
+- 本轮第一类 `bievr` 与第二类 GM 首包：12 个指定构建目标、节点链接和 CTest 12/12（89 个 GTest、9 项配置测试）通过；130 文件哈希一致，未回放。源版本、失败修复与验收边界见[本轮结果](doc/workspace/evidence/TWO_TRACK_RESULTS.json)。
 
-下表中的“作者版本”来自本地源清单中的固定作者提交；如有本地兼容性提交，完整 SHA 和补丁均以 manifest 为准。集成层复制在 `include/map_manager/native/`，完整作者工程另保留于表中路径。
+## 3. 十一个已接入后端
+
+下表中的“作者版本”来自本地源清单中的固定作者提交；如有本地兼容性提交，完整 SHA 和补丁均以 manifest 为准。集成地图位于 `include/map_manager/native/`。表中上游路径/提交属于固定来源记录，当前可用性以源码清单的 `current_snapshot` 和各本地 SOURCE 为准，不能假定完整作者工程仍存在或保持原快照。
 
 | 后端 | 集成地图与观测 | 作者工程路径 / 作者版本 | 当前证据 |
 | --- | --- | --- | --- |
@@ -61,17 +63,17 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 | Surfel-LIO / hVox | `hvox`；L0/L1 双层地图、预计算 surfel 与 PKO 加权有符号平面观测 | `upstream/Surfel-LIO`，`73348c1e` | feature `997c00a` 已以 `c81f12f` 合入主线；功能工作树构建、测试和 30/141 秒回归通过；主线构建、链接、CTest 5/5（33 个 GTest 条目）及30秒完整回归通过。 |
 | i-Octree | `i_octree`；结构保真的动态八叉树、RAII 连续叶块、数据 AABB 全树 kNN 及点面适配 | `upstream/i-Octree`，`5b640e05` | feature `5c27a79` 已以 `6876a8e` 合入主线；feature 隔离测试/数值复核和 30/141 秒回归通过；主线构建/链接、CTest 7/7（49 个 GTest，ASan 关闭）及 30 秒回归通过。 |
 | iG-LIO / incremental VoxelMap | `ig_lio_plane`；保留每格增量充分统计和原生点保留规则，以共享五点 float QR 拟平面生成标量点面观测；不含作者 GICP | 当前 checkout 缺少完整 `src/ig_lio`；基于固定源文件重实现，见 `include/map_manager/native/ig_lio/UPSTREAM_MANIFEST.json` 与 `SOURCE.md` | Round 2 node build/link、指定测试通过；当前回放待验证。此前共享构建仅指 2026-11-14 的完整上游 checkout。 |
+| BIEVR 高度图变体 | `bievr`；定向像素图及 bilinear 高度/Huber 信息 | 当前作者 `2306022e`，本地 `native/bievr` | 源码已接入；本轮构建、合成测试与回放边界见[结果记录](doc/workspace/evidence/TWO_TRACK_RESULTS.json)。 |
 
 共用滤波主循环不等于共用观测。VoxelMap++、点图适配层、C3P、OctVox 和 R-VoxelMap 的残差、Jacobian、信息量及门限按实际路径分别记录。`nearest_max_range` 对 ikd-tree/iVox 统一为米：ikd-tree 比较第五近邻平方距离与 `r²` 并接受边界，iVox 使用严格 `<r` 且仍受配置附近格域限制。旧 ikd-tree 设置 `v` 原来代表平方距离；要复现旧阈值，新半径应设 `sqrt(v)` 米。现有 iVox 数值不变。细节见[地图与观测范围审查](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)。
 
-## 4. 三项仍待集成的合格地图候选
+## 4. 两项仍待集成的合格地图候选
 
-下列三个项目均有本地固定作者快照，且其地图数据结构创新满足当前硬条件；它们尚未成为新的 PV-LIO-PLUS selector。主路线评估结构创新及其对应观测；严格统一点面的版本可作为单独消融。完整上游系统仍可在独立工作区作为端到端基线。不得剥离资格结构后，以原算法名义只测通用点容器。iG-LIO 增量体素地图已有点面 selector；其完整 GICP 观测仍是另一项未完成的设计与实现工作，见阶段 5。
+下列两个项目具有历史收集记录，当前可用源码及差异需分别复核，且其地图数据结构创新满足当前硬条件；它们尚未成为新的 PV-LIO-PLUS selector。主路线评估结构创新及其对应观测；严格统一点面的版本可作为单独消融。完整上游系统仍可在独立工作区作为端到端基线。不得剥离资格结构后，以原算法名义只测通用点容器。iG-LIO 增量体素地图已有点面 selector；其完整 GICP 观测仍是另一项未完成的设计与实现工作，见阶段 5。
 
 | 方法 | 本地工程 / 固定作者版本 | 已有上游构建记录 | 计划范围与前置条件 |
 | --- | --- | --- | --- |
-| Hybrid-VoxelMap | `src/Hybrid-VoxelMap` / `89ed71c2` | ROS1 共享工作区通过 | 条件评估语义驱动地图和 Plane/NDT 对应观测；先定义标签来源、类别变化/缺失语义、Gaussian/NDT 信息与退化处理。无标签变体不得称完整算法。 |
-| BIEVR-LIO | `upstream/BIEVR-LIO` / `38f98b90` | 独立上游 ROS1 目标通过 | 尚未集成；仅有[移植设计草稿](doc/BIEVR_IKFOM_PORT.md)，未实施。后续评估定向高度图及高度残差到共享滤波状态的映射；地图引导采样单列记录或消融。 |
+| Hybrid-VoxelMap | `src/Hybrid-VoxelMap` / 历史 `89ed71c2` | 历史共享构建；当前 checkout 脏且旧对象不可读取，未重新验证 | 条件评估语义驱动地图和 Plane/NDT 对应观测；先定义标签来源、类别变化/缺失语义、Gaussian/NDT 信息与退化处理。无标签变体不得称完整算法。 |
 | LIO-GVM | `upstream/lio_gvm` / `c80c968e` | 阻塞：构建退出码 1 | 保留 Gaussian 地图/观测设计；需作者补齐定制 Fast-VGICP、IKFoM 和地图头文件后，再验证完整信息模型与状态映射。不可用通用依赖冒充作者接口。 |
 
 ## 5. 结构资格通过、但本地作者源码尚未确认的论文储备
@@ -85,7 +87,7 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 
 ## 6. 集成顺序与每阶段完成条件
 
-优先推进第一类：先完成 BIEVR 高度图及其公共滤波观测；Hybrid 待标签输入明确后实施，LIO-GVM 待源码完整后实施。现有 iG-LIO 点面变体的回放仍单列待验。第二类先接独立 GM 权重开关，再接 GenZ 混合观测；可并行做源码与数学审查，但不挤占第一类的实现与验收。
+优先推进第一类：BIEVR 首包源码已接入，优先补第一类运行验收；Hybrid 待标签输入明确后实施，LIO-GVM 待源码完整后实施。现有 iG-LIO 点面变体的回放仍单列待验。第二类 GM 独立权重已接入，GenZ 混合观测仍待实现且当前拒绝启用；可并行做源码与数学审查，但不挤占第一类的实现与验收。
 
 ### 阶段 1：原有六个后端的契约与复现基线
 
@@ -112,8 +114,8 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 ### 阶段 4：地图管理职责评估与 BIEVR 共同滤波设计
 
 - i-Octree 主线验收后，先评估 `src/map_manager/map_manager.cpp` 中 `MapManager` 类及各后端职责的拆分，明确统一门面、后端状态、原生实现所有权和 ODR 边界；头文件整理只是辅助。[类职责评估及分阶段方案](doc/MAP_MANAGER_REFACTOR_PLAN.md)已完成；2026-11-16 在当前 `lio_map_ws` 实施首个 i-Octree 非拥有 adapter 试点，抽出公共类型/配置及点面拟合，保留门面的状态所有权和更新顺序，并补五项黑盒契约用例。当前 checkout 节点及七个测试目标增量构建、`ldd -r`、CTest 7/7（54 用例，ASan 关闭）通过，详见[本轮结果](doc/workspace/evidence/MAP_MANAGER_ADAPTER_RESULTS.json)；尚未执行回放、逐位数值或性能 A/B。运行验收前不继续迁移其他后端，也不宣称已解决其余原生头的 ODR/静态状态问题。
-- BIEVR 的[移植设计草稿](doc/BIEVR_IKFOM_PORT.md)已按固定源码完成，描述定向高度图、像素融合、精确插值导数、12列右扰动 Jacobian 与 Huber information。设计拟由共同滤波循环承担原 LM 注册和 Ceres 惯性窗口的状态估计；该替代尚未实施或验证。噪声尺度、论文对应及分组/索引边界仍须核定。地图引导采样单列档案。
-- 完成条件：拆分评估有明确结论；BIEVR 设计覆盖数据布局、更新/查询生命周期、残差和退化处理、状态列映射与 oracle，再由后续实施任务审查。
+- BIEVR 的初始设计形成于 2026-11-15；首版已按当前作者快照 `2306022e` 实施定向高度图和公共 IKFoM bilinear 观测。历史草稿、当前差异和限制见[设计与实施记录](doc/BIEVR_IKFOM_PORT.md)；不把该适配称为作者 LM/Ceres 系统复现。
+- 当前已完成职责拆分评估、BIEVR 源契约/数学审查与首包接入及合成 oracle。回放、噪声标定、退化效果和独立采样扩展仍待验，不把初始设计稿的旧前置列表当作当前实施状态。
 
 ### 阶段 5：iG-LIO 点面地图已接入；GICP 观测仍待设计
 
@@ -121,10 +123,10 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 - 完整 GICP 是后续独立观测设计：逐项研究 3 维残差、两侧协方差、完整信息矩阵与鲁棒权重。Cauchy 模型含 `rho[2]` 二阶项；不得把相关 3×3 信息或鲁棒二阶项直接压成一个标量对角 `R` 并声称与原生更新等价。若设计白化为标量观测行，必须证明/测试二次型和信息保持；否则注明近似及影响。
 - 完成条件：点面地图更新、容量淘汰和查询通过 oracle；另行完成 GICP 数学设计与状态映射审查，合成退化/奇异协方差/Jacobian 测试通过，再做短序列；原生适配与白化近似分开记录。
 
-### 阶段 6：Hybrid-VoxelMap 与 BIEVR 高度图适配
+### 阶段 6：BIEVR 首包已接入；Hybrid 仍待输入契约
 
 - Hybrid：先确认逐点语义标签数据管线，再增加带类型的 Plane/NDT 匹配和各自观测构造；缺标签或无语义路径单独命名。语义推理开销与地图/残差实验分别报告。
-- BIEVR：按[移植设计草稿](doc/BIEVR_IKFOM_PORT.md)完成前置问题与噪声尺度审查后，再实现定向高度图及其共同 IKFoM 观测；只使用公共滤波主循环，地图引导采样仍作为独立可选因子。
+- BIEVR：`bievr` 源码已接入，保留定向图像、融合/重投影与 LRU，使用公共完整去畸变云写图、公共降采样点注册；独立高度残差和 Huber 信息接共享滤波。构建与合成测试见[本轮记录](doc/workspace/evidence/TWO_TRACK_RESULTS.json)，回放、噪声标定与地图引导采样仍待验。
 - 完成条件：所需输入可追溯、结构创新保留、残差和失效语义有合成测试、公共估计循环中没有隐藏求解器、每种采样/语义设置有清楚的 run manifest 与消融标签。
 
 ### 阶段 7：LIO-GVM 源码恢复后再设计 Gaussian 观测
@@ -140,10 +142,10 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 
 ### 阶段 9：第二类观测与权重组件
 
-- 第一包：实现显式、默认关闭的 `observation/weight_model` 与米制 GM 尺度，只作用于已核准的标量点面分支，关闭时保持原输出。
+- 第一包已接入：默认关闭的 `observation/weight_model=geman_mcclure` 与米制固定尺度；仅四个已核准的共享点面分支可用，默认保留原后端路径。
 - 第二包：为 GenZ 混合点面/点点观测补 typed 对应关系、三维行与公共 12 列状态映射；不导入上游 ICP 求解器或自适应扫描体素化。
 - 未来的自适应匹配门限独立开关、独立统计状态和重置条件，不由权重选项隐式改变搜索。
-- 完成条件：兼容组合校验、关闭等价、残差/Jacobian/信息 oracle、真实启动配置与归档通过，再单列固定输入回归。候选目前均为计划，尚未实现；实现后逐项更新状态。
+- 完成条件：兼容组合校验、关闭等价、残差/Jacobian/信息 oracle、真实启动配置与归档通过，再单列固定输入回归。GM 首包源码已接入；GenZ 混合观测与自适应门限仍待实现，`observation/model=genz_hybrid` 当前会明确拒绝。
 
 ## 7. 共同契约与验证要求
 
@@ -157,7 +159,7 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 | `src/utils.cpp` | 轨迹和地图输出命名。 |
 | `scripts/run_backend_tests.py` | 输入清单驱动的构建、运行与结果归档；运行结论仍须指向实际记录。 |
 
-上述仅描述当前已存在的点面及十个观测分支。hVox 当前通过专用适配将原生 surfel 对应关系转为公共 `PlaneMatch`；`ig_lio_plane` 使用共享点面适配器。通用带类型的 `Surfel`、`Point`、`Gaussian`、`HeightImage` 匹配和通用向量/相关协方差观测接口仍为未来设计，当前未实现。
+当前十一个地图分支包含十个点面/概率平面分支和一个 BIEVR 高度分支。BIEVR 使用按值返回的 `HeightSample`，不伪装为 `PlaneMatch`；通用 Surfel/Gaussian/Point 类型及相关向量信息接口仍待设计。
 
 观测可为点面、点点、GICP、Gaussian 或高度图。接口必须保留其残差维度、Jacobian 与完整信息含义；不能把不兼容类型硬塞入 `PlaneMatch`，也不能丢掉相关协方差后称数学等价。主路线中，各后端无需得到相同 `h/H/R`；仅严格统一观测消融检查跨地图等价。
 

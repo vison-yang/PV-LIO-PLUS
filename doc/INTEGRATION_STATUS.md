@@ -1,7 +1,7 @@
 # Current Backend Contracts and Verification Status
 
 Updated: 2026-11-16. The backend replay evidence below is from 2026-11-15;
-the current refactor's validation is recorded separately below. This document records ten `MapManager`
+the current refactor's validation is recorded separately below. This document records eleven `MapManager`
 backend paths, contract fixes, separate synthetic test suites, and complete-input
 replays. The `ig_lio_plane` source integration is complete; the round-2
 specified build targets and synthetic tests passed, while runtime acceptance
@@ -16,13 +16,17 @@ with 22 GTest cases (ASan was off in this main configuration). Paper eligibility
 future adapter boundaries remain in the
 [map/residual review](../paper/notes/MAP_BACKEND_SCOPE_REVIEW.md).
 
+2026-11-16 两类首包验收：节点及 11 个 C++ 测试目标共 12 个构建目标通过，节点 `ldd -r` 通过；CTest 12/12，89 个 GTest 与 9 项 Python 配置测试，0 失败/错误/禁用。130 个源码/配置/测试文件哈希一致，18 项新编译单元与 consumer 参数比较一致，ASan 关闭；未回放、GUI/设备或精度/性能 A/B。详见[本轮记录](workspace/evidence/TWO_TRACK_RESULTS.json)。
+
 ## Observation and weighting track
 
-The [second integration track](OBSERVATION_INTEGRATION_PLAN.md) is planned separately from map selection. GM component weighting and GenZ hybrid observations are not implemented at this planning snapshot. Defaults must preserve the existing backend behavior; map-structure integration remains the priority.
+The [second integration track](OBSERVATION_INTEGRATION_PLAN.md) now has an opt-in fixed-scale GM weighting component for `ikdtree`, `ivox`, `i_octree`, and `ig_lio_plane`. Defaults retain the backend path. GenZ hybrid observations remain unimplemented and unsupported selections fail at startup.
 
 ## BIEVR-LIO status
 
-BIEVR-LIO is not integrated: this checkout has no BIEVR selector or height-map observation path. The [integration plan](../PLAN.md) lists it as pending; the [IKFoM port document](BIEVR_IKFOM_PORT.md) is a design draft only. Its standalone upstream ROS1 build in the [workspace build report](workspace/BUILD_REPORT.md) is not PV-LIO-PLUS integration evidence.
+The `bievr` height-map variant is source-integrated from the current official author snapshot `2306022e341e98ce84244f92ba7d26f047b41dbc`. It retains oriented pixels, weighted fusion, normal reprojection and LRU; uses full common undistorted clouds for updates, common downsampled registration points, exact masked-bilinear derivatives and 12-column shared IKFoM observations. It does not import author LM/Ceres or map-guided sampling. The old upstream build was for a different snapshot and remains historical.
+
+Current node build/link, synthetic tests and source identities are recorded in [two-track results](workspace/evidence/TWO_TRACK_RESULTS.json). No replay, device/GUI or accuracy/performance A/B was run. Height sigma requires calibration. Native n>=4 maturity and m>=23 rows do not establish rank or observability; sparse initial maps may stall. New BIEVR/GM paths reject invalid/fewer-than-23 rows, restore predicted x/P after any rejected iteration or nonfinite final estimate, and skip map updates. Invalid input is prechecked before mutation; runtime resource/numerical failures can partially update map state, invalidate revision and propagate, rather than guarantee transactional recovery.
 
 ## Contract fixes
 
@@ -134,12 +138,12 @@ swallow it and continue as though the operation had no effect. These
 compatibility and boundary choices do not constitute a successful build or
 runtime validation.
 
-## Ten backend contracts
+## Eleven backend contracts
 
 These entries describe current `MapManager` behavior, not equivalence between
 backends. `size()` intentionally reports native backend-dependent units;
-`point_count()` reports retained points and is not a cross-backend replacement
-for `size()`.
+`point_count()` is backend-specific (BIEVR reports resident statistical input
+counts) and is not a cross-backend replacement for `size()`.
 
 | Backend | Stored map and update | Query and observation | `size()` | Geometric local window |
 | --- | --- | --- | --- | --- |
@@ -154,12 +158,14 @@ for `size()`.
 | i-Octree | Dynamic octree with actual-point AABBs, contiguous RAII leaf blocks, and dynamic local insertion/deletion/downsampling; numeric adaptation uses double queries/distances and checks supported rounding/denormal modes. | Full-tree kNN under the declared binary64 metric; production requests at least five neighbors and accepts when fifth squared distance is `<= R²`, then fits a shared local plane. Native radius query uses strict `< r²`. Failed queries are appended to `non_match`. | Live retained point count (`size()` and `point_count()`). | Supported. Tree-side retain keeps points inside the closed world-frame box without rebuilding the whole tree. |
 | iG-LIO / `ig_lio_plane` | Incremental voxel hash with per-cell `N/S/Q` statistics and a separately retained point array; author batch/freeze and insertion-based LRU rules. | Selects the configured 1/7/19/26 stencil, applies strict `dist² < range²`, sorts and sends up to five points to the shared float-QR scalar plane fit; not author GICP. | Active cell count; `point_count()` and snapshot describe retained points, not statistical `N`. | Unsupported. Geometric `local_window` is rejected. |
 
+| BIEVR / `bievr` | Oriented voxel height images, n−1 moments, pending maturation, range-weighted fusion, reprojection and update-touch LRU; full common undistorted update cloud. | Typed height sampling; masked-bilinear exact piecewise gradient, 12-column shared-state Jacobian and Huber/σ² information. Raw effective pixels form snapshots; resident input statistics form `point_count()`. | Resident voxel count. | Unsupported; use native capacity/LRU. |
+
 The source of these behaviors is `MapManager` in
 [`map_manager.cpp`](../src/map_manager/map_manager.cpp), its public types and
 configuration in [`map_types.h`](../include/map_manager/map_types.h) and
 [`map_config.h`](../include/map_manager/map_config.h), re-exported by
 [`map_manager.h`](../include/map_manager/map_manager.h), and
-the ten observation paths in [`mapping.cpp`](../src/mapping.cpp), plus
+the eleven observation paths in [`mapping.cpp`](../src/mapping.cpp), plus
 [`hvox_observation.cpp`](../src/map_manager/hvox_observation.cpp), the iG map
 implementation in [`voxel_map.cpp`](../include/map_manager/native/ig_lio/voxel_map.cpp),
 and its [adaptation notes](../include/map_manager/native/ig_lio/SOURCE.md). In
