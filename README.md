@@ -101,6 +101,8 @@ FR-LIO/RC-Vox and SV-LIO also have paper evidence of map-structure contributions
 but the local collection records do not establish official implementations.
 They remain paper reserves, pending source verification.
 
+A second integration track covers observation and weighting components, independently of `mapping/map_type`, with existing backend behavior as the default. The initial plan covers a KISS-ICP-inspired GM point-to-plane weighting component and GenZ-ICP hybrid observations, without importing their solvers or preprocessing pipelines. Map structures take priority; see the [component plan and option status](doc/OBSERVATION_INTEGRATION_PLAN.md).
+
 ### Comparison controls
 
 The main comparison evaluates each **map together with its corresponding

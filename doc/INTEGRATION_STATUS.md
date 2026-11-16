@@ -16,6 +16,10 @@ with 22 GTest cases (ASan was off in this main configuration). Paper eligibility
 future adapter boundaries remain in the
 [map/residual review](../paper/notes/MAP_BACKEND_SCOPE_REVIEW.md).
 
+## Observation and weighting track
+
+The [second integration track](OBSERVATION_INTEGRATION_PLAN.md) is planned separately from map selection. GM component weighting and GenZ hybrid observations are not implemented at this planning snapshot. Defaults must preserve the existing backend behavior; map-structure integration remains the priority.
+
 ## BIEVR-LIO status
 
 BIEVR-LIO is not integrated: this checkout has no BIEVR selector or height-map observation path. The [integration plan](../PLAN.md) lists it as pending; the [IKFoM port document](BIEVR_IKFOM_PORT.md) is a design draft only. Its standalone upstream ROS1 build in the [workspace build report](workspace/BUILD_REPORT.md) is not PV-LIO-PLUS integration evidence.
