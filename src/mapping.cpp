@@ -77,6 +77,7 @@
 #include <iomanip>
 #include <limits>
 #include <mutex>
+#include <stdexcept>
 #include <system_error>
 #include <thread>
 
@@ -109,6 +110,19 @@ static_assert(TimingClock::is_steady, "Elapsed-time measurements require a monot
 double ElapsedMilliseconds(const TimingClock::time_point start)
 {
     return std::chrono::duration<double, std::milli>(TimingClock::now() - start).count();
+}
+
+/** @brief 为显式校验输入域的点图保留逐帧拒绝路径，避免异常终止整个节点。 */
+bool IsValidatedPointMap(const MapType type)
+{
+    return type == MapType::IOctree || type == MapType::IGLIOPlane;
+}
+
+/** @brief iG 仅恢复无突变的输入拒绝，资源异常必须向上传播，避免继续使用部分更新。 */
+bool CanRejectPointMapFailure(const MapType type, const std::exception& error)
+{
+    return type == MapType::IOctree ||
+           (type == MapType::IGLIOPlane && dynamic_cast<const std::invalid_argument*>(&error) != nullptr);
 }
 
 // The shared PCL cloud is float. i-Octree's query contract keeps the current
@@ -480,11 +494,12 @@ void Mapping::ObservationModelPointBackend(state_ikfom& s, esekfom::dyn_share_da
     }
     catch (const std::exception& exception)
     {
-        if (config_.map_manager_config().type != MapType::IOctree) throw;
+        if (!CanRejectPointMapFailure(config_.map_manager_config().type, exception)) throw;
         search_time_ += ElapsedMilliseconds(t0);
         effective_feature_num_ = 0;
         ekfom_data.valid = false;
-        ROS_WARN_THROTTLE(1.0, "i-Octree query rejected: %s", exception.what());
+        ROS_WARN_THROTTLE(1.0, "%s query rejected: %s", MapTypeName(config_.map_manager_config().type),
+                          exception.what());
         return;
     }
     search_time_ += ElapsedMilliseconds(t0);
@@ -552,7 +567,7 @@ void Mapping::ObservationModelPointBackend(state_ikfom& s, esekfom::dyn_share_da
         ekfom_data.R(i) = 1.0 / total_sigma;
     }
 
-    if (config_.map_manager_config().type == MapType::IOctree &&
+    if (IsValidatedPointMap(config_.map_manager_config().type) &&
         (!ekfom_data.h_x.allFinite() || !ekfom_data.h.allFinite() || !ekfom_data.R.allFinite()))
     {
         effective_feature_num_ = 0;
@@ -932,8 +947,9 @@ void Mapping::InitializeMap()
     }
     catch (const std::exception& exception)
     {
-        if (config_.map_manager_config().type != MapType::IOctree) throw;
-        ROS_WARN_THROTTLE(1.0, "i-Octree initialization rejected: %s", exception.what());
+        if (!CanRejectPointMapFailure(config_.map_manager_config().type, exception)) throw;
+        ROS_WARN_THROTTLE(1.0, "%s initialization rejected: %s", MapTypeName(config_.map_manager_config().type),
+                          exception.what());
         return;
     }
     if (hvox_observations_) hvox_observations_->BeginFrame();
@@ -959,14 +975,18 @@ void Mapping::UpdateMap()
     if (config_.map_manager_config().type == MapType::IOctree)
     {
         RestoreIOctreeWorldPoints(state_point_, map_points);
-        const bool invalid = std::any_of(map_points.begin(), map_points.end(), [](const MapPoint& point) {
+    }
+    if (IsValidatedPointMap(config_.map_manager_config().type))
+    {
+        const bool hasInvalidPoints = std::any_of(map_points.begin(), map_points.end(), [](const MapPoint& point) {
             return !point.point_lidar.allFinite() || !point.point_world.allFinite() || !point.cov_world.allFinite();
         });
-        if (invalid || (config_.map_manager_config().local_window_enabled &&
-                        (!V3D(state_point_.pos).allFinite() || !std::isfinite(config_.det_range_) ||
-                         config_.det_range_ <= 0)))
+        if (hasInvalidPoints ||
+            (config_.map_manager_config().local_window_enabled &&
+             (!V3D(state_point_.pos).allFinite() || !std::isfinite(config_.det_range_) || config_.det_range_ <= 0)))
         {
-            ROS_WARN_THROTTLE(1.0, "i-Octree update rejected nonfinite point, covariance, or window");
+            ROS_WARN_THROTTLE(1.0, "%s update rejected nonfinite point, covariance, or window",
+                              MapTypeName(config_.map_manager_config().type));
             return;
         }
     }
@@ -979,7 +999,8 @@ void Mapping::UpdateMap()
                          }),
                          map_points.end());
     }
-    if (config_.map_manager_config().type != MapType::HVox)
+    // iG 自行按体素批次分组；保持扫描内顺序，不再按协方差重新排列统计输入。
+    if (config_.map_manager_config().type != MapType::HVox && config_.map_manager_config().type != MapType::IGLIOPlane)
         std::sort(map_points.begin(), map_points.end(),
                   [](const pv_lio_plus::MapPoint& lhs, const pv_lio_plus::MapPoint& rhs) {
                       return lhs.cov_world.diagonal().norm() < rhs.cov_world.diagonal().norm();
@@ -994,8 +1015,9 @@ void Mapping::UpdateMap()
     }
     catch (const std::exception& exception)
     {
-        if (config_.map_manager_config().type != MapType::IOctree) throw;
-        ROS_WARN_THROTTLE(1.0, "i-Octree update rejected: %s", exception.what());
+        if (!CanRejectPointMapFailure(config_.map_manager_config().type, exception)) throw;
+        ROS_WARN_THROTTLE(1.0, "%s update rejected: %s", MapTypeName(config_.map_manager_config().type),
+                          exception.what());
     }
 }
 

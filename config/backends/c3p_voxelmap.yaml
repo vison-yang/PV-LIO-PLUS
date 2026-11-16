@@ -1,0 +1,10 @@
+# 显式配置基线；公共体素几何沿用传感器配置。
+mapping:
+  map_type: c3p_voxelmap
+  local_window_en: false
+  c3p_enable_voxel_merging: false
+  c3p_merge_theta_thresh: 0.05
+  c3p_merge_dist_thresh: 0.05
+  c3p_merge_cov_min_eigen_val_thresh: 0.002
+  c3p_merge_x_coord_diff_thresh: 5.0
+  c3p_merge_y_coord_diff_thresh: 5.0

@@ -1,9 +1,11 @@
 # Current Backend Contracts and Verification Status
 
 Updated: 2026-11-16. The backend replay evidence below is from 2026-11-15;
-the current refactor's validation is recorded separately below. This document records nine integrated `MapManager`
-backends, contract fixes, separate synthetic test suites, and complete-input
-replays. i-Octree feature `5c27a79` is cherry-picked into main as `6876a8e`;
+the current refactor's validation is recorded separately below. This document records ten `MapManager`
+backend paths, contract fixes, separate synthetic test suites, and complete-input
+replays. The `ig_lio_plane` source integration is complete; the round-2
+specified build targets and synthetic tests passed, while runtime acceptance
+is pending. i-Octree feature `5c27a79` is cherry-picked into main as `6876a8e`;
 the main node/link, CTest 7/7 (49 regular GTest cases, ASan off), and a
 30-second complete-input replay passed. Its isolated sanitizer/numerical tests
 and feature 30/141-second replays also passed. hVox feature commit `997c00a` is cherry-picked into main as `c81f12f`;
@@ -28,8 +30,8 @@ future adapter boundaries remain in the
 - **Configuration safety:** for ikd-tree/iVox, the radius must be positive and
   finite; its square must also be finite and nonzero. `MapManager::configure`
   validates before clearing an initialized map. The three shipped YAML comments
-  describe metres and preserve their numeric values. The example dataset
-  example manifest lists all nine selectors, including `octvox`,
+  describe metres and preserve their numeric values. The 2026-11-15 check below
+  records the then-current nine-selector example manifest, including `octvox`,
   `r_voxelmap`, `hvox`, and `i_octree`.
 - **Migration:** an old ikd-tree setting `v` was compared as squared distance;
   to reproduce that threshold, set the new radius to `sqrt(v)` metres. Existing
@@ -42,7 +44,89 @@ for those three paths (288 output rows each); see
 [`DIAGNOSTIC_RACE_RESULTS.json`](workspace/evidence/DIAGNOSTIC_RACE_RESULTS.json).
 This check does not establish general thread safety.
 
-## Nine backend contracts
+## iG-LIO point-plane adapter: build and synthetic tests passed; runtime pending
+
+The new selector `ig_lio_plane` retains the iG-LIO incremental voxel map and
+uses PV-LIO-PLUS's shared five-point float-QR scalar point-to-plane observation.
+It is an explicit map/observation variant, not the author's GICP observation
+or full iG-LIO estimator. The complete author checkout `src/ig_lio` is absent
+from the current workspace. The local map core is a safety-focused
+reimplementation based on the pinned author sources at
+`2d79259e3aaa5bbb10d6b13234398760bbacf8f5`; the 2026-11-14 shared ROS1 build
+record refers to the earlier complete checkout and does not establish that the
+current checkout contains or builds that complete system. The round-2 node
+build exited 0 and `ldd -r` reported no missing libraries or undefined symbols;
+the node SHA-256 and binary identity are in the result record. The node and
+eight GTest targets exited 0. CTest passed 9/9: eight GTest CTest
+entries with 65 GTest cases (including 11 new iG cases), plus the configuration
+profile test; there were no failures, errors, or skips. The config suite's six
+Python tests covered 30 sensor/backend launch combinations and 30 runner-preset
+comparisons. ASan was off. This round's build and synthetic evidence does not
+establish replay, GUI/device behavior, ATE, or performance. The Avia and S3 bag
+paths in the current run manifests were checked and are missing, so no replay
+was performed; see
+[`IG_LIO_RESULTS.json`](workspace/evidence/IG_LIO_RESULTS.json) and the current
+source snapshot in [`SOURCE_MANIFEST.json`](workspace/SOURCE_MANIFEST.json).
+
+The new configuration fields and `unique_ptr` member change the `MapManager`
+class layout. Acceptance requires rebuilding all consumers from source; an
+ABI check or previously built consumer is insufficient. The native iG map
+implementation is compiled with each manager consumer rather than as a shared
+Release static library, avoiding a mixed Eigen-macro definition across
+production and test builds. The recorded round-2 source fingerprint matches
+the 99-file pre-build snapshot; the six consumers' 24 implementation-source
+compile-command comparisons matched.
+
+Round 1 did not pass: the first multi-target make invocation used a stale goal
+list that omitted the newly generated iG target, and a direct retry exposed a
+missing GoogleTest `main`. After adding the project's standard test entry point,
+the complete round-2 target list built and the tests above passed. The recorded
+failures and correction remain in the result archive.
+
+### Per-cell statistics and retained points
+
+Each active cell tracks the sufficient statistics `N`, `S = Σp`, and
+`Q = Σppᵀ`. For `N ≥ 6`, the sample matrix is formed as
+`C = (Q − S μᵀ)/(N − 1)`, where `μ = S/N`, and decomposed as `C = UΣVᵀ`.
+The map forms the adjusted matrix
+`C_t = U diag(1, 1, 1e−3) Vᵀ` and its inverse. This adjusted matrix is not
+unconditionally guaranteed to be an SPD probability covariance under finite
+precision. The adapter does not publish it through `plane_cov`; the shared
+scalar point-plane path uses the common point-uncertainty information instead.
+
+The author-style batch rules are retained: when the old `N < 50`, a batch may
+update the sufficient statistics and cross 50, after which those statistics
+can freeze. Points are appended to an existing cell only if its updated `N` is
+below `grid_max_points`; a new cell stores its initial batch in full. Therefore
+`grid_max_points` is not a strict per-cell point cap. `size()` counts active
+cells; `point_count()` and `snapshot()` count/return the separately retained
+point arrays, not the statistical `N` values.
+
+### Search, capacity, and numerical boundaries
+
+Search supports the configured 1/7/19/26-neighborhood stencils (the 26 mode
+contains the center plus 26 adjacent cells). Candidate points must satisfy the
+strict `dist² < range²` gate; accepted candidates are sorted before the first
+five are passed to the shared plane fit. Query does not update LRU recency;
+map updates do. Insertion followed by `size() >= capacity` eviction means the
+steady active-cell count can be `capacity - 1`, not `capacity`. Geometric
+`local_window` operations are rejected.
+
+Cells use their full signed 32-bit coordinate tuple as the key and a defined
+unsigned-wrapped hash. Deterministic insertion order is based on the legacy
+wrapped-hash modulo capacity, then tuple and input index. Point insertion uses
+float coordinates while query and key checks use guarded double precision.
+Input batches are checked before mutation for finite, float-representable
+coordinates and valid int32 cell keys; invalid-input rejection leaves the
+whole batch unchanged. Clear/reinitialize constructs replacement state first.
+Allocation/resource failure has only the basic guarantee across the whole
+batch: cells committed before the failure may remain. `MapManager` advances its
+revision conservatively before rethrowing that exception; callers must not
+swallow it and continue as though the operation had no effect. These
+compatibility and boundary choices do not constitute a successful build or
+runtime validation.
+
+## Ten backend contracts
 
 These entries describe current `MapManager` behavior, not equivalence between
 backends. `size()` intentionally reports native backend-dependent units;
@@ -60,14 +144,17 @@ for `size()`.
 | R-VoxelMap | Native recursive voxel map with planes at internal/child nodes, linked-list outlier pushdown/rebuild, and root LRU retention. | Queries the current root and, conditionally, one adjacent root; matching uses full world-point covariance with a native 3-sigma gate. The filter observation uses plane covariance plus rotated LiDAR measurement covariance, without adding state covariance a second time. | Number of root voxels. | Unsupported. `local_window_en` and explicit geometric erase/window are rejected; native batch-then-freeze root budgeting is not a strict upper bound. |
 | Surfel-LIO / hVox | Native L0 centroid / L1 precomputed-surfel hierarchy; updates use current world-frame IMU position and keyframe flag, with upstream moving-box maintenance. | Exact containing-L1-key lookup via `GetSurfelAtPoint`; fixed correspondences within an observation group feed signed plane residuals and PKO-adapted robust weights. Failed lookups are appended to `non_match`. | Native L0 voxel count. | Unsupported. Uses its native moving box; public geometric window operations and `local_window_en` are rejected. |
 | i-Octree | Dynamic octree with actual-point AABBs, contiguous RAII leaf blocks, and dynamic local insertion/deletion/downsampling; numeric adaptation uses double queries/distances and checks supported rounding/denormal modes. | Full-tree kNN under the declared binary64 metric; production requests at least five neighbors and accepts when fifth squared distance is `<= R²`, then fits a shared local plane. Native radius query uses strict `< r²`. Failed queries are appended to `non_match`. | Live retained point count (`size()` and `point_count()`). | Supported. Tree-side retain keeps points inside the closed world-frame box without rebuilding the whole tree. |
+| iG-LIO / `ig_lio_plane` | Incremental voxel hash with per-cell `N/S/Q` statistics and a separately retained point array; author batch/freeze and insertion-based LRU rules. | Selects the configured 1/7/19/26 stencil, applies strict `dist² < range²`, sorts and sends up to five points to the shared float-QR scalar plane fit; not author GICP. | Active cell count; `point_count()` and snapshot describe retained points, not statistical `N`. | Unsupported. Geometric `local_window` is rejected. |
 
 The source of these behaviors is `MapManager` in
 [`map_manager.cpp`](../src/map_manager/map_manager.cpp), its public types and
 configuration in [`map_types.h`](../include/map_manager/map_types.h) and
 [`map_config.h`](../include/map_manager/map_config.h), re-exported by
 [`map_manager.h`](../include/map_manager/map_manager.h), and
-the nine observation paths in [`mapping.cpp`](../src/mapping.cpp), plus
-[`hvox_observation.cpp`](../src/map_manager/hvox_observation.cpp). In
+the ten observation paths in [`mapping.cpp`](../src/mapping.cpp), plus
+[`hvox_observation.cpp`](../src/map_manager/hvox_observation.cpp), the iG map
+implementation in [`voxel_map.cpp`](../include/map_manager/native/ig_lio/voxel_map.cpp),
+and its [adaptation notes](../include/map_manager/native/ig_lio/SOURCE.md). In
 particular, `size()` counts voxel entries, KD-tree points, iVox grids, or
 OctVox LRU grids depending on the selected backend; R-VoxelMap `size()` counts
 root voxels while its `point_count()` traverses retained native points; hVox

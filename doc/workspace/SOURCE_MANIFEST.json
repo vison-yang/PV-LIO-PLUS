@@ -3,6 +3,44 @@
   "workspace_root": ".",
   "project_repository": "src/PV_LIO_PLUS",
   "note": "The workspace root is not a Git repository. Sources retain their own repositories. upstream_commit pins author provenance; local_commit and patches record compatibility edits. Existing dirty source edits were snapshotted before this task.",
+  "current_snapshot": {
+    "checked_on": "2026-11-16",
+    "project_checkout": {
+      "branch": "master",
+      "base_commit": "e666799",
+      "local_paths_relative_to": "PV-LIO-PLUS checkout root",
+      "workspace_paths_relative_to": "lio_map_ws workspace root"
+    },
+    "ig_lio": {
+      "author_repository": "https://github.com/zijiechenrobotics/ig_lio",
+      "author_commit": "2d79259e3aaa5bbb10d6b13234398760bbacf8f5",
+      "complete_workspace_checkout": {
+        "workspace_path": "src/ig_lio",
+        "present": false,
+        "note": "The older sources entry and 2026-11-14 shared-build record are historical provenance only; the current workspace does not contain the complete author checkout."
+      },
+      "local_map_reimplementation": {
+        "path": "include/map_manager/native/ig_lio",
+        "files": [
+          "voxel_map.h",
+          "voxel_map.cpp",
+          "LICENSE",
+          "SOURCE.md",
+          "UPSTREAM_MANIFEST.json"
+        ],
+        "method": "Safety-focused local reimplementation based on the pinned upstream voxel-map source; not a byte-for-byte copy of the complete author package.",
+        "selector": "ig_lio_plane",
+        "observation": "Shared five-point float-QR scalar point-to-plane adapter; author GICP is not included.",
+        "status": "Source integration complete; round-2 node build/link, specified build targets, and synthetic tests passed; replay pending.",
+        "validation_record": "doc/workspace/evidence/IG_LIO_RESULTS.json"
+      },
+      "historical_build_record": {
+        "path": "doc/workspace/BUILD_REPORT.md",
+        "snapshot_date": "2026-11-14",
+        "scope": "Build evidence for the earlier complete author checkout, not evidence that the complete checkout is currently present or builds from this snapshot."
+      }
+    }
+  },
   "sources": [
     {
       "name": "FAST_LIO",
@@ -289,7 +327,7 @@
     "system_modified": false
   },
   "patches_note": "Patches are full worktree deltas against the pinned author commit, including relevant compatibility edits already present when this task began. They do not replace the source repositories. Apply only to the matching clean author baseline.",
-  "scope_reviewed_on": "2026-11-15",
-  "scope_note": "Active integration scope requires a new or improved map data structure among method contributions. Nine map selectors and their corresponding observation profiles are integrated; four source-available qualifying candidates remain. Original source pins and upstream build outcomes retain the 2026-11-14 snapshot; implementation builds, tests and complete-input replay evidence are recorded separately. See PLAN.md and paper/notes/MAP_BACKEND_SCOPE_REVIEW.md.",
+  "scope_reviewed_on": "2026-11-16",
+  "scope_note": "Active integration scope requires a new or improved map data structure among method contributions. Ten map selectors are in the current integration inventory, including the ig_lio_plane point-plane variant; round-2 node build/link, specified build targets and synthetic tests passed, while replay remains pending. Three source-available qualifying map candidates remain. Full iG-LIO GICP is a separate open observation design. Original source pins and 2026-11-14 upstream build outcomes remain historical snapshots; current source presence and implementation evidence are recorded in current_snapshot and doc/workspace/evidence/IG_LIO_RESULTS.json. See PLAN.md and paper/notes/MAP_BACKEND_SCOPE_REVIEW.md.",
   "map_structure_eligibility_reviewed_on": "2026-11-15"
 }

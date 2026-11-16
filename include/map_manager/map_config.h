@@ -91,6 +91,11 @@ struct MapManagerConfig
     bool i_octree_on_tree_downsample = false;  ///< 是否在树内执行降采样。
 
     bool local_window_enabled = false;  ///< 是否启用滑动局部窗口。
+
+    double igResolution_ = 0.5;      ///< iG-LIO 统计格尺寸，单位为米。
+    int igSearchMethod_  = 7;        ///< 邻域模式 1/7/19/26；26 包含中心，共 27 格。
+    int igCapacity_      = 5000000;  ///< 原生淘汰触发值，至少为 2；稳态最多保留 capacity−1 格。
+    int igGridMaxPoints_ = 20;       ///< 整批追加存点门限，初始批次不受硬点数上限约束。
 };
 
 }  // namespace pv_lio_plus

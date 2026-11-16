@@ -1,0 +1,11 @@
+# 增量地图使用共享五近邻点面观测；不是原生 GICP 或三点 double 平面模型。
+mapping:
+  map_type: ig_lio_plane
+  local_window_en: false
+  nearest_point_count: 5
+  nearest_max_range: 5.0
+  plane_fit_threshold: 0.1
+  ig_lio_resolution: 0.5
+  ig_lio_search_method: 7
+  ig_lio_capacity: 5000000
+  ig_lio_grid_max_points: 20

@@ -19,7 +19,7 @@ preprocess:
     feature_extract_enable: false
 
 mapping:
-    map_type: voxelmap_plus                # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap, octvox
+    map_type: voxelmap_plus                # 后端 selector 与参数见 config/README.md
     local_window_en: false
     down_sample_size: 0.1                 # m
     max_iteration: 10

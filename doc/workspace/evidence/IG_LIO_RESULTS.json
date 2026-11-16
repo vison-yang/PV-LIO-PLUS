@@ -1,0 +1,298 @@
+{
+  "recorded_on": "2026-11-16",
+  "timezone": "Asia/Shanghai",
+  "status": "source_integrated_build_and_synthetic_tests_passed; runtime_acceptance_pending",
+  "repository": "/home/yxy/src/lio_map_ws/src/PV-LIO-PLUS",
+  "branch": "master",
+  "baseline_commit": "e666799c6fd5792eb869af7c1b99ea5f73e2fdf3",
+  "changes_committed_at_validation": false,
+  "backend": {
+    "selector": "ig_lio_plane",
+    "author_commit": "2d79259e3aaa5bbb10d6b13234398760bbacf8f5",
+    "scope": "incremental sufficient-statistic voxel map and native batch/LRU policy, with shared five-point float-QR plane observation",
+    "full_author_gicp": false,
+    "import_manifest": "../../../include/map_manager/native/ig_lio/UPSTREAM_MANIFEST.json",
+    "contract": "../../../include/map_manager/native/ig_lio/SOURCE.md"
+  },
+  "source_integrity": {
+    "manifest_path": "/home/yxy/output/agent/pv_lio_plus_ig_config/20261116_round2/source_manifest.json",
+    "source_file_count": 99,
+    "all_hashes_match_after_build_and_test": true,
+    "differing_paths": [],
+    "manifest_sha256": "b9b685a0cd01495a319df8b2b89021a49a0e2c300299dd2c62da47e5911bdbe2"
+  },
+  "build": {
+    "round1_full_command_exit": 2,
+    "round1_full_command_log": "/home/yxy/output/agent/pv_lio_plus_ig_config/20261116_round1/build.log",
+    "round1_ig_retry_exit": 2,
+    "round1_ig_retry_log": "/home/yxy/output/agent/pv_lio_plus_ig_config/20261116_round1/build_retry.log",
+    "round1_failures": [
+      "stale generated make goal list omitted newly generated IG target in initial multi-target invocation",
+      "IG test linked without main; fixed by adding the project-standard GoogleTest main"
+    ],
+    "round2_command": [
+      "cmake",
+      "--build",
+      "/home/yxy/src/lio_map_ws/build",
+      "--target",
+      "pv_lio_plus_node",
+      "pv_lio_plus_observation_tests",
+      "pv_lio_plus_map_contract_tests",
+      "pv_lio_plus_r_voxelmap_tests",
+      "pv_lio_plus_hvox_map_tests",
+      "pv_lio_plus_hvox_observation_tests",
+      "pv_lio_plus_i_octree_tests",
+      "pv_lio_plus_i_octree_numeric_oracle_tests",
+      "pv_lio_plus_ig_lio_tests",
+      "--",
+      "-j2"
+    ],
+    "round2_exit_code": 0,
+    "round2_log": "/home/yxy/output/agent/pv_lio_plus_ig_config/20261116_round2/build.log",
+    "targets": [
+      "pv_lio_plus_node",
+      "pv_lio_plus_observation_tests",
+      "pv_lio_plus_map_contract_tests",
+      "pv_lio_plus_r_voxelmap_tests",
+      "pv_lio_plus_hvox_map_tests",
+      "pv_lio_plus_hvox_observation_tests",
+      "pv_lio_plus_i_octree_tests",
+      "pv_lio_plus_i_octree_numeric_oracle_tests",
+      "pv_lio_plus_ig_lio_tests"
+    ],
+    "warnings": "The build log contains existing signedness warnings in native/r_voxelmap/r_voxelmap.hpp."
+  },
+  "link": {
+    "exit_code": 0,
+    "log": "/home/yxy/output/agent/pv_lio_plus_ig_config/20261116_round2/ldd.log",
+    "not_found": [],
+    "undefined_symbol": [],
+    "passed": true
+  },
+  "node_binary": {
+    "path": "/home/yxy/src/lio_map_ws/devel/lib/pv_lio_plus/pv_lio_plus_node",
+    "size": 1841032,
+    "sha256": "c89cd1944143fcd4de2497ee34963f1b2440580dec8a3543ee04cb6794821230",
+    "prebuild": {
+      "path": "/home/yxy/src/lio_map_ws/devel/lib/pv_lio_plus/pv_lio_plus_node",
+      "size": 1841032,
+      "mtime_ns": 1794827479585187734,
+      "sha256": "c89cd1944143fcd4de2497ee34963f1b2440580dec8a3543ee04cb6794821230"
+    }
+  },
+  "tests": {
+    "ctest_passed": 9,
+    "ctest_total": 9,
+    "gtest_targets": 8,
+    "gtest_instances": 65,
+    "new_ig_cases": [
+      "StatisticsMatchIndependentSixPointSvdOracle",
+      "AxisAlignedSixPointMomentsMatchAnalyticOracle",
+      "BatchStateMatchesIndependentScalarModel",
+      "StatisticsCanCrossFiftyThenFreeze",
+      "FirstBatchIsNotHardCappedAndNineteenToTwentyDoesNotAppend",
+      "QueryDoesNotTouchUpdateTouchesAndCapacityEvictsTail",
+      "HashCollisionsKeepDistinctFullKeysAndNegativeFloorKeys",
+      "InvalidBatchesAreRejectedAtomically",
+      "SearchMatchesBruteForceNeighborhoodStrictRangeAndTies",
+      "QueryUsesTheSameReciprocalMultiplicationAsInsertion",
+      "SelectorLifecycleSnapshotAndRejectionPreserveOldMap"
+    ],
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "python_config_tests": 6,
+    "sensor_backend_combinations": 30,
+    "runner_preset_comparisons": 30,
+    "xml_archive": "/home/yxy/output/agent/pv_lio_plus_ig_config/20261116_round2/test_xml",
+    "xml_files": [
+      {
+        "name": "gtest-pv_lio_plus_hvox_map_tests.xml",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "sha256": "1c254f5aec6a441508ed551e65c082e18eab231a565d4b289201e16ca212dccf",
+        "size": 1278,
+        "mtime_ns": 1794828115796303091,
+        "fresh_vs_pretest": true,
+        "pretest_sha256": "8dcacc1b8cde743295774d04917b47f1083fec2ba52824825a971c7c83decb7e",
+        "pretest_mtime_ns": 1794818210364748381
+      },
+      {
+        "name": "gtest-pv_lio_plus_hvox_observation_tests.xml",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "sha256": "204f26a9bf69bf1004ca8e03a0cddb1b2d7108d72d279faa6825cd01f38fafa1",
+        "size": 993,
+        "mtime_ns": 1794828115826150656,
+        "fresh_vs_pretest": true,
+        "pretest_sha256": "2806a3b806337686c8fb2bd74b6927de1f478f8c6116dc0b3d76290c2a8bc26c",
+        "pretest_mtime_ns": 1794818210397082342
+      },
+      {
+        "name": "gtest-pv_lio_plus_i_octree_numeric_oracle_tests.xml",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "sha256": "c53e2c6755e6cf3fe13040f1f04f1705d6f91c49a111c740b4c6438be9ca349b",
+        "size": 1212,
+        "mtime_ns": 1794828115932389917,
+        "fresh_vs_pretest": true,
+        "pretest_sha256": "7ddb808e4ff1b0766eb1ea850cb248a3c63e342019dafe708bf1a141054c6447",
+        "pretest_mtime_ns": 1794818210482053112
+      },
+      {
+        "name": "gtest-pv_lio_plus_i_octree_tests.xml",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "sha256": "0dbc3705a24cbec48dcb315ac781049ed9618795c09c133370775fdae6debadb",
+        "size": 2271,
+        "mtime_ns": 1794828115859217562,
+        "fresh_vs_pretest": true,
+        "pretest_sha256": "b80635982becd6e775aeed8fbd84ff6a663930dc436cfee8b1af5547222da7a2",
+        "pretest_mtime_ns": 1794818210438961808
+      },
+      {
+        "name": "gtest-pv_lio_plus_ig_lio_tests.xml",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "sha256": "4b42c48b3bf87f55b484a465d41f8e19020073d46ee0e2b224b5e94e3ce81156",
+        "size": 2300,
+        "mtime_ns": 1794828115891935251,
+        "fresh_vs_pretest": true
+      },
+      {
+        "name": "gtest-pv_lio_plus_map_contract_tests.xml",
+        "tests": 15,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "sha256": "bc163e3ced1cd749245216efa123dd7040b05b02e43c38711b1297d4e7e79395",
+        "size": 3753,
+        "mtime_ns": 1794828115623356921,
+        "fresh_vs_pretest": true,
+        "pretest_sha256": "7f93ce065b58eb404d63ca35e9eb013bdde09fd35f81607f76b2b11d9631ef4c",
+        "pretest_mtime_ns": 1794818210110587234
+      },
+      {
+        "name": "gtest-pv_lio_plus_observation_tests.xml",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "sha256": "9753d32a5dc1a48bdab803839a0c6d12e636cd7f194dde8642c88000146d895a",
+        "size": 516,
+        "mtime_ns": 1794828115164989753,
+        "fresh_vs_pretest": true,
+        "pretest_sha256": "ef9a0dbeb879677fd08c0b2d7133d95f7e9c426c7347d2672811832c13e7c58c",
+        "pretest_mtime_ns": 1794818209541899056
+      },
+      {
+        "name": "gtest-pv_lio_plus_r_voxelmap_tests.xml",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "sha256": "3ee5906bf99e20e0fd2d9d40057df79d70f848cc47aa660e04babf38bde4be5d",
+        "size": 3437,
+        "mtime_ns": 1794828115759983543,
+        "fresh_vs_pretest": true,
+        "pretest_sha256": "b9170141ee2c98df65e07017e3af57332787be342d3ef0ec8d1cf6986cbe46f7",
+        "pretest_mtime_ns": 1794818210316864524
+      }
+    ],
+    "full_output": {
+      "path": "/home/yxy/output/agent/pv_lio_plus_ig_config/20261116_round2/LastTest.log",
+      "size": 29489,
+      "sha256": "10f01586bd8cc2e62eecf9012cffebf0f96e16636b812b483e1e28c611fa9f93"
+    },
+    "ctest_log": "/home/yxy/output/agent/pv_lio_plus_ig_config/20261116_round2/ctest.log"
+  },
+  "compile_configuration": {
+    "compile_database": {
+      "path": "/home/yxy/src/lio_map_ws/build/compile_commands.json",
+      "size": 119594,
+      "mtime_ns": 1794827404994943499,
+      "sha256": "a8b1d6d24b87a3e9a7d71fbd805d7cd5e07e2f387834b05543a60d599f23503e"
+    },
+    "audit": {
+      "path": "/home/yxy/output/agent/pv_lio_plus_ig_config/20261116_round2/compile_flags_audit.json",
+      "sha256": "b2859023173d1f5584216c64d9c059668ffb44d4d4437baa5c36021877d28fbb"
+    },
+    "consumer_count": 6,
+    "matching_comparisons": 24,
+    "total_comparisons": 24,
+    "ig_native_compiled_per_consumer": true,
+    "i_octree_native_and_oracle_flags": [
+      "-fno-fast-math",
+      "-fno-associative-math",
+      "-ffp-contract=off",
+      "-fno-lto"
+    ],
+    "asan_enabled": false
+  },
+  "configuration": {
+    "sensor_profiles": [
+      "avia",
+      "mid360_indoor",
+      "solid"
+    ],
+    "backend_presets": 10,
+    "legacy_wrapper_defaults": {
+      "avia": "voxelmap_plus",
+      "mid360_indoor": "voxelmap_plus",
+      "solid": "ivox"
+    },
+    "load_order": "sensor YAML then optional backend YAML; ROSLaunch leaf override preserves other parameters",
+    "runner_default": "dataset_yaml",
+    "runner_preset_option": "--backend-presets",
+    "runner_preset_archive": "backend_config.yaml with source and SHA-256 in dataset.json"
+  },
+  "root_verification": [
+    "All 99 source/config/test hashes match the prebuild snapshot.",
+    "Between round1 and round2 only tests/ig_lio_tests.cpp changed, adding the GTest entry point.",
+    "All eight archived XML hashes and freshness markers verified; all eleven iG cases are present.",
+    "Actual CTest log and LastTest.log confirm 9/9 entries and 6 Python tests.",
+    "Node and compile-database hashes match; ldd output has no missing library or undefined symbol."
+  ],
+  "external_results": {
+    "path": "/home/yxy/output/agent/pv_lio_plus_ig_config/20261116_round2/validation_results.json",
+    "sha256": "22946cca3c053404c963380dcf1f8563b892772fa484abcc1e21615139cae860"
+  },
+  "not_performed": [
+    "bag replay",
+    "ROS node/master startup",
+    "GUI/device validation",
+    "ASan/UBSan",
+    "allocation-failure injection",
+    "ground-truth accuracy evaluation",
+    "controlled performance A/B"
+  ],
+  "replay_inputs_checked": [
+    {
+      "path": "/home/yxy/data/avia/outdoor_Mainbuilding_100Hz_2020-12-24-16-46-29.bag",
+      "exists": false
+    },
+    {
+      "path": "/home/yxy/src/lio_map_ws/bags/S3_2026-08-04_08-40-43_intensity_continuous.bag",
+      "exists": false
+    }
+  ],
+  "limitations": [
+    "This is a shared-plane observation variant, not the author full iG-LIO/GICP system.",
+    "Tuple keys, defined hash arithmetic, deterministic sorting and integer neighbor offsets are explicit safety adaptations.",
+    "The U D V-transpose shape matrix is not unconditionally SPD and is not passed as plane covariance.",
+    "Input-domain errors are rejected before mutation; allocation/resource failures have only per-cell consistency and batch basic guarantee.",
+    "Resource-error paths were reviewed but not fault-injected; arbitrary SVD reference tests share Eigen, supplemented by an analytic axis-plane oracle.",
+    "MapManager and configuration layouts changed; original member order is retained, but ABI compatibility is not claimed.",
+    "Recorded historical complete-package builds and other replay runs do not validate this new selector."
+  ]
+}

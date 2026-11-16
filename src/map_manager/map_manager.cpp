@@ -12,7 +12,9 @@
  */
 
 #include "map_manager/map_manager.h"
+
 #include "backends/i_octree_backend.h"
+#include "backends/ig_lio_backend.h"
 #include "map_manager/native/hvox/VoxelMap.h"
 #include "map_manager/native/r_voxelmap/r_voxelmap.hpp"
 #include "point_plane.h"
@@ -207,6 +209,10 @@ MapType ParseMapType(const std::string &name)
     {
         return MapType::IOctree;
     }
+    if (name == "ig_lio_plane" || name == "ig-lio-plane")
+    {
+        return MapType::IGLIOPlane;
+    }
 
     throw std::invalid_argument("unknown mapping/map_type: " + name);
 }
@@ -238,6 +244,8 @@ const char *MapTypeName(const MapType type)
             return "hvox";
         case MapType::IOctree:
             return "i_octree";
+        case MapType::IGLIOPlane:
+            return "ig_lio_plane";
     }
     return "unknown";
 }
@@ -280,6 +288,10 @@ void MapManager::configure(const MapManagerConfig &config)
     if (config.type == MapType::IOctree)
     {
         backend_i_octree::ValidateConfig(config);
+    }
+    if (config.type == MapType::IGLIOPlane)
+    {
+        backend_ig_lio::ValidateConfig(config);
     }
     if (config.type == MapType::OctVox && config.local_window_enabled)
     {
@@ -343,7 +355,7 @@ bool MapManager::supports_selected_backend() const
     return config_.type == MapType::VoxelMap || config_.type == MapType::VoxelMapPlus ||
            config_.type == MapType::IKDTree || config_.type == MapType::IVox || config_.type == MapType::C3PVoxelMap ||
            config_.type == MapType::OctVox || config_.type == MapType::RVoxelMap || config_.type == MapType::HVox ||
-           config_.type == MapType::IOctree;
+           config_.type == MapType::IOctree || config_.type == MapType::IGLIOPlane;
 }
 
 /**
@@ -367,6 +379,7 @@ void MapManager::configure_point_backends()
     r_voxelmap_.reset();
     hvox_.reset();
     i_octree_.reset();
+    igLio_.reset();
 
     if (config_.type == MapType::IKDTree)
     {
@@ -422,6 +435,10 @@ void MapManager::configure_point_backends()
     {
         i_octree_ = backend_i_octree::Create(config_);
     }
+    else if (config_.type == MapType::IGLIOPlane)
+    {
+        igLio_ = backend_ig_lio::Create(config_);
+    }
 }
 
 /** @brief Clears all backend data, retained points, and window state. */
@@ -453,6 +470,7 @@ void MapManager::clear()
     r_voxelmap_.reset();
     hvox_.reset();
     i_octree_.reset();
+    igLio_.reset();
 
     map_points_.clear();
     initialized_ = false;
@@ -626,6 +644,10 @@ void MapManager::initialize(const MapPointList &points, const MapUpdateContext &
     {
         initialize_i_octree(points);
     }
+    else if (config_.type == MapType::IGLIOPlane)
+    {
+        InitializeIGLio(points);
+    }
     else
     {
         initialize_point_backend(points);
@@ -651,6 +673,38 @@ void MapManager::update_i_octree(const MapPointList &points)
         return;
     }
     backend_i_octree::Update(*i_octree_, config_, points);
+    ++revision_;
+}
+
+/** @brief 完整构建替换地图后再清旧图，参数域拒绝不破坏已有地图。 */
+void MapManager::InitializeIGLio(const MapPointList &points)
+{
+    auto replacement = backend_ig_lio::Build(config_, points);
+    clear();
+    igLio_       = std::move(replacement);
+    initialized_ = true;
+    ++revision_;
+}
+
+/** @brief 更新 iG-LIO 批次；资源异常可能部分提交，递增 revision 后向上传播。 */
+void MapManager::UpdateIGLio(const MapPointList &points)
+{
+    if (!initialized_ || !igLio_)
+    {
+        InitializeIGLio(points);
+        return;
+    }
+    try
+    {
+        backend_ig_lio::Update(*igLio_, points);
+    } catch (const std::invalid_argument &)
+    {
+        throw;  // 全批输入预检发生在任何地图修改前。
+    } catch (...)
+    {
+        ++revision_;  // 保守使缓存失效，不能把资源异常当成整批未发生。
+        throw;
+    }
     ++revision_;
 }
 
@@ -940,6 +994,10 @@ void MapManager::update(const MapPointList &points, const std::uint32_t frame_nu
     else if (config_.type == MapType::IOctree)
     {
         update_i_octree(points);
+    }
+    else if (config_.type == MapType::IGLIOPlane)
+    {
+        UpdateIGLio(points);
     }
     else
     {
@@ -1373,6 +1431,10 @@ void MapManager::search(const MapPointList &points, PlaneMatchList &matches, std
     {
         search_i_octree(points, matches, non_match);
     }
+    else if (config_.type == MapType::IGLIOPlane)
+    {
+        backend_ig_lio::Search(igLio_.get(), config_, points, matches, non_match);
+    }
     else
     {
         search_point_backend(points, matches, non_match);
@@ -1781,6 +1843,10 @@ void MapManager::erase_outside_window(const MapWindow &window)
     {
         throw std::logic_error("hVox does not support public geometric local-window deletion");
     }
+    if (config_.type == MapType::IGLIOPlane)
+    {
+        throw std::logic_error("ig_lio_plane does not support geometric local-window deletion; it uses native LRU");
+    }
     if (!window.initialized)
     {
         return;
@@ -2015,6 +2081,10 @@ size_t MapManager::size() const
     {
         return backend_i_octree::Size(i_octree_.get());
     }
+    if (config_.type == MapType::IGLIOPlane)
+    {
+        return backend_ig_lio::Size(igLio_.get());
+    }
     return 0;
 }
 
@@ -2024,6 +2094,7 @@ size_t MapManager::size() const
  */
 size_t MapManager::point_count() const
 {
+    if (config_.type == MapType::IGLIOPlane) return backend_ig_lio::PointCount(igLio_.get());
     if (config_.type == MapType::IOctree) return backend_i_octree::Size(i_octree_.get());
     if (config_.type == MapType::HVox) return hvox_ ? hvox_->GetPointCount() : 0;
     if (config_.type == MapType::RVoxelMap)
@@ -2043,6 +2114,16 @@ size_t MapManager::point_count() const
 PointCloudXYZI::Ptr MapManager::snapshot() const
 {
     PointCloudXYZI::Ptr result(new PointCloudXYZI());
+    if (config_.type == MapType::IGLIOPlane)
+    {
+        const auto points = backend_ig_lio::Snapshot(igLio_.get());
+        result->reserve(points.size());
+        for (const auto &point : points)
+        {
+            result->push_back(ToPointType(point));
+        }
+        return result;
+    }
     if (config_.type == MapType::IOctree)
     {
         if (i_octree_)

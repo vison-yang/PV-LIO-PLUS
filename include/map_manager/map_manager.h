@@ -34,6 +34,10 @@ class ImuProcess;
 namespace r_voxelmap_ns { class VoxelMap; }
 namespace lio { class VoxelMap; }
 namespace pv_lio_plus::i_octree_native { class Octree; }
+namespace pv_lio_plus::ig_lio_native
+{
+class VoxelMap;
+}
 
 #include "common_lib.h"
 #include "map_manager/map_types.h"
@@ -162,6 +166,10 @@ class MapManager
 
     void update_i_octree(const MapPointList &points);
 
+    void InitializeIGLio(const MapPointList &points);
+
+    void UpdateIGLio(const MapPointList &points);
+
     void search_i_octree(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
 
     void search_point_backend(const MapPointList &points, PlaneMatchList &matches, std::vector<V3D> &non_match);
@@ -231,6 +239,8 @@ class MapManager
     std::unordered_map<c3p_map_ns::PlaneDesc, c3p_map_ns::UnionPlane> c3p_plane_map_;
     /// C3P merged-node lookup table.
     std::unordered_map<int, std::unordered_set<c3p_map_ns::NodeLoc>> c3p_merged_table_;
+    /// iG-LIO 增量统计地图；点面观测变体不使用其散点协方差作为平面不确定性。
+    std::unique_ptr<ig_lio_native::VoxelMap> igLio_;
 };
 
 }  // namespace pv_lio_plus

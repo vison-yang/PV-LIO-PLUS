@@ -76,10 +76,15 @@ bool Config::Load(ros::NodeHandle& nh)
         ROS_FATAL("mapping/local_window_en is not supported by hVox; it uses its native moving box");
         return false;
     }
+    if (map_manager_config_->type == MapType::IGLIOPlane && map_manager_config_->local_window_enabled)
+    {
+        ROS_FATAL("mapping/local_window_en is not supported by ig_lio_plane; it uses native LRU eviction");
+        return false;
+    }
     nh.param<int>("mapping/nearest_point_count", map_manager_config_->nearest_point_count, NUM_MATCH_POINTS);
     nh.param<double>("mapping/nearest_max_range", map_manager_config_->nearest_max_range, 5.0);
     if ((map_manager_config_->type == MapType::IKDTree || map_manager_config_->type == MapType::IVox ||
-         map_manager_config_->type == MapType::IOctree) &&
+         map_manager_config_->type == MapType::IOctree || map_manager_config_->type == MapType::IGLIOPlane) &&
         !ValidNearestMaxRange(map_manager_config_->nearest_max_range))
     {
         ROS_FATAL("mapping/nearest_max_range must be positive and finite in metres, with a finite nonzero square");
@@ -141,6 +146,12 @@ bool Config::Load(ros::NodeHandle& nh)
     nh.param<int>("mapping/i_octree_bucket_size", map_manager_config_->i_octree_bucket_size, 32);
     nh.param<double>("mapping/i_octree_min_extent", map_manager_config_->i_octree_min_extent, 0.01);
     nh.param<bool>("mapping/i_octree_on_tree_downsample", map_manager_config_->i_octree_on_tree_downsample, false);
+
+    // iG 地图保留原生统计和 LRU；该 selector 使用公共五点点面观测。
+    nh.param<double>("mapping/ig_lio_resolution", map_manager_config_->igResolution_, 0.5);
+    nh.param<int>("mapping/ig_lio_search_method", map_manager_config_->igSearchMethod_, 7);
+    nh.param<int>("mapping/ig_lio_capacity", map_manager_config_->igCapacity_, 5000000);
+    nh.param<int>("mapping/ig_lio_grid_max_points", map_manager_config_->igGridMaxPoints_, 20);
 
     // ------------------------------ Noise and output --------------------------
     nh.param<double>("noise_model/ranging_cov", ranging_cov_, 0.02);

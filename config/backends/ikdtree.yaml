@@ -1,0 +1,10 @@
+# 显式配置基线；point_map_downsample_size 由传感器配置继承。
+mapping:
+  map_type: ikdtree
+  local_window_en: false
+  nearest_point_count: 5
+  nearest_max_range: 5.0
+  plane_fit_threshold: 0.1
+  ikd_delete_param: 0.5
+  ikd_balance_param: 0.7
+  ikd_box_length: 0.2

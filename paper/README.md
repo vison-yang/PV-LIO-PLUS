@@ -33,7 +33,7 @@
 | Environment-Adaptive Solid-State LIO | [PDF](Environment-Adaptive-Solid-State-LIO.pdf)，arXiv v2，6 页 | [2604.15864v2](https://arxiv.org/abs/2604.15864v2) | 本地收集记录未确认作者源码；作为地图维护研究归档，尚无空间/层级/几何结构改进证据 |
 | i-Octree | [PDF](i-Octree.pdf)，arXiv v2，7 页 | [2309.08315v2](https://arxiv.org/abs/2309.08315v2) | [i-octree](https://github.com/zhujun3753/i-octree)；已按结构保真方式适配到 `i_octree`，不是未修改上游性能复现 |
 | KISS-ICP / VoxelHashMap | [PDF](KISS-ICP.pdf)，RA-L 2023 作者预印本，8 页 | [10.1109/LRA.2023.3236571](https://doi.org/10.1109/LRA.2023.3236571) | [kiss-icp](https://github.com/PRBonn/kiss-icp)；沿用既有 voxel hash，源码/构建留作归档，不列当前地图候选 |
-| iG-LIO / incremental VoxelMap | [PDF](iG-LIO.pdf)，RA-L 2024 作者 early access，8 页 | [10.1109/LRA.2024.3349915](https://doi.org/10.1109/LRA.2024.3349915) | [ig_lio](https://github.com/zijiechenrobotics/ig_lio)，增量点图与 GICP 观测分阶段评估；不移植完整状态优化循环 |
+| iG-LIO / incremental VoxelMap | [PDF](iG-LIO.pdf)，RA-L 2024 作者 early access，8 页 | [10.1109/LRA.2024.3349915](https://doi.org/10.1109/LRA.2024.3349915) | [ig_lio](https://github.com/zijiechenrobotics/ig_lio)，固定作者提交 `2d79259e`；原完整 `src/ig_lio` checkout 当前缺失，本地地图核心是基于固定源文件的安全重实现，并接入 `ig_lio_plane` 点面变体；作者 GICP 仍独立待设计；旧构建记录不代表当前完整包可用 |
 
 ## SA-LIVO 独立工作空间资料
 
@@ -46,8 +46,8 @@ SA-LIVO v3 的论文、笔记和 Noetic 包说明已移出本仓库，归入[独
 
 ## 本项目的集成与复现状态
 
-- 当前九个 selector 均集成地图及对应观测。i-Octree feature `5c27a79` 已以 `6876a8e` 合入主线；feature 隔离测试、数值审查和 30/141 秒回放通过，主线构建/链接、CTest 7/7（49 个 GTest 条目，ASan 关闭）及 30 秒完整输入回放通过。详见[i-Octree 结果记录](../doc/workspace/evidence/I_OCTREE_RESULTS.json)。R-VoxelMap 与 hVox 的主线状态和证据见[集成状态](../doc/INTEGRATION_STATUS.md)、[R 结果记录](../doc/workspace/evidence/R_VOXELMAP_RESULTS.json)和[hVox 结果记录](../doc/workspace/evidence/HVOX_RESULTS.json)。这些回归不构成独立真值精度或受控性能结论。
-- 另有四项满足结构准入条件的本地作者源码待评估，其中 LIO-GVM 因作者发布缺少定制头文件而阻塞；两项结构合格论文（FR-LIO、SV-LIO）本地收集记录尚未确认作者源码。KISS-ICP、GenZ-LIO、CT-VoxelMap 和 Environment-Adaptive 的论文、源码或历史构建证据保留归档，不列当前候选。SA-LIVO v3 已独立归档，不是待集成地图后端。逐项状态见[集成计划](../PLAN.md)。
+- 当前有十个地图 selector；`ig_lio_plane` 已接入，round 2 node build/link 与九个指定构建目标通过，CTest 9/9（65 个 GTest 条目，ASan 关闭）及配置合成测试通过。本轮尚无回放或精度/性能验证，详见[iG-LIO 结果记录](../doc/workspace/evidence/IG_LIO_RESULTS.json)。i-Octree feature `5c27a79` 已以 `6876a8e` 合入主线；feature 隔离测试、数值审查和 30/141 秒回放通过，主线构建/链接、CTest 7/7（49 个 GTest 条目，ASan 关闭）及 30 秒完整输入回放通过。详见[i-Octree 结果记录](../doc/workspace/evidence/I_OCTREE_RESULTS.json)。R-VoxelMap 与 hVox 的主线状态和证据见[集成状态](../doc/INTEGRATION_STATUS.md)、[R 结果记录](../doc/workspace/evidence/R_VOXELMAP_RESULTS.json)和[hVox 结果记录](../doc/workspace/evidence/HVOX_RESULTS.json)。历史回归不构成独立真值精度或受控性能结论。
+- 另有三项满足结构准入条件的地图候选（Hybrid-VoxelMap、BIEVR-LIO、LIO-GVM），其中 LIO-GVM 因作者发布缺少定制头文件而阻塞；两项结构合格论文（FR-LIO、SV-LIO）本地收集记录尚未确认作者源码。完整 iG-LIO GICP 观测属于独立后续设计，不计作尚未接入的新地图。KISS-ICP、GenZ-LIO、CT-VoxelMap 和 Environment-Adaptive 的论文、源码或历史构建证据保留归档，不列当前候选。SA-LIVO v3 已独立归档，不是待集成地图后端。逐项状态见[集成计划](../PLAN.md)。
 - 本地构建退出 0 不等于数据集精度复现。作者论文中的精度、耗时和运行条件不代表本工作区的实验结果。
 
 ## 源码核查边界

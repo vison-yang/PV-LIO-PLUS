@@ -1,0 +1,6 @@
+# 显式配置基线；不是性能优选参数。
+mapping:
+  map_type: voxelmap_plus
+  local_window_en: false
+  update_size_threshold: 5
+  sigma_num: 3

@@ -1,0 +1,10 @@
+# 使用原生移动盒，不启用通用滑窗。
+mapping:
+  map_type: hvox
+  local_window_en: false
+  hvox_voxel_size: 0.4
+  hvox_hierarchy_factor: 3
+  hvox_planarity_threshold: 0.01
+  hvox_max_distance: 50.0
+  hvox_box_multiplier: 2.0
+  hvox_lidar_noise_std: 0.05

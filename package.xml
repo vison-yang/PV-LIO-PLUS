@@ -40,6 +40,8 @@
   <test_depend>rostest</test_depend>
   <test_depend>rosbag</test_depend>
   <test_depend>gtest</test_depend>
+  <test_depend>roslaunch</test_depend>
+  <test_depend>python3-yaml</test_depend>
 
   <export>
   </export>

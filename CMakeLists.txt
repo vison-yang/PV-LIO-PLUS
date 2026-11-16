@@ -90,7 +90,10 @@ target_compile_options(pv_lio_plus_i_octree_native PRIVATE
 set_target_properties(pv_lio_plus_i_octree_native PROPERTIES INTERPROCEDURAL_OPTIMIZATION FALSE)
 
 set(PV_LIO_PLUS_MAP_MANAGER_ADAPTER_SOURCES
+  # Compile Eigen/SVD native code per consumer to keep assertion macros consistent.
+  include/map_manager/native/ig_lio/voxel_map.cpp
   src/map_manager/backends/i_octree_backend.cpp
+  src/map_manager/backends/ig_lio_backend.cpp
   src/map_manager/point_plane.cpp)
 
 add_executable(pv_lio_plus_node
@@ -107,6 +110,8 @@ target_include_directories(pv_lio_plus_node PRIVATE ${PYTHON_INCLUDE_DIRS})
 
 if(CATKIN_ENABLE_TESTING)
   option(PV_LIO_PLUS_ENABLE_ASAN_TESTS "Build the R-VoxelMap AddressSanitizer test" OFF)
+  add_test(NAME pv_lio_plus_config_profiles
+    COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/config_profiles_tests.py)
   catkin_add_gtest(pv_lio_plus_observation_tests tests/observation_tests.cpp)
   catkin_add_gtest(pv_lio_plus_map_contract_tests tests/map_contract_tests.cpp ${PV_LIO_PLUS_MAP_MANAGER_ADAPTER_SOURCES})
   catkin_add_gtest(pv_lio_plus_r_voxelmap_tests tests/r_voxelmap_tests.cpp src/utils.cpp src/preprocess.cpp
@@ -114,6 +119,7 @@ if(CATKIN_ENABLE_TESTING)
   catkin_add_gtest(pv_lio_plus_hvox_map_tests tests/hvox_map_tests.cpp ${PV_LIO_PLUS_MAP_MANAGER_ADAPTER_SOURCES})
   catkin_add_gtest(pv_lio_plus_hvox_observation_tests tests/hvox_observation_tests.cpp)
   catkin_add_gtest(pv_lio_plus_i_octree_tests tests/i_octree_tests.cpp ${PV_LIO_PLUS_MAP_MANAGER_ADAPTER_SOURCES})
+  catkin_add_gtest(pv_lio_plus_ig_lio_tests tests/ig_lio_tests.cpp ${PV_LIO_PLUS_MAP_MANAGER_ADAPTER_SOURCES})
   if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/i_octree_numeric_oracle_tests.cpp)
     catkin_add_gtest(pv_lio_plus_i_octree_numeric_oracle_tests tests/i_octree_numeric_oracle_tests.cpp)
     if(TARGET pv_lio_plus_i_octree_numeric_oracle_tests)
@@ -140,26 +146,37 @@ if(CATKIN_ENABLE_TESTING)
     # manager implementation in one translation unit, just as mapping.cpp does.
     target_include_directories(pv_lio_plus_map_contract_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     add_dependencies(pv_lio_plus_map_contract_tests ${catkin_EXPORTED_TARGETS})
-    target_link_libraries(pv_lio_plus_map_contract_tests pv_lio_plus_hvox_native pv_lio_plus_i_octree_native ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+    target_link_libraries(pv_lio_plus_map_contract_tests pv_lio_plus_hvox_native pv_lio_plus_i_octree_native
+      ${catkin_LIBRARIES} ${PCL_LIBRARIES})
   endif()
   if(TARGET pv_lio_plus_r_voxelmap_tests)
     target_include_directories(pv_lio_plus_r_voxelmap_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     add_dependencies(pv_lio_plus_r_voxelmap_tests ${catkin_EXPORTED_TARGETS})
     # Keep Eigen bounds assertions active for degenerate and rebuild tests.
     target_compile_options(pv_lio_plus_r_voxelmap_tests PRIVATE -UNDEBUG -UEIGEN_NO_DEBUG)
-    target_link_libraries(pv_lio_plus_r_voxelmap_tests pv_lio_plus_hvox_native pv_lio_plus_i_octree_native ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+    target_link_libraries(pv_lio_plus_r_voxelmap_tests pv_lio_plus_hvox_native pv_lio_plus_i_octree_native
+      ${catkin_LIBRARIES} ${PCL_LIBRARIES})
   endif()
   if(TARGET pv_lio_plus_hvox_map_tests)
     target_include_directories(pv_lio_plus_hvox_map_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     add_dependencies(pv_lio_plus_hvox_map_tests ${catkin_EXPORTED_TARGETS})
     target_compile_options(pv_lio_plus_hvox_map_tests PRIVATE -UNDEBUG -UEIGEN_NO_DEBUG)
-    target_link_libraries(pv_lio_plus_hvox_map_tests pv_lio_plus_hvox_native pv_lio_plus_i_octree_native ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+    target_link_libraries(pv_lio_plus_hvox_map_tests pv_lio_plus_hvox_native pv_lio_plus_i_octree_native
+      ${catkin_LIBRARIES} ${PCL_LIBRARIES})
   endif()
   if(TARGET pv_lio_plus_i_octree_tests)
     target_include_directories(pv_lio_plus_i_octree_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     add_dependencies(pv_lio_plus_i_octree_tests ${catkin_EXPORTED_TARGETS})
     target_compile_options(pv_lio_plus_i_octree_tests PRIVATE -UNDEBUG -UEIGEN_NO_DEBUG)
-    target_link_libraries(pv_lio_plus_i_octree_tests pv_lio_plus_hvox_native pv_lio_plus_i_octree_native ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+    target_link_libraries(pv_lio_plus_i_octree_tests pv_lio_plus_hvox_native pv_lio_plus_i_octree_native
+      ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+  endif()
+  if(TARGET pv_lio_plus_ig_lio_tests)
+    target_include_directories(pv_lio_plus_ig_lio_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    add_dependencies(pv_lio_plus_ig_lio_tests ${catkin_EXPORTED_TARGETS})
+    target_compile_options(pv_lio_plus_ig_lio_tests PRIVATE -UNDEBUG -UEIGEN_NO_DEBUG)
+    target_link_libraries(pv_lio_plus_ig_lio_tests pv_lio_plus_hvox_native pv_lio_plus_i_octree_native
+      ${catkin_LIBRARIES} ${PCL_LIBRARIES})
   endif()
   if(TARGET pv_lio_plus_i_octree_asan_tests)
     target_compile_definitions(pv_lio_plus_i_octree_asan_tests PRIVATE I_OCTREE_NATIVE_ONLY)

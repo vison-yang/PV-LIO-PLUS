@@ -5,6 +5,9 @@ The input is a JSON manifest.  Each dataset explicitly declares the bag,
 LiDAR message mode/topic, and IMU message type/topic.  A temporary launch file
 overrides only those runtime parameters and ``mapping/map_type``; the package
 source and checked-in YAML files are not modified.
+With ``--backend-presets``, the selected backend YAML is loaded after the
+dataset configuration and archived with its SHA-256; the default retains the
+dataset YAML tuning used by earlier runs.
 
 Example:
   python3 scripts/run_backend_tests.py \
@@ -20,6 +23,7 @@ The workspace is compiled first with the command used by ``.vscode/tasks.json``.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -48,6 +52,7 @@ BACKENDS = {
     "r_voxelmap": "pv_lio_r_voxelmap",
     "hvox": "pv_lio_hvox",
     "i_octree": "pv_lio_i_octree",
+    "ig_lio_plane": "pv_lio_ig_lio_plane",
 }
 DEFAULT_BACKENDS = ("voxelmap", "voxelmap_plus", "ikdtree", "ivox", "c3p_voxelmap", "octvox")
 BACKEND_ALIASES = {
@@ -68,6 +73,7 @@ BACKEND_ALIASES = {
     "h-vox": "hvox",
     "ioctree": "i_octree",
     "i-octree": "i_octree",
+    "ig-lio-plane": "ig_lio_plane",
 }
 LIDAR_TYPES = {
     "1": (1, "livox_ros_driver/CustomMsg"),
@@ -297,10 +303,22 @@ def verify_topics(dataset: Dataset, env: Dict[str, str]) -> None:
             die(f"dataset '{dataset.name}' topic {topic} has type {actual}, expected {expected}")
 
 
-def launch_text(dataset: Dataset, backend: str) -> str:
+def backend_preset_path(backend: str) -> Path:
+    """返回显式后端预设；未选此模式时保留原数据清单的完整参数。"""
+    if backend not in BACKENDS:
+        die(f"unknown backend preset: {backend}")
+    path = Path(__file__).resolve().parents[1] / "config" / "backends" / f"{backend}.yaml"
+    if not path.is_file():
+        die(f"backend preset not found: {path}")
+    return path
+
+
+def launch_text(dataset: Dataset, backend: str, backend_config: Optional[Path] = None) -> str:
+    preset_tag = (f'  <rosparam command="load" file="{xml_escape(str(backend_config))}"/>\n'
+                  if backend_config is not None else "")
     return f'''<launch>
   <rosparam command="load" file="{xml_escape(str(dataset.config))}"/>
-  <param name="common/lid_topic" value="{xml_escape(dataset.lidar_topic)}"/>
+{preset_tag}  <param name="common/lid_topic" value="{xml_escape(dataset.lidar_topic)}"/>
   <param name="common/imu_topic" value="{xml_escape(dataset.imu_topic)}"/>
   <param name="preprocess/lidar_type" value="{dataset.lidar_type}" type="int"/>
   <param name="mapping/map_type" value="{backend}"/>
@@ -572,11 +590,25 @@ def run_one(dataset: Dataset, backend: str, args: argparse.Namespace,
     dataset_record["config"] = str(dataset.config)
     dataset_record["run_id"] = run_id
     dataset_record["source_commit"] = source_commit
+    dataset_record["base_config_sha256"] = hashlib.sha256(dataset.config.read_bytes()).hexdigest()
+    use_backend_presets = bool(getattr(args, "backend_presets", False))
+    dataset_record["backend_config_mode"] = "backend_preset" if use_backend_presets else "dataset_yaml"
+    backend_config = None
+    dataset_record["backend_preset"] = None
+    if use_backend_presets:
+        preset_source = backend_preset_path(backend)
+        backend_config = run_dir / "backend_config.yaml"
+        shutil.copy2(preset_source, backend_config)
+        dataset_record["backend_preset"] = {
+            "source": str(preset_source),
+            "archive": str(backend_config),
+            "sha256": hashlib.sha256(backend_config.read_bytes()).hexdigest(),
+        }
     (run_dir / "dataset.json").write_text(json.dumps(dataset_record, indent=2, ensure_ascii=False) + "\n",
                                            encoding="utf-8")
     shutil.copy2(dataset.config, run_dir / "base_config.yaml")
     launch_file = run_dir / "generated.launch"
-    launch_file.write_text(launch_text(dataset, backend), encoding="utf-8")
+    launch_file.write_text(launch_text(dataset, backend, backend_config), encoding="utf-8")
 
     run_env = dict(env)
     run_env["ROS_HOME"] = str(run_dir / "ros_home")
@@ -665,6 +697,8 @@ def main() -> int:
     parser.add_argument("--skip-topic-check", action="store_true",
                         help="skip rosbag info type/topic validation")
     parser.add_argument("--continue-on-error", action="store_true")
+    parser.add_argument("--backend-presets", action="store_true",
+                        help="load backend YAML after dataset config; default preserves dataset YAML tuning")
     parser.add_argument("--dry-run", action="store_true",
                         help="print the test matrix and commands without building, starting ROS, or creating files")
     args = parser.parse_args()
@@ -683,6 +717,9 @@ def main() -> int:
     algorithms = list(dict.fromkeys(canonical_backend(value) for value in raw_algorithms))
     if not algorithms:
         die("at least one backend is required")
+    if args.backend_presets:
+        for backend in algorithms:
+            backend_preset_path(backend)
 
     workspace_root = Path(__file__).resolve().parents[3]
     source_root = Path(__file__).resolve().parents[1]
@@ -701,6 +738,8 @@ def main() -> int:
             print(f"  rosbag: {' '.join(build_bag_command(dataset))}")
             for backend in algorithms:
                 print(f"  roslaunch[{backend}]: roslaunch <generated/{dataset.name}/{backend}.launch>")
+                if args.backend_presets:
+                    print(f"  backend preset[{backend}]: {backend_preset_path(backend)}")
         return 0
 
     env = dict(os.environ)

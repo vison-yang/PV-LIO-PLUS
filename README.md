@@ -16,7 +16,7 @@ framework**. PV-LIO-PLUS first integrated
 then substantially refactored and optimized the code framework, and subsequently
 incorporated more map structures and their corresponding residual models.
 
-`MapManager` currently selects nine integrated backends from a common
+`MapManager` currently selects ten map backends from a common
 configuration. Their map implementations are bundled in this package. Official
 upstream projects collected in the surrounding workspace supply provenance and
 independent baselines; their complete estimation nodes are built separately.
@@ -27,9 +27,9 @@ independent baselines; their complete estimation nodes are built separately.
 - Integrate VoxelMap and VoxelMap++ maps and their probabilistic plane residuals.
 - Refactor configuration, map management, observation dispatch, and result output
   into a common C++17 framework.
-- Add ikd-tree, iVox, C3P-VoxelMap, OctVox, R-VoxelMap, hVox, and i-Octree
-  with their corresponding matching and observation paths, giving nine
-  selectable backends.
+- Add ikd-tree, iVox, C3P-VoxelMap, OctVox, R-VoxelMap, hVox, i-Octree, and
+  the iG-LIO incremental voxel map with their corresponding matching and
+  observation paths, giving ten selectable backends.
 - Provide trajectory, world-frame map-cloud, and per-frame timing outputs for
   reproducible comparisons.
 
@@ -56,7 +56,7 @@ after removing that contribution cannot stand in for the original map.
 
 ### Integrated local-map backends
 
-All nine map families below meet the structural-contribution criterion.
+All ten map families below meet the structural-contribution criterion.
 FAST-LIO2 is represented by its ikd-tree contribution, not by FAST-LIO1.
 
 | Algorithm / map | Bundled map source | Selector | Map and residual model |
@@ -70,6 +70,7 @@ FAST-LIO2 is represented by its ikd-tree contribution, not by FAST-LIO1.
 | R-VoxelMap | `include/map_manager/native/r_voxelmap` | `r_voxelmap` | Recursive internal/child planes with outlier reuse, native root LRU, and covariance-aware probabilistic plane observation. |
 | Surfel-LIO / hVox | `include/map_manager/native/hvox` | `hvox` | Two-level L0-centroid/L1-precomputed-surfel map with native moving-box maintenance and a PKO-based signed plane observation adapted to the shared IKFoM loop. |
 | i-Octree | `include/map_manager/native/i_octree` | `i_octree` | Dynamic octree with contiguous RAII leaf blocks, data-AABB-pruned full-tree kNN, and the shared point-plane observation adapter. |
+| iG-LIO / incremental VoxelMap | `include/map_manager/native/ig_lio` | `ig_lio_plane` | Incremental voxel sufficient statistics and native retained-point maintenance; bounded local search feeds the shared five-point float-QR scalar plane observation. This is not the author GICP observation. |
 
 FAST-LIO2 and Faster-LIO are represented through ikd-tree and iVox, using this
 framework's observation adapter. Official full-system copies are collected in
@@ -77,16 +78,21 @@ workspace `src/FAST_LIO` and `src/faster_lio` for independent baselines.
 
 ### Collected sources and planned backends
 
-The following status was checked against local source snapshots on
-**2026-11-15**. Paths are relative to the workspace root. Pinned author commits
-and compatibility patches are in the [source manifest](doc/workspace/SOURCE_MANIFEST.json).
-Build outcomes for the remaining candidates below refer to the **2026-11-14**
-[build record](doc/workspace/BUILD_REPORT.md). R-VoxelMap and hVox have since
-been integrated; four candidates remain without selectors.
+The original source snapshot was checked on **2026-11-15**. Paths are relative
+to the workspace root. Pinned author commits and compatibility patches are in
+the [source manifest](doc/workspace/SOURCE_MANIFEST.json). iG-LIO's full
+`src/ig_lio` checkout is absent from the current workspace; the bundled native
+map core is a safety-focused reimplementation based on author commit
+`2d79259e3aaa5bbb10d6b13234398760bbacf8f5`. Its 2026-11-14 shared-build record
+describes the earlier complete checkout only. The new `ig_lio_plane` selector
+source integration is complete; the round-2 node build/link and synthetic tests
+passed, while runtime replay remains pending. See the
+[iG-LIO result record](doc/workspace/evidence/IG_LIO_RESULTS.json).
+Three map candidates remain without selectors; full iG-LIO GICP is a separate
+observation-design task.
 
 | Map / method | Collected official source | Recorded build | Integration work |
 | --- | --- | --- | --- |
-| iG-LIO | `src/ig_lio` | Shared ROS1 build passed | Preserve incremental voxel sufficient statistics and native maintenance, then adapt matching/observations; review GICP information and covariance separately. A point-to-plane variant must retain the map contribution. |
 | Hybrid-VoxelMap | `src/Hybrid-VoxelMap` | Shared ROS1 build passed | Conditional candidate: define semantic-label inputs and typed Plane/NDT matches, then adapt both residuals. Identify plane-only or label-free variants explicitly. |
 | BIEVR-LIO | `upstream/BIEVR-LIO` | Isolated ROS1 targets passed | Conditional candidate: adapt voxel bump images and height residuals to the common state/filter; assess map-guided sampling separately. |
 | LIO-GVM | `upstream/lio_gvm` | Blocked by incomplete author release | Incremental Gaussian voxel map storing centroids/covariances; obtain missing author-specific Fast-VGICP/IKFoM and map source before implementing its map/residual adapter. |
@@ -117,11 +123,13 @@ method. Record residual type, covariance/information, robust kernel, matching
 gates, scan sampling, and map budget/eviction with each result. Semantic inputs
 or map-guided sampling need explicit experiment profiles and ablations.
 
-The current nine paths use plane-based observations, with different
+The current ten paths use plane-based observations, with different
 parameterizations, uncertainty models, and gates; OctVox uses fixed information.
 R-VoxelMap uses its recursive probabilistic planes and native 3-sigma matching.
 hVox uses fixed L1 surfels within a correspondence group and PKO weighting
-adapted to the shared IKFoM loop.
+adapted to the shared IKFoM loop. `ig_lio_plane` retains the incremental voxel
+map but uses the shared five-point float-QR scalar plane fit; it is not the author's
+GICP residual or complete iG-LIO estimator.
 VoxelMap++ now follows `extrinsic_est_en`: when enabled, its analytic Jacobian
 includes the right-perturbation extrinsic rotation and translation columns;
 when disabled, those columns are zero. Its `h = -float(dist)`, native weights,
@@ -137,7 +145,7 @@ physical unit but do not imply identical boundary or search-domain behavior.
 To reproduce an old ikd-tree threshold configured as squared-distance value
 `v`, set the new radius to `sqrt(v)` metres; existing iVox values are unchanged.
 
-The example dataset manifest lists all nine selectors. The prior eight-selector
+The example dataset manifest lists all ten selectors. The prior eight-selector
 baseline passed main-line build/link, CTest 5/5 (33 GTest cases), and the hVox
 30-second replay. i-Octree's feature build/link, independent numerical review,
 isolated tests, and complete-input 30/141-second replays passed. On main-line
@@ -179,7 +187,8 @@ MapManager: map storage, updates, matching
     |-- OctVox         --> plane observation with fixed information
     |-- R-VoxelMap     --> recursive probabilistic plane observation
     |-- hVox          --> PKO-weighted precomputed-surfel observation
-    `-- i-Octree      --> shared point-plane observation
+    |-- i-Octree      --> shared point-plane observation
+    `-- iG-LIO        --> shared five-point float-QR scalar plane observation
     |
     v
 Backend observation dispatch --> shared IKFoM update
@@ -218,15 +227,29 @@ Set the backend in the PV-LIO-PLUS YAML configuration:
 
 ```yaml
 mapping:
-  map_type: octvox    # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap, octvox, r_voxelmap, hvox, i_octree
+  map_type: octvox    # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap, octvox, r_voxelmap, hvox, i_octree, ig_lio_plane
 ```
 
 The local-window mode is selected with the existing `mapping` window
-parameters. Backend-specific parameters remain in the same configuration file
-and are ignored when another backend is selected. `octvox` retains Super-LIO's
+parameters. Sensor YAML is loaded first, then the selected backend profile
+overlays its leaves; common observation parameters remain shared. See the
+[configuration profile guide](config/README.md). For example:
+
+```bash
+roslaunch pv_lio_plus mapping_avia.launch backend:=ig_lio_plane rviz:=false
+```
+
+The batch runner preserves each dataset's full YAML settings by default. Pass
+`--backend-presets` to opt into the same backend-profile overlay used by the
+generic launch; the run archive records the effective `backend_config.yaml`
+and `backend_config_mode` so results from the two modes stay distinguishable.
+
+`octvox` retains Super-LIO's
 capacity/LRU eviction and rejects geometric local-window mode. `hvox` uses its
 native moving box and rejects the shared geometric-window option. `i_octree`
 physically retains points inside the closed common window by pruning its tree.
+`ig_lio_plane` rejects geometric local-window mode and uses its native capacity
+and LRU behavior.
 
 ## Run
 
@@ -257,6 +280,7 @@ files are written under the configured output directory:
 | `r_voxelmap` | `pv_lio_r_voxelmap_pos.txt` | `pv_lio_r_voxelmap.pcd` |
 | `hvox` | `pv_lio_hvox_pos.txt` | `pv_lio_hvox.pcd` |
 | `i_octree` | `pv_lio_i_octree_pos.txt` | `pv_lio_i_octree.pcd` |
+| `ig_lio_plane` | `pv_lio_ig_lio_plane_pos.txt` | `pv_lio_ig_lio_plane.pcd` |
 
 The trajectory is stored as timestamped pose records. Point-cloud chunks may
 also be written under `output/PCD/` according to the configured scan-saving
@@ -282,12 +306,14 @@ rows are not flushed per frame.
 
 ## License and third-party notices
 
-PV-LIO-PLUS is distributed under the GNU General Public License, version 2 or
-any later version. See [LICENSE](LICENSE) for the complete license text and
+The package metadata declares the GNU General Public License, version 2 or any
+later version. See [LICENSE](LICENSE) for the root license text and
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the provenance and license
 status of the local map implementations and other bundled third-party code.
-The VoxelMap++ and C3P-VoxelMap entries in that notice require upstream license
-clarification before public redistribution of those local copies.
+The imported iG-LIO source text is GPL version 2; no later-version grant or
+compatibility conclusion is inferred, and the package metadata's scope for this
+component remains under review. VoxelMap++ and C3P-VoxelMap also require upstream
+license clarification before public redistribution of those local copies.
 
 ## References
 

@@ -1,0 +1,17 @@
+# 显式配置基线；共享体素尺寸、层数和点数限制沿用传感器配置。
+mapping:
+  map_type: r_voxelmap
+  local_window_en: false
+  r_voxelmap_max_root_points_size: 1000
+  r_voxelmap_update_size_threshold: 5
+  r_voxelmap_update_inlier_distance_threshold: 0.1
+  r_voxelmap_reinit_size_vec: [100, 200, 300, 500, 700, 1000]
+  r_voxelmap_lru_capacity: 1000000
+  r_voxelmap_ransac_max_iter: 10
+  r_voxelmap_ransac_sample_num: 4
+  r_voxelmap_ransac_inlier_distance_threshold: 0.1
+  r_voxelmap_ransac_isplane_p_threshold: 0.8
+  r_voxelmap_sample_seed: 42
+  r_voxelmap_valid_check_max_layer: 0
+  r_voxelmap_valid_check_min_points_size: 10
+  r_voxelmap_valid_check_resolution: 5

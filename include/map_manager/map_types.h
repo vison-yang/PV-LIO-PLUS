@@ -39,7 +39,9 @@ enum class MapType
     /// Surfel-LIO 双层 hVox 地图及预计算 L1 surfel。
     HVox,
     /// 使用原生叶块和数据 AABB 搜索的增量八叉树。
-    IOctree
+    IOctree,
+    /// iG-LIO 增量统计地图，使用公共五点点面观测。
+    IGLIOPlane
 };
 
 MapType ParseMapType(const std::string &name);

@@ -1,0 +1,4 @@
+# 显式配置基线；地图尺寸和点数上限沿用传感器配置。
+mapping:
+  map_type: voxelmap
+  local_window_en: false

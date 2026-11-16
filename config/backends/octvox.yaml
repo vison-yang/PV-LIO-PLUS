@@ -1,0 +1,6 @@
+# 使用原生容量/LRU，不启用几何滑窗。
+mapping:
+  map_type: octvox
+  local_window_en: false
+  octvox_resolution: 0.5
+  octvox_capacity: 1000000

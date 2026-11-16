@@ -1,0 +1,36 @@
+{
+  "repository": "zijiechenrobotics/ig_lio",
+  "commit": "2d79259e3aaa5bbb10d6b13234398760bbacf8f5",
+  "retrieval_tool": "mcp__codex_apps__github_fetch_file",
+  "license": "fixed upstream LICENSE text: GNU GPL version 2; no later-version grant inferred",
+  "files": [
+    {
+      "path": "include/ig_lio/voxel_map.h",
+      "blob_sha": "ca98c068307f78cb56ad684165cd04408b134821",
+      "sha256": "5e9d7b74e2eea8e496d6c63f0a7a2b7441a7292445e1893e6657ceecc2ce1788",
+      "url": "https://github.com/zijiechenrobotics/ig_lio/blob/2d79259e3aaa5bbb10d6b13234398760bbacf8f5/include/ig_lio/voxel_map.h",
+      "use": "algorithm and state reference for the local reimplementation"
+    },
+    {
+      "path": "src/voxel_map.cpp",
+      "blob_sha": "29e7f714c00963e75cfc501dc12c19fbe1b96342",
+      "sha256": "949c24caa8bef492fc47bd4ea6386725fe0b04239167502e87f2ef2e79d714ea",
+      "url": "https://github.com/zijiechenrobotics/ig_lio/blob/2d79259e3aaa5bbb10d6b13234398760bbacf8f5/src/voxel_map.cpp",
+      "use": "algorithm and update/search behavior reference for the local reimplementation"
+    },
+    {
+      "path": "include/ig_lio/point_type.h",
+      "blob_sha": "68815e6751c1c968543fc6629a12d513dcd99445",
+      "sha256": "a8127e1ffdfc870de4e9207522041ccba701d4c0b1bfc412e8ef476e995ed55c",
+      "url": "https://github.com/zijiechenrobotics/ig_lio/blob/2d79259e3aaa5bbb10d6b13234398760bbacf8f5/include/ig_lio/point_type.h",
+      "use": "dependency/type-definition inspection; not imported by the native implementation"
+    },
+    {
+      "path": "LICENSE",
+      "blob_sha": "d159169d1050894d3ea3b98e1c965c4058208fe1",
+      "sha256": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+      "url": "https://github.com/zijiechenrobotics/ig_lio/blob/2d79259e3aaa5bbb10d6b13234398760bbacf8f5/LICENSE",
+      "use": "copied verbatim to this directory's LICENSE"
+    }
+  ]
+}
