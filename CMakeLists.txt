@@ -89,13 +89,18 @@ target_compile_options(pv_lio_plus_i_octree_native PRIVATE
   -fno-fast-math -fno-associative-math -ffp-contract=off -fno-lto)
 set_target_properties(pv_lio_plus_i_octree_native PROPERTIES INTERPROCEDURAL_OPTIMIZATION FALSE)
 
+set(PV_LIO_PLUS_MAP_MANAGER_ADAPTER_SOURCES
+  src/map_manager/backends/i_octree_backend.cpp
+  src/map_manager/point_plane.cpp)
+
 add_executable(pv_lio_plus_node
   src/lio_main.cpp
   src/mapping.cpp
   src/utils.cpp
   src/preprocess.cpp
   src/imu_processing.cpp
-  src/publish_subscribe.cpp)
+  src/publish_subscribe.cpp
+  ${PV_LIO_PLUS_MAP_MANAGER_ADAPTER_SOURCES})
 add_dependencies(pv_lio_plus_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(pv_lio_plus_node pv_lio_plus_hvox_native pv_lio_plus_i_octree_native ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES})
 target_include_directories(pv_lio_plus_node PRIVATE ${PYTHON_INCLUDE_DIRS})
@@ -103,11 +108,12 @@ target_include_directories(pv_lio_plus_node PRIVATE ${PYTHON_INCLUDE_DIRS})
 if(CATKIN_ENABLE_TESTING)
   option(PV_LIO_PLUS_ENABLE_ASAN_TESTS "Build the R-VoxelMap AddressSanitizer test" OFF)
   catkin_add_gtest(pv_lio_plus_observation_tests tests/observation_tests.cpp)
-  catkin_add_gtest(pv_lio_plus_map_contract_tests tests/map_contract_tests.cpp)
-  catkin_add_gtest(pv_lio_plus_r_voxelmap_tests tests/r_voxelmap_tests.cpp src/utils.cpp src/preprocess.cpp)
-  catkin_add_gtest(pv_lio_plus_hvox_map_tests tests/hvox_map_tests.cpp)
+  catkin_add_gtest(pv_lio_plus_map_contract_tests tests/map_contract_tests.cpp ${PV_LIO_PLUS_MAP_MANAGER_ADAPTER_SOURCES})
+  catkin_add_gtest(pv_lio_plus_r_voxelmap_tests tests/r_voxelmap_tests.cpp src/utils.cpp src/preprocess.cpp
+    ${PV_LIO_PLUS_MAP_MANAGER_ADAPTER_SOURCES})
+  catkin_add_gtest(pv_lio_plus_hvox_map_tests tests/hvox_map_tests.cpp ${PV_LIO_PLUS_MAP_MANAGER_ADAPTER_SOURCES})
   catkin_add_gtest(pv_lio_plus_hvox_observation_tests tests/hvox_observation_tests.cpp)
-  catkin_add_gtest(pv_lio_plus_i_octree_tests tests/i_octree_tests.cpp)
+  catkin_add_gtest(pv_lio_plus_i_octree_tests tests/i_octree_tests.cpp ${PV_LIO_PLUS_MAP_MANAGER_ADAPTER_SOURCES})
   if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/tests/i_octree_numeric_oracle_tests.cpp)
     catkin_add_gtest(pv_lio_plus_i_octree_numeric_oracle_tests tests/i_octree_numeric_oracle_tests.cpp)
     if(TARGET pv_lio_plus_i_octree_numeric_oracle_tests)

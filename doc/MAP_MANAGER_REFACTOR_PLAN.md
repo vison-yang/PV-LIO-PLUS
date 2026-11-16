@@ -1,6 +1,32 @@
-# MapManager 类和后端职责拆分评估
+# MapManager 类和后端职责拆分评估与试点
 
-评估对象：`src/PV_LIO_PLUS` 主线 `6876a8ec42bc8a1497b5f6cb249a7d4dff85d11e`。本次只读源码与现有构建配置；没有修改源码、编译或回放。
+## 2026-11-16 i-Octree 试点
+
+当前工作区为 `/home/yxy/src/lio_map_ws/src/PV-LIO-PLUS`，分支 `master`，实施基线为 `2774293`。该提交先单独保存 SA-LIVO 资料移出，下面的源码拆分不包含该资料迁移。
+
+- 公共类型和配置分别移至 `include/map_manager/map_types.h`、`include/map_manager/map_config.h`；旧 `map_manager.h` 继续提供原有入口与原生传递包含。`MapManager` 的方法、成员类型、顺序和默认值保持；没有把存储所有权移给 adapter。
+- `src/map_manager/backends/i_octree_backend.{h,cpp}` 使用无状态窄函数，每次显式接收原生树及配置，承接校验、构建、更新、搜索、窗口保留和快照。replacement 构建完成后的 `clear`、替换、initialized/revision 更新仍由 facade 按原顺序执行。
+- 公共点面拟合移至 `src/map_manager/point_plane.{h,cpp}`，原私有函数保留薄包装；保持 float QR、前五点拟合和中心、各后端原门限及 i-Octree 专有有限性拒绝。未修改原生树或滤波观测算法。
+- adapter 和拟合源文件分别加入生产节点及四个 manager 测试目标的源列表，而非共用新静态库。这样各 consumer 继续使用自己的 `-UNDEBUG/-UEIGEN_NO_DEBUG` 和 Eigen 包含顺序；i-Octree native 的严格浮点目标和 native-only sanitizer 目标保持原边界。此项细化了初始方案中“链接相同对象”的建议，避免测试与节点的宏配置发生变化。分编译单元后的数值等价仍需运行核对。
+- `tests/map_contract_tests.cpp` 新增五项黑盒用例，覆盖跨后端切换、非法 i-Octree 配置保留旧图、空树/空查询仍检查浮点环境、两套 PV native typed 搜索字段和错误后端拒绝。VoxelMap++ 使用斜平面，分别核对非单位 `omega` 和归一化残差；LiDAR/world 协方差取不同值以捕获坐标系误传。
+
+遗留边界：新编译单元仍通过公共头依赖 `common_lib.h`，其中 inline `g2R` 引用 TU-local 的 `static R2ypr/ypr2R`，存在既有的跨编译单元 ODR 风险；新 adapter/helper 不调用这些函数，本次未修改其链接属性。这也不解决 PV/Plus/C3P 的既有原生头限制。公共拟合跨编译单元后可能改变内联与 Eigen 实例化边界；没有 A/B 证据前，不宣称逐位数值或性能等价。
+
+验证结果见[本轮证据摘要](workspace/evidence/MAP_MANAGER_ADAPTER_RESULTS.json)，完整日志、源码差异/新增文件副本、哈希和测试 XML 保存在 `/home/yxy/output/agent/pv_lio_plus_map_adapter/20261116_round1/`。本轮是在用户授权后对当前 checkout 实际执行的结果：
+
+| 验证层级 | 本轮结果及边界 |
+| --- | --- |
+| 静态检查 | 七个公共定义的声明 token、别名、半径校验运算和原生 include 顺序保持；公共拟合及 i-Octree 搜索除更名/委托外运算 token 一致；19 个源码文件哈希在构建前后相同。 |
+| 编译与链接 | 当前工作区节点和七个测试目标增量构建退出 0，节点 `ldd -r` 无缺失库或未定义符号；日志仍有原生 R-VoxelMap 既有符号类型比较警告。 |
+| 合成测试 | CTest 7/7，七份新生成 XML 共 54 用例，0 失败、错误或跳过；包含五项新增契约用例。ASan 未启用。 |
+| 编译单元边界 | 实际 compile database 中五个 consumer 的十条新增源编译命令均与本目标原始 TU 一致（除源路径及输出路径），原生内核保留四项严格浮点参数。仅验证命令配置，不证明完整 ODR 或 ABI 等价。 |
+| 回放与运行效果 | 本轮未执行回放、GUI/设备验证、逐位数值或性能 A/B，未给出精度/性能结论。清单引用的 Avia 和 S3 bag 在当前环境均不存在，路径见证据摘要；历史二进制和回放不能替代本轮运行验收。 |
+
+下一步先补齐可用数据路径，以固定输入核对匹配、有效约束、轨迹及地图/窗口行为，再决定是否迁移其他后端。当前 `scripts/run_backend_tests.py` 还会无条件构建，不应直接作为免重编的回放命令。该试点仍不是存储所有权拆分的完成判据；成员声明不变也不能单独证明 ABI 等价。
+
+## 初始评估（历史记录）
+
+初始评估对象：当时的 `src/PV_LIO_PLUS` 主线 `6876a8ec42bc8a1497b5f6cb249a7d4dff85d11e`。下文的目录、行号和构建示例属于该评估时的工作区；形成评估时只读源码与现有构建配置，没有修改源码、编译或回放。当前实施和验证状态以上节为准，旧构建目录不能直接作为当前 checkout 的证据。
 
 ## 判断
 

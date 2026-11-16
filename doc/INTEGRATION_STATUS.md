@@ -1,6 +1,7 @@
 # Current Backend Contracts and Verification Status
 
-Updated: 2026-11-15. This document records nine integrated `MapManager`
+Updated: 2026-11-16. The backend replay evidence below is from 2026-11-15;
+the current refactor's validation is recorded separately below. This document records nine integrated `MapManager`
 backends, contract fixes, separate synthetic test suites, and complete-input
 replays. i-Octree feature `5c27a79` is cherry-picked into main as `6876a8e`;
 the main node/link, CTest 7/7 (49 regular GTest cases, ASan off), and a
@@ -62,7 +63,9 @@ for `size()`.
 
 The source of these behaviors is `MapManager` in
 [`map_manager.cpp`](../src/map_manager/map_manager.cpp), its public types and
-configuration in [`map_manager.h`](../include/map_manager/map_manager.h), and
+configuration in [`map_types.h`](../include/map_manager/map_types.h) and
+[`map_config.h`](../include/map_manager/map_config.h), re-exported by
+[`map_manager.h`](../include/map_manager/map_manager.h), and
 the nine observation paths in [`mapping.cpp`](../src/mapping.cpp), plus
 [`hvox_observation.cpp`](../src/map_manager/hvox_observation.cpp). In
 particular, `size()` counts voxel entries, KD-tree points, iVox grids, or
@@ -74,6 +77,16 @@ native map because upstream `Clear()` does not reset its window center. Do not
 compare these values as if they all counted points. i-Octree reports live
 retained points, snapshots XYZ, and applies the public closed window through
 native tree retention; it does not rebuild the tree for that operation.
+
+The 2026-11-16 source refactor moves i-Octree operations to an internal
+non-owning adapter and extracts the shared point-plane fit. This pilot still
+leaves storage and lifecycle state in `MapManager`. The current `lio_map_ws`
+node and seven test targets built, `ldd -r` passed, and CTest passed 7/7
+(54 GTest cases, including five new cases; ASan off). See the
+[current results](workspace/evidence/MAP_MANAGER_ADAPTER_RESULTS.json) and
+[refactor progress](MAP_MANAGER_REFACTOR_PLAN.md) for source and binary identity.
+Replay, bitwise equivalence, and performance A/B validation remain pending;
+earlier backend replays do not validate this refactor.
 
 ### Unmatched-query outputs
 

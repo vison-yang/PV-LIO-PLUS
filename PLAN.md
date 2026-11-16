@@ -114,7 +114,7 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 
 ### 阶段 4：地图管理职责评估与 BIEVR 共同滤波设计
 
-- i-Octree 主线验收后，先评估 `src/map_manager/map_manager.cpp` 中 `MapManager` 类及各后端职责的拆分，明确统一门面、后端状态、原生实现所有权和 ODR 边界；头文件整理只是辅助。[类职责评估及分阶段方案](doc/MAP_MANAGER_REFACTOR_PLAN.md)已完成；建议保留统一门面、按后端逐个迁移，先控制原生 ODR/静态状态风险，本轮尚未实施源码重构。
+- i-Octree 主线验收后，先评估 `src/map_manager/map_manager.cpp` 中 `MapManager` 类及各后端职责的拆分，明确统一门面、后端状态、原生实现所有权和 ODR 边界；头文件整理只是辅助。[类职责评估及分阶段方案](doc/MAP_MANAGER_REFACTOR_PLAN.md)已完成；2026-11-16 在当前 `lio_map_ws` 实施首个 i-Octree 非拥有 adapter 试点，抽出公共类型/配置及点面拟合，保留门面的状态所有权和更新顺序，并补五项黑盒契约用例。当前 checkout 节点及七个测试目标增量构建、`ldd -r`、CTest 7/7（54 用例，ASan 关闭）通过，详见[本轮结果](doc/workspace/evidence/MAP_MANAGER_ADAPTER_RESULTS.json)；尚未执行回放、逐位数值或性能 A/B。运行验收前不继续迁移其他后端，也不宣称已解决其余原生头的 ODR/静态状态问题。
 - BIEVR 的[具体移植设计草稿](doc/BIEVR_IKFOM_PORT.md)已按固定源码完成：定向高度图、像素融合、精确插值导数、12列右扰动 Jacobian 与 Huber information。原 LM 和 Ceres 惯性窗口由共同滤波循环替代；尚未实现，噪声尺度、论文对应及分组/索引边界仍须核定。地图引导采样单列档案。
 - 完成条件：拆分评估有明确结论；BIEVR 设计覆盖数据布局、更新/查询生命周期、残差和退化处理、状态列映射与 oracle，再由后续实施任务审查。
 

@@ -1,0 +1,219 @@
+{
+  "recorded_on": "2026-11-16",
+  "timezone": "Asia/Shanghai",
+  "status": "build_and_synthetic_tests_passed; replay_acceptance_pending",
+  "repository": "/home/yxy/src/lio_map_ws/src/PV-LIO-PLUS",
+  "branch": "master",
+  "source": {
+    "baseline_commit": "277429336221f688b112b90aabc81a98db82db8d",
+    "baseline_change": "SA-LIVO references moved to independent workspace",
+    "adapter_changes_committed": false,
+    "prebuild_manifest": "/home/yxy/output/agent/pv_lio_plus_map_adapter/20261116_round1/source_manifest.json",
+    "prebuild_manifest_sha256": "b3f4b200c3bb877e4e99eccb213c45930457a88c9c4e017c69bb454fc0c8d4e1",
+    "recorded_source_files": 19,
+    "source_hashes_match_after_build_and_tests": true,
+    "tracked_changes": "/home/yxy/output/agent/pv_lio_plus_map_adapter/20261116_round1/source_changes.diff",
+    "tracked_changes_sha256": "cc4d5e794a2b59237ee9d0918917c10ccffa382ce6e4dd40f6359e08de299b2f",
+    "new_file_snapshot": "/home/yxy/output/agent/pv_lio_plus_map_adapter/20261116_round1/source_snapshot"
+  },
+  "static_checks": [
+    "7 definitions (MapType, MapPoint, MapUpdateContext, PlaneMatch, MapWindow, MapManagerConfig, MapManager) have identical non-comment/non-whitespace tokens to baseline",
+    "aliases, radius-helper operations, and native include order match baseline",
+    "shared FitPointPlane operation tokens match old body after local/parameter renames",
+    "i-Octree Search operation tokens match old body after delegation/local renames",
+    "native directory has no diff; strict-FP target CMake options are unchanged",
+    "MapManager::ToPointType full function text matches baseline",
+    "git diff --check passed"
+  ],
+  "build": {
+    "command": [
+      "cmake",
+      "--build",
+      "/home/yxy/src/lio_map_ws/build",
+      "--target",
+      "pv_lio_plus_node",
+      "pv_lio_plus_observation_tests",
+      "pv_lio_plus_map_contract_tests",
+      "pv_lio_plus_r_voxelmap_tests",
+      "pv_lio_plus_hvox_map_tests",
+      "pv_lio_plus_hvox_observation_tests",
+      "pv_lio_plus_i_octree_tests",
+      "pv_lio_plus_i_octree_numeric_oracle_tests",
+      "--",
+      "-j1"
+    ],
+    "cwd": "/home/yxy/src/lio_map_ws/build",
+    "started_at_utc": "2026-11-16T08:28:00.867846+00:00",
+    "finished_at_utc": "2026-11-16T08:36:16.517363+00:00",
+    "duration_seconds": 495.649517,
+    "exit_code": 0,
+    "log": "/home/yxy/output/agent/pv_lio_plus_map_adapter/20261116_round1/build.log"
+  },
+  "link": {
+    "command": [
+      "ldd",
+      "-r",
+      "/home/yxy/src/lio_map_ws/devel/lib/pv_lio_plus/pv_lio_plus_node"
+    ],
+    "exit_code": 0,
+    "log": "/home/yxy/output/agent/pv_lio_plus_map_adapter/20261116_round1/ldd_node.log",
+    "undefined_symbol_lines": [],
+    "passed": true
+  },
+  "binary": {
+    "path": "/home/yxy/src/lio_map_ws/devel/lib/pv_lio_plus/pv_lio_plus_node",
+    "sha256": "08af9a7093d102bc1cca846d54e24f751881148dbbc2225a5f46de9cfa976043"
+  },
+  "tests": {
+    "command": [
+      "ctest",
+      "-R",
+      "^_ctest_pv_lio_plus_gtest_",
+      "--output-on-failure"
+    ],
+    "cwd": "/home/yxy/src/lio_map_ws/build",
+    "exit_code": 0,
+    "ctest_passed": 7,
+    "ctest_failed": 0,
+    "gtest_instances": 54,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "preexisting_xml_count": 0,
+    "new_test_cases": [
+      "CrossBackendSwitchClearsOldState",
+      "EmptyIOctreeSearchChecksNumericEnvironment",
+      "InvalidIOctreeConfigPreservesExistingMap",
+      "VoxelMapFieldsAndWrongBackend",
+      "VoxelMapPlusFieldsAndWrongBackend"
+    ],
+    "xml_archives": [
+      {
+        "source": "/home/yxy/src/lio_map_ws/build/test_results/pv_lio_plus/gtest-pv_lio_plus_hvox_map_tests.xml",
+        "archive": "/home/yxy/output/agent/pv_lio_plus_map_adapter/20261116_round1/test_xml/gtest-pv_lio_plus_hvox_map_tests.xml",
+        "sha256": "8dcacc1b8cde743295774d04917b47f1083fec2ba52824825a971c7c83decb7e",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "fresh_since_ctest_start": true
+      },
+      {
+        "source": "/home/yxy/src/lio_map_ws/build/test_results/pv_lio_plus/gtest-pv_lio_plus_hvox_observation_tests.xml",
+        "archive": "/home/yxy/output/agent/pv_lio_plus_map_adapter/20261116_round1/test_xml/gtest-pv_lio_plus_hvox_observation_tests.xml",
+        "sha256": "2806a3b806337686c8fb2bd74b6927de1f478f8c6116dc0b3d76290c2a8bc26c",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "fresh_since_ctest_start": true
+      },
+      {
+        "source": "/home/yxy/src/lio_map_ws/build/test_results/pv_lio_plus/gtest-pv_lio_plus_i_octree_numeric_oracle_tests.xml",
+        "archive": "/home/yxy/output/agent/pv_lio_plus_map_adapter/20261116_round1/test_xml/gtest-pv_lio_plus_i_octree_numeric_oracle_tests.xml",
+        "sha256": "7ddb808e4ff1b0766eb1ea850cb248a3c63e342019dafe708bf1a141054c6447",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "fresh_since_ctest_start": true
+      },
+      {
+        "source": "/home/yxy/src/lio_map_ws/build/test_results/pv_lio_plus/gtest-pv_lio_plus_i_octree_tests.xml",
+        "archive": "/home/yxy/output/agent/pv_lio_plus_map_adapter/20261116_round1/test_xml/gtest-pv_lio_plus_i_octree_tests.xml",
+        "sha256": "b80635982becd6e775aeed8fbd84ff6a663930dc436cfee8b1af5547222da7a2",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "fresh_since_ctest_start": true
+      },
+      {
+        "source": "/home/yxy/src/lio_map_ws/build/test_results/pv_lio_plus/gtest-pv_lio_plus_map_contract_tests.xml",
+        "archive": "/home/yxy/output/agent/pv_lio_plus_map_adapter/20261116_round1/test_xml/gtest-pv_lio_plus_map_contract_tests.xml",
+        "sha256": "7f93ce065b58eb404d63ca35e9eb013bdde09fd35f81607f76b2b11d9631ef4c",
+        "tests": 15,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "fresh_since_ctest_start": true
+      },
+      {
+        "source": "/home/yxy/src/lio_map_ws/build/test_results/pv_lio_plus/gtest-pv_lio_plus_observation_tests.xml",
+        "archive": "/home/yxy/output/agent/pv_lio_plus_map_adapter/20261116_round1/test_xml/gtest-pv_lio_plus_observation_tests.xml",
+        "sha256": "ef9a0dbeb879677fd08c0b2d7133d95f7e9c426c7347d2672811832c13e7c58c",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "fresh_since_ctest_start": true
+      },
+      {
+        "source": "/home/yxy/src/lio_map_ws/build/test_results/pv_lio_plus/gtest-pv_lio_plus_r_voxelmap_tests.xml",
+        "archive": "/home/yxy/output/agent/pv_lio_plus_map_adapter/20261116_round1/test_xml/gtest-pv_lio_plus_r_voxelmap_tests.xml",
+        "sha256": "b9170141ee2c98df65e07017e3af57332787be342d3ef0ec8d1cf6986cbe46f7",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "fresh_since_ctest_start": true
+      }
+    ]
+  },
+  "compile_configuration": {
+    "audit": "/home/yxy/output/agent/pv_lio_plus_map_adapter/20261116_round1/compile_flags_audit.json",
+    "audit_sha256": "ea5b42a215cd5c01731b57833a852054190c47ceb1717194087f78ebe023aae3",
+    "consumer_command_comparisons_passed": 10,
+    "consumer_command_comparisons_total": 10,
+    "native_strict_fp_flags_preserved": [
+      "-fno-fast-math",
+      "-fno-associative-math",
+      "-ffp-contract=off",
+      "-fno-lto"
+    ],
+    "asan_enabled": false
+  },
+  "external_validation": {
+    "path": "/home/yxy/output/agent/pv_lio_plus_map_adapter/20261116_round1/validation_results.json",
+    "sha256": "471bc1f440b8ffe57348eb43468434d65728d39a32a12969a3dde1d615e92a96"
+  },
+  "root_verification": [
+    "All 19 source hashes still match the prebuild manifest.",
+    "Seven archived XML files have matching hashes and include all five new cases, with no failures, errors or skips.",
+    "Node binary and compile database hashes match the saved results.",
+    "ldd -r output has neither missing libraries nor undefined symbols."
+  ],
+  "warnings": [
+    "Existing R-VoxelMap signedness comparisons at r_voxelmap.hpp:675, :940, and :1236 appeared during builds; no adapter/helper build errors."
+  ],
+  "not_performed": [
+    "replay",
+    "ASan/UBSan",
+    "GUI/device validation",
+    "bitwise numerical A/B",
+    "runtime performance A/B"
+  ],
+  "limitations": [
+    "Declaration-token equivalence does not prove ABI or complete ODR safety.",
+    "common_lib.h has a pre-existing inline g2R/TU-local static helper ODR risk; the new adapter/helper do not call these functions.",
+    "Cross-TU plane fitting may change optimization and Eigen instantiation; no bitwise or performance equivalence is claimed.",
+    "Historical backend replays do not validate the current uncommitted refactor."
+  ],
+  "next_step": "Provide an available local bag path, then perform a fixed-input replay regression before migrating another backend.",
+  "replay_input_check": {
+    "checked_on": "2026-11-16",
+    "configured_bags": [
+      {
+        "path": "/home/yxy/data/avia/outdoor_Mainbuilding_100Hz_2020-12-24-16-46-29.bag",
+        "exists": false
+      },
+      {
+        "path": "/home/yxy/src/lio_map_ws/bags/S3_2026-08-04_08-40-43_intensity_continuous.bag",
+        "exists": false
+      }
+    ],
+    "result": "Configured inputs unavailable; no replay performed.",
+    "runner_limitation": "scripts/run_backend_tests.py unconditionally rebuilds before running; no skip-build option.",
+    "scope": "Only the configured local inputs and recorded artifact locations were checked; no claim that other datasets do not exist."
+  }
+}

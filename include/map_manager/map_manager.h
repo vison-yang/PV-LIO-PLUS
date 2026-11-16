@@ -2,7 +2,7 @@
  * Copyright (C) 2026 PV-LIO-PLUS contributors.
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * PV-LIO-PLUS local-map management interface.
+ * PV-LIO-PLUS local-map management facade.
  * Created: 2026-08-09; license notice updated: 2026-08-16.
  */
 
@@ -11,7 +11,7 @@
 
 /**
  * @file map_manager.h
- * @brief Common local-map types and lifecycle interface for PV-LIO-PLUS.
+ * @brief 局部地图统一生命周期接口。
  */
 
 #include <geometry_msgs/Quaternion.h>
@@ -36,6 +36,8 @@ namespace lio { class VoxelMap; }
 namespace pv_lio_plus::i_octree_native { class Octree; }
 
 #include "common_lib.h"
+#include "map_manager/map_types.h"
+#include "map_manager/map_config.h"
 #include "native/c3p_voxelmap/c3p_voxel_map_util.hpp"
 #include "native/ikdtree/ikd_tree.h"
 #include "native/ivox/ivox3d.h"
@@ -45,220 +47,6 @@ namespace pv_lio_plus::i_octree_native { class Octree; }
 
 namespace pv_lio_plus
 {
-/** @brief Local-map backends selectable by PV-LIO-PLUS. */
-enum class MapType
-{
-    /// PV-LIO's original probabilistic adaptive voxel map.
-    VoxelMap,
-    /// VoxelMap++ with its native residual and update logic.
-    VoxelMapPlus,
-    /// FAST-LIO2's incremental ikd-tree point map.
-    IKDTree,
-    /// Faster-LIO's iVox point map.
-    IVox,
-    /// C3P-VoxelMap's compact probabilistic voxel-plane map.
-    C3PVoxelMap,
-    /// Super-LIO's LRU octant-aggregated OctVox point map.
-    OctVox,
-    /// R-VoxelMap with recursive inlier/outlier planes and native LRU.
-    RVoxelMap,
-    /// Surfel-LIO's two-level hVox map and precomputed L1 surfels.
-    HVox,
-    /// Incremental octree with native leaf blocks and data-AABB search.
-    IOctree
-};
-
-MapType ParseMapType(const std::string &name);
-
-const char *MapTypeName(MapType type);
-
-/** Point-map search radii must stay representable when squared. */
-inline bool ValidNearestMaxRange(double radius)
-{
-    const double squared_radius = radius * radius;
-    return std::isfinite(radius) && radius > 0.0 && std::isfinite(squared_radius) && squared_radius > 0.0;
-}
-
-/** @brief A map point represented in LiDAR and world frames. */
-struct MapPoint
-{
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-    /// Point coordinates in the current LiDAR frame.
-    V3D point_lidar = V3D::Zero();
-    /// Point coordinates in the world frame.
-    V3D point_world = V3D::Zero();
-    /// Point covariance in the LiDAR frame.
-    M3D cov_lidar = M3D::Zero();
-    /// Point covariance in the world frame.
-    M3D cov_world = M3D::Zero();
-};
-
-/** @brief Eigen-aligned collection of map points. */
-using MapPointList = std::vector<MapPoint, Eigen::aligned_allocator<MapPoint>>;
-
-/** World-frame IMU position required by the hVox native moving box. */
-struct MapUpdateContext
-{
-    std::optional<V3D> imu_position_world;
-};
-
-/**
- * @brief Backend-independent point-to-plane match.
- *
- * The fields cover the native residual contracts of the PV voxel maps and the
- * adapters for point-map backends, allowing the filter loop to remain common.
- */
-struct PlaneMatch
-{
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-    /// Backend that produced the match.
-    MapType map_type = MapType::VoxelMap;
-    /// Query point in the LiDAR frame.
-    V3D point = V3D::Zero();
-    /// Query point in the world frame.
-    V3D point_world = V3D::Zero();
-    /// Unit normal of the matched plane.
-    V3D normal = V3D::Zero();
-    /// Representative center of the matched plane.
-    V3D center = V3D::Zero();
-    /// Native residual direction used by VoxelMap++.
-    V3D omega = V3D::Zero();
-    /// Query-point covariance in the world frame.
-    M3D point_cov = M3D::Zero();
-    /// Original sensor covariance in the LiDAR frame (R-VoxelMap).
-    M3D lidar_cov = M3D::Zero();
-    /// Six-dimensional plane covariance, when provided by the backend.
-    Eigen::Matrix<double, 6, 6> plane_cov = Eigen::Matrix<double, 6, 6>::Zero();
-    /// Plane equation offset or native equivalent.
-    double d = 0.0;
-    /// Signed point-to-plane residual.
-    double distance = 0.0;
-    /// Norm of @ref omega.
-    double omega_norm = 0.0;
-    /// Native voxel-map layer containing the match.
-    int layer = 0;
-    /// Native VoxelMap++ principal direction.
-    int main_direction = 0;
-};
-
-/** @brief Eigen-aligned collection of plane matches. */
-using PlaneMatchList = std::vector<PlaneMatch, Eigen::aligned_allocator<PlaneMatch>>;
-
-/** @brief Configuration shared by all local-map backends. */
-struct MapManagerConfig
-{
-    /// Backend selected for this manager.
-    MapType type = MapType::VoxelMap;
-
-    /// Base voxel size used by voxel-map backends.
-    double voxel_size = 1.0;
-    /// Maximum voxel hierarchy layer used during search.
-    int max_layer = 2;
-    /// Point limits for each voxel hierarchy layer.
-    std::vector<int> layer_point_size;
-    /// Maximum number of points retained in a voxel.
-    int max_points_size = 100;
-    /// Maximum number of covariance points retained in a voxel.
-    int max_cov_points_size = 100;
-    /// Plane-fit threshold used by voxel backends.
-    double plane_threshold = 0.01;
-    /// Sigma multiplier used by probabilistic voxel matching.
-    double sigma_num = 3.0;
-    /// VoxelMap++ update threshold.
-    int plus_update_size_threshold = 5;
-
-    /// Number of neighbors requested by point-map backends.
-    int nearest_point_count = NUM_MATCH_POINTS;
-    /// Maximum neighbor distance in metres for ikd-tree and iVox searches.
-    /// ikd-tree includes the boundary; iVox uses a strict inequality and
-    /// additionally restricts candidates to its configured nearby grids.
-    double nearest_max_range = 5.0;
-    /// Plane-fit residual threshold for point-map backends.
-    double plane_fit_threshold = 0.1;
-    /// Downsampling leaf size for point-map backends.
-    double point_map_downsample_size = 0.5;
-
-    /// ikd-tree deletion parameter.
-    double ikd_delete_param = 0.5;
-    /// ikd-tree balance parameter.
-    double ikd_balance_param = 0.7;
-    /// ikd-tree box length parameter.
-    double ikd_box_length = 0.2;
-
-    /// iVox voxel resolution.
-    double ivox_resolution = 0.2;
-    /// iVox neighborhood type: 0, 6, 18, or 26.
-    int ivox_nearby_type = 18;
-    /// Maximum number of iVox grids.
-    std::size_t ivox_capacity = 1000000;
-    /// Enables the semantics-preserving iVox storage/query optimization path.
-    bool ivox_optimized = false;
-
-    /// Super-LIO OctVox grid resolution.
-    double octvox_resolution = 0.5;
-    /// Maximum OctVox grids retained by its native LRU policy.
-    std::size_t octvox_capacity = 1000000;
-
-    /// Enables C3P-VoxelMap plane merging.
-    bool c3p_enable_voxel_merging = false;
-    /// C3P plane-merge angular threshold.
-    double c3p_merge_theta_thresh = 0.05;
-    /// C3P plane-merge distance threshold.
-    double c3p_merge_dist_thresh = 0.05;
-    /// Minimum eigenvalue threshold for C3P plane covariance.
-    double c3p_merge_cov_min_eigen_val_thresh = 0.002;
-    /// Maximum C3 merge distance along the x axis.
-    double c3p_merge_x_coord_diff_thresh = 5.0;
-    /// Maximum C3 merge distance along the y axis.
-    double c3p_merge_y_coord_diff_thresh = 5.0;
-
-    /// R-VoxelMap root retention, rebuilding, RANSAC and plane validation.
-    int r_max_root_points_size = 1000;
-    int r_update_size_threshold = 5;
-    double r_update_inlier_distance_threshold = 0.1;
-    std::vector<int> r_reinit_size_vec = {100, 200, 300, 500, 700, 1000};
-    int r_lru_capacity = 1000000;
-    int r_ransac_max_iter = 10;
-    int r_ransac_sample_num = 4;
-    double r_ransac_inlier_distance_threshold = 0.1;
-    double r_ransac_isplane_p_threshold = 0.8;
-    int r_sample_seed = 42;
-    int r_valid_check_max_layer = 0;
-    int r_valid_check_min_points_size = 10;
-    int r_valid_check_resolution = 5;
-
-    /// Surfel-LIO native map and sensor parameters.
-    double hvox_voxel_size = 0.4;
-    int hvox_hierarchy_factor = 3;
-    double hvox_planarity_threshold = 0.01;
-    double hvox_max_distance = 50.0;
-    double hvox_box_multiplier = 2.0;
-    double hvox_lidar_noise_std = 0.05;
-
-    /// i-Octree native routing and on-tree downsampling.
-    int i_octree_bucket_size = 32;
-    double i_octree_min_extent = 0.01;
-    bool i_octree_on_tree_downsample = false;
-
-    /// Enables moving-window maintenance; disabled by default.
-    bool local_window_enabled = false;
-};
-
-/** @brief Axis-aligned world-frame bounds of the active local window. */
-struct MapWindow
-{
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-
-    /// Whether the bounds have been initialized.
-    bool initialized = false;
-    /// Minimum x/y/z coordinates of the window.
-    V3D min_bound = V3D::Zero();
-    /// Maximum x/y/z coordinates of the window.
-    V3D max_bound = V3D::Zero();
-};
-
 /**
  * @brief Owns the selected local-map backend and exposes one lifecycle contract.
  *
