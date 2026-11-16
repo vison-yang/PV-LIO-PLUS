@@ -37,7 +37,7 @@
 ## 验证范围
 
 - 14包共享构建退出0，GenZ CTest 21/21，23个ELF链接校验通过。
-- upstream按顺序独立构建：4项通过；LIO-GVM因作者发布缺源码退出1。
+- upstream按顺序独立构建：4项通过（包括 BIEVR-LIO；其 ROS1 结果仅属独立上游工程，不代表 PV-LIO-PLUS 集成）；LIO-GVM因作者发布缺源码退出1。
 - 未回放rosbag，未修改已有地图或轨迹结果；当前六后端仍保留不同原生观测策略，详见范围审查。
 
 ## 2026-11-15 分阶段集成
@@ -65,4 +65,4 @@
 
 ## 23:20 前阶段性收尾
 
-九后端代码、主线构建/测试、i-Octree 长短回放和全部 linked worktree 清理已完成。新增[MapManager 类职责拆分评估](../MAP_MANAGER_REFACTOR_PLAN.md)及[BIEVR 共同 IKFoM 移植设计草稿](../BIEVR_IKFOM_PORT.md)；两项均为设计文档，没有在收尾前启动源码重构或 BIEVR 实现。下一步先评审并试点后端职责分离，以及关闭 BIEVR 像素/索引/分组与噪声尺度前置项，再继续候选集成。关机前状态见[收尾记录](evidence/CLOSEOUT_20261115.json)。
+九后端代码、主线构建/测试、i-Octree 长短回放和全部 linked worktree 清理已完成。新增[MapManager 类职责拆分评估](../MAP_MANAGER_REFACTOR_PLAN.md)及[BIEVR 共同 IKFoM 移植设计草稿](../BIEVR_IKFOM_PORT.md)；两项均为设计文档，没有在收尾前启动源码重构或 BIEVR 实现。该 BIEVR 设计截至本记录仍未实施；此前独立上游 ROS1 构建不代表 PV-LIO-PLUS 集成验收。下一步先评审并试点后端职责分离，以及关闭 BIEVR 像素/索引/分组与噪声尺度前置项，再继续候选集成。关机前状态见[收尾记录](evidence/CLOSEOUT_20261115.json)。

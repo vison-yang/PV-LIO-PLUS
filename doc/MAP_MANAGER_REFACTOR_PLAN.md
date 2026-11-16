@@ -2,7 +2,7 @@
 
 ## 2026-11-16 i-Octree 试点
 
-当前工作区为 `/home/yxy/src/lio_map_ws/src/PV-LIO-PLUS`，分支 `master`，实施基线为 `2774293`。该提交先单独保存 SA-LIVO 资料移出，下面的源码拆分不包含该资料迁移。
+当前工作区为 `/home/yxy/src/lio_map_ws/src/PV-LIO-PLUS`，分支 `master`，实施基线为 `2774293`。
 
 - 公共类型和配置分别移至 `include/map_manager/map_types.h`、`include/map_manager/map_config.h`；旧 `map_manager.h` 继续提供原有入口与原生传递包含。`MapManager` 的方法、成员类型、顺序和默认值保持；没有把存储所有权移给 adapter。
 - `src/map_manager/backends/i_octree_backend.{h,cpp}` 使用无状态窄函数，每次显式接收原生树及配置，承接校验、构建、更新、搜索、窗口保留和快照。replacement 构建完成后的 `clear`、替换、initialized/revision 更新仍由 facade 按原顺序执行。

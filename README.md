@@ -94,25 +94,12 @@ observation-design task.
 | Map / method | Collected official source | Recorded build | Integration work |
 | --- | --- | --- | --- |
 | Hybrid-VoxelMap | `src/Hybrid-VoxelMap` | Shared ROS1 build passed | Conditional candidate: define semantic-label inputs and typed Plane/NDT matches, then adapt both residuals. Identify plane-only or label-free variants explicitly. |
-| BIEVR-LIO | `upstream/BIEVR-LIO` | Isolated ROS1 targets passed | Conditional candidate: adapt voxel bump images and height residuals to the common state/filter; assess map-guided sampling separately. |
+| BIEVR-LIO | `upstream/BIEVR-LIO` | Standalone upstream ROS1 targets passed | Not integrated; only a port-design draft exists in [`doc/BIEVR_IKFOM_PORT.md`](doc/BIEVR_IKFOM_PORT.md). The proposed adapter retains the oriented height map and maps its residual to the shared filter; map-guided sampling is separate. |
 | LIO-GVM | `upstream/lio_gvm` | Blocked by incomplete author release | Incremental Gaussian voxel map storing centroids/covariances; obtain missing author-specific Fast-VGICP/IKFoM and map source before implementing its map/residual adapter. |
 
 FR-LIO/RC-Vox and SV-LIO also have paper evidence of map-structure contributions,
 but the local collection records do not establish official implementations.
 They remain paper reserves, pending source verification.
-
-KISS-ICP and GenZ-LIO have been removed from the active inventory: their stated
-contributions use existing map structures rather than establish new ones.
-CT-VoxelMap and Environment-Adaptive Solid-State LIO lack sufficient evidence of
-a distinct map-data-structure contribution in the reviewed versions. SA-LIVO
-inherits VoxelMap and contributes primarily to visual/inertial estimation.
-These methods have no current map-integration schedule; their papers and any
-collected sources/build records remain background or independent baseline
-artifacts. SA-LIVO v3 is archived in its [independent workspace](../../../livo_src/paper/README.md).
-See the [eligibility review](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)
-for individual decisions and the [plan](PLAN.md) for the retained work.
-Source-availability statements refer to the fixed local collection, without
-claiming that unverified official code does not exist or updating remote HEADs.
 
 ### Comparison controls
 

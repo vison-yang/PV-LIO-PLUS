@@ -1,7 +1,8 @@
 {
   "checked_on": "2026-11-14",
-  "canonical_papers": 21,
-  "note_archives": 1,
+  "inventory_updated_on": "2026-11-16",
+  "canonical_papers": 17,
+  "note_archives": 0,
   "papers": [
     {
       "algorithm": "VoxelMap",
@@ -205,34 +206,6 @@
       "notes": "notes/FR-LIO.md"
     },
     {
-      "algorithm": "CT-VoxelMap",
-      "file": "CT-VoxelMap.pdf",
-      "version": "2604.03747v1",
-      "archived_for_notes": false,
-      "pages": 16,
-      "bytes": 20517396,
-      "sha256": "826588de18e6ac4df2975e1728cd319046e6f53230ebedf3cb85a9f24fdb2eec",
-      "paper_url": "https://arxiv.org/abs/2604.03747v1",
-      "source_repository": null,
-      "author_source_status": "not_verified",
-      "acquisition_url": null,
-      "notes": "notes/CT-VoxelMap.md"
-    },
-    {
-      "algorithm": "GenZ-LIO",
-      "file": "GenZ-LIO.pdf",
-      "version": "2603.16273v3",
-      "archived_for_notes": false,
-      "pages": 29,
-      "bytes": 36603032,
-      "sha256": "01b61281558efa0aec7fef77abaf6dfe1fce3c0f1066a61da9608b6490d98150",
-      "paper_url": "https://arxiv.org/abs/2603.16273v3",
-      "source_repository": "https://github.com/cocel-postech/genz-lio",
-      "author_source_status": "verified",
-      "acquisition_url": "https://arxiv.org/pdf/2603.16273v3",
-      "notes": "notes/GenZ-LIO.md"
-    },
-    {
       "algorithm": "SV-LIO",
       "file": "SV-LIO.pdf",
       "version": "doi:10.3390/electronics15081744",
@@ -247,34 +220,6 @@
       "notes": "notes/SV-LIO.md"
     },
     {
-      "algorithm": "Environment-Adaptive Solid-State LIO",
-      "file": "Environment-Adaptive-Solid-State-LIO.pdf",
-      "version": "2604.15864v2",
-      "archived_for_notes": false,
-      "pages": 6,
-      "bytes": 2928723,
-      "sha256": "79303a036919b6ce6c213a37a1afd7ec1e8125943686088129e1bb9d1c6c388d",
-      "paper_url": "https://arxiv.org/abs/2604.15864v2",
-      "source_repository": null,
-      "author_source_status": "not_verified",
-      "acquisition_url": "https://arxiv.org/pdf/2604.15864v2",
-      "notes": "notes/Environment-Adaptive-Solid-State-LIO.md"
-    },
-    {
-      "algorithm": "GenZ-LIO",
-      "file": "GenZ-LIO-v2.pdf",
-      "version": "2603.16273v2",
-      "archived_for_notes": true,
-      "pages": 21,
-      "bytes": 10612395,
-      "sha256": "2baddb750009987785c4d41918447f3c56a5ff69937ea9d1c175495c4b1d3a61",
-      "paper_url": "https://arxiv.org/abs/2603.16273v2",
-      "source_repository": "https://github.com/cocel-postech/genz-lio",
-      "author_source_status": "verified",
-      "acquisition_url": null,
-      "notes": "notes/GenZ-LIO.md"
-    },
-    {
       "algorithm": "i-Octree",
       "file": "i-Octree.pdf",
       "version": "2309.08315v2",
@@ -287,20 +232,6 @@
       "bytes": 892382,
       "sha256": "0a3aa35b7aa9eb9f2fd04d70de86e64a71b6825481110e5e9666d4b931324daf",
       "notes": "notes/i-Octree.md"
-    },
-    {
-      "algorithm": "KISS-ICP / VoxelHashMap",
-      "file": "KISS-ICP.pdf",
-      "version": "RA-L 2023 author preprint, accepted December 2022",
-      "paper_url": "https://doi.org/10.1109/LRA.2023.3236571",
-      "source_repository": "https://github.com/PRBonn/kiss-icp",
-      "acquisition_url": "https://www.ipb.uni-bonn.de/wp-content/papercite-data/pdf/vizzo2023ral.pdf",
-      "archived_for_notes": false,
-      "author_source_status": "verified",
-      "pages": 8,
-      "bytes": 2300936,
-      "sha256": "ac348e4cb4716bf46b2f1244fc87c75e190f693f31ff18104e093c83176215a1",
-      "notes": "notes/KISS-ICP.md"
     },
     {
       "algorithm": "iG-LIO / incremental VoxelMap",

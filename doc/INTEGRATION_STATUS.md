@@ -16,6 +16,10 @@ with 22 GTest cases (ASan was off in this main configuration). Paper eligibility
 future adapter boundaries remain in the
 [map/residual review](../paper/notes/MAP_BACKEND_SCOPE_REVIEW.md).
 
+## BIEVR-LIO status
+
+BIEVR-LIO is not integrated: this checkout has no BIEVR selector or height-map observation path. The [integration plan](../PLAN.md) lists it as pending; the [IKFoM port document](BIEVR_IKFOM_PORT.md) is a design draft only. Its standalone upstream ROS1 build in the [workspace build report](workspace/BUILD_REPORT.md) is not PV-LIO-PLUS integration evidence.
+
 ## Contract fixes
 
 - **VoxelMap++ extrinsic Jacobian:** `ObservationModelVoxelMapPlus` now follows

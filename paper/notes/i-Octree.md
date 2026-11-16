@@ -4,9 +4,9 @@
 Lightweight, and
 Dynamic Octree for
 Proximity
-Search*。作者代码：[zhujun3753/i-octree](https://github.com/zhujun3753/i-octree)；工作区副本
-[upstream/i-Octree](../../../../upstream/i-Octree)，核心头文件
-[Octree.h](../../../../upstream/i-Octree/octree2/Octree.h)。
+Search*。作者代码：[zhujun3753/i-octree](https://github.com/zhujun3753/i-octree)；
+本项目固定来源与适配差异见[本地源码说明](../../include/map_manager/native/i_octree/SOURCE.md)，
+适配后的核心见[i_octree.hpp](../../include/map_manager/native/i_octree/i_octree.hpp)。
 
 ## 问题与结构
 

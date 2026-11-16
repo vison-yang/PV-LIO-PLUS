@@ -2,7 +2,7 @@
   "checked_on": "2026-11-14",
   "workspace_root": ".",
   "project_repository": "src/PV_LIO_PLUS",
-  "note": "The workspace root is not a Git repository. Sources retain their own repositories. upstream_commit pins author provenance; local_commit and patches record compatibility edits. Existing dirty source edits were snapshotted before this task.",
+  "note": "Historical source/build collection: upstream_commit pins author provenance; local_commit and patches record compatibility edits. Current PV-LIO-PLUS integration status is recorded separately in current_snapshot. The workspace root is not a Git repository.",
   "current_snapshot": {
     "checked_on": "2026-11-16",
     "project_checkout": {
@@ -39,6 +39,26 @@
         "snapshot_date": "2026-11-14",
         "scope": "Build evidence for the earlier complete author checkout, not evidence that the complete checkout is currently present or builds from this snapshot."
       }
+    },
+    "status_checked_at_commit": "3a21000",
+    "bievr_lio": {
+      "framework_status": "not_integrated",
+      "implementation_status": "port_design_draft_only",
+      "selector": null,
+      "framework_map_implementation": false,
+      "framework_height_observation": false,
+      "framework_backend_config": false,
+      "framework_integration_tests": false,
+      "framework_replay": false,
+      "design_record": "doc/BIEVR_IKFOM_PORT.md",
+      "upstream_source": {
+        "workspace_path": "upstream/BIEVR-LIO",
+        "author_commit": "38f98b900dad0e562cddfff16f85f681288a95ed"
+      },
+      "upstream_build_record": {
+        "path": "doc/workspace/BUILD_REPORT.md",
+        "scope": "Historical independent upstream build, not a PV-LIO-PLUS backend integration result."
+      }
     }
   },
   "sources": [
@@ -65,7 +85,7 @@
       "local_commit": "24dce4f497df127f695f5fdf3392cc5f9e7fa4c3",
       "branch": "master",
       "build_group": "catkin-src",
-      "scope": "excluded from map integration: contributions are adaptive scan voxelization, hybrid state update and pruned search on an inherited VoxelMap; retained source/build provenance and independent system baseline",
+      "scope": "historical independent-system build provenance",
       "local_changes": [],
       "compatibility_patch": "patches/GenZ-LIO.patch",
       "patch_base_commit": "bf444f7a747ed3da8548b56b49c14f207e8d49bb",
@@ -215,9 +235,10 @@
       "local_commit": "38f98b900dad0e562cddfff16f85f681288a95ed",
       "branch": "main",
       "build_group": "isolated-upstream",
-      "scope": "conditional candidate voxel bump-image map and height residuals; common-filter adapter required, map-guided sampling evaluated separately",
+      "scope": "not integrated into PV-LIO-PLUS; directional-height map port design draft only; historical independent upstream build",
       "local_changes": [],
-      "compatibility_patch": null
+      "compatibility_patch": null,
+      "integration_status": "not_implemented"
     },
     {
       "name": "Surfel-LIO",
@@ -257,7 +278,7 @@
       "local_commit": "1ffa7d7512f10bfc8b1185095011fa31184019e3",
       "branch": "main",
       "build_group": "isolated-upstream",
-      "scope": "excluded from map integration: existing voxel/hash map is used without an established map-data-structure contribution; retained source/build provenance and independent system baseline",
+      "scope": "historical independent-system build provenance",
       "local_changes": [],
       "compatibility_patch": null
     },

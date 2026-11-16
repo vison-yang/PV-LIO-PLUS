@@ -1,8 +1,9 @@
 # BIEVR 高度图到共同 IKFoM 的移植设计草稿
 
-日期：2026-11-15。状态：**仅设计，未实施、未构建、未回放；当前没有 BIEVR selector**。
-目标是在公共同步、IMU 传播、去畸变、状态和 IKFoM 循环中保留定向高度图及相应高度残差。
+设计日期：2026-11-15；状态核对：2026-11-16。状态：**尚未集成；仅有设计草稿，未在 PV-LIO-PLUS 实施、构建或回放；当前没有 BIEVR selector**。
+设计目标是在公共同步、IMU 传播、去畸变、状态和 IKFoM 循环中保留定向高度图及相应高度残差。
 该组合不等价于作者原始 LIO；不得以移植地图为名引入另一套求解、IMU 因子或先验。
+下文对公共接口、生命周期和缓存的描述均为拟议契约，不代表本仓库已有实现；固定上游源码行为另行标明。
 
 ## 1. 固定依据与可分离边界
 
@@ -30,20 +31,20 @@ inertial/prior factor、Ceres 窗口、同步器或去畸变器；新依赖先�
 
 ## 2. 地图生命周期与不能丢失的结构
 
-`MapType::BIEVR` / `bievr` 只是后续命名建议。构建、更新和清理均在公共主循环串行进行。
-地图更新输入世界 XYZ；每点另带真实 IMU 系量程，不能从世界原点距离推测。
+`MapType::BIEVR` / `bievr` 只是后续命名建议；设计拟由公共主循环串行执行地图构建、更新和清理。
+适配时拟以世界系 XYZ 作为地图更新输入；每点还应保留真实 IMU 系量程，不能从世界系原点距离推测。
 作者实际调用是 `calculateRanges(points_undistorted_I)`（`pipeline.cpp:121–122`；
 `BIEVR/src/common.cpp:6–12`），因此是 `||R_IL p_L+t_IL||`，不是笔记所写的 LiDAR 系量程。
 原地图以 `sum/outer_sum/n` 更新法向，至少 4 点成熟；实际 scatter 分母为 **n−1**
 （`map.cpp:158–198`），既有笔记的 n+1 不能作为实现依据。
-保留 `T_O_W` 法向坐标、带像素原点的 `T_C_W`、法向变化阈值及图像重投影，
+适配时应保留 `T_O_W` 法向坐标、带像素原点的 `T_C_W`、法向变化阈值及图像重投影，
 以及 `round` 像素写入、范围权重、可选有效掩码 Gaussian 平滑与 MID（`map.cpp:203–397`）。
 写入权重为 `weighted ? min(0.5,1/range) : 1`，与配置像素融合语义绑定。
 `config/params.yaml` 明设 smooth/weighted=true；结构体和 loader 缺参默认 false，必须记录实际值。
 成熟前 pending 点须在首次成熟时投影一次并释放；LRU 按更新触碰，容量按体素数。
-`clear/configure/reinitialize` 销毁重建 native 地图并递增 generation，不保留旧像素指针。
-`size()` 定义当前体素数；快照应从有效像素提升为世界点并标明是表面像素快照，
-不是历史输入点数量。作者没有共同几何窗口 API，第一版启用 common local_window 应明确拒绝。
+拟提供的 `clear/configure/reinitialize` 应销毁并重建 native 地图、递增 generation，不保留旧像素指针。
+建议将 `size()` 定义为当前体素数；快照应从有效像素提升为世界点并标明是表面像素快照，
+不是历史输入点数量。作者没有共同几何窗口 API；若首版处理 common local_window，设计应明确拒绝该模式。
 
 原系统用完整去畸变云更新地图（`pipeline.cpp:143–146`），注册点集另选。
 后续适配应显式登记 `map_update_cloud=common_undistorted_full`，保持点与 range 顺序一一对应；
@@ -54,7 +55,7 @@ inertial/prior factor、Ceres 窗口、同步器或去畸变器；新依赖先�
 先查所在体素；不存在/未成熟时才以邻格质心距离找 observed 体素
 （`ls.cpp:66–79`，`map.cpp:399–438`）。所在体素存在但像素无效时，作者不再搜索别的体素。
 不能用全局最近点/平面替代该路径，也不能在无匹配时补造零高度观测。
-`p_C=T_CW p_W`，`u=p_C.x/px_size`、`v=p_C.y/px_size`，高度 `I` 和残差均为米。
+拟议观测沿用作者的 `p_C=T_CW p_W` 坐标变换，以 `u=p_C.x/px_size`、`v=p_C.y/px_size` 查询；高度 `I` 和残差均为米。
 `getSubPixelValue` 不是要求四角全有效：它用 `weight>0` 的二值掩码重归一化双线性权重；
 中心 2×2 超图像边界或有效权重和为零才拒绝（`ls.h:27–57`）。
 `sampleValueAndGradient` 返回相同中心高度，但梯度由 `I(u±1,v)`、`I(u,v±1)` 中心差分，
@@ -62,7 +63,7 @@ inertial/prior factor、Ceres 窗口、同步器或去畸变器；新依赖先�
 因此 native gradient 对一般非仿射或缺角图像只是近似，不能要求它普遍通过残差精确 FD。
 
 第一版建议每次公共观测 callback 按当前状态重新查询/插值；整个滤波更新期间地图只读。
-一次局部线性化固定 voxel、`T_CW`、图像、有效掩码、floor 选定的 stencil 和去畸变原始点，
+拟定的线性化边界是：一次局部线性化固定 voxel、`T_CW`、图像、有效掩码、floor 选定的 stencil 和去畸变原始点，
 仅对 stencil 内连续坐标求导；不对 hash/floor、邻格选择、重投影或历史地图融合求导。
 跨 voxel/像素边界重新选支，不对不连续边界做中心差分验收。
 如以后缓存，须绑定 frame+map generation，缓存拥有值或受控只读句柄，
@@ -75,25 +76,26 @@ inertial/prior factor、Ceres 窗口、同步器或去畸变器；新依赖先�
 另可研究 `bievr_height_ikfom_nativegrad`，保留原中心差分梯度，明确其 Jacobian 近似。
 两者均不是作者 LM 求解器的复现，也不承诺与原系统估计结果相同。
 
-记 `A=R_IL`、`t=t_IL`、`R=R_WI`、`p=p_WI`；公共点为去畸变 LiDAR 点 `p_L`：
+拟议适配中记 `A=R_IL`、`t=t_IL`、`R=R_WI`、`p=p_WI`；公共观测使用去畸变 LiDAR 点 `p_L`：
 `a=A p_L+t`，`p_W=R a+p`，`p_C=Q p_W+c`，其中 `Q=R_CW` 为固定地图变换。
 `r=p_C.z-I(u,v)`，提交滤波器的 innovation 为 **h=−r**。
 固定掩码 `m_j∈{0,1}`，双线性基函数 `b_j`，令 `N=Σm_j b_j I_j`、`S=Σm_j b_j`：
 `I=N/S`，`I_u=(N_u S−N S_u)/S²`，`I_v=(N_v S−N S_v)/S²`。
 该式直接来自已核定的采样代码；只在 S>0、同一 stencil、有限输入的连续分支成立。
 `g_C=[−I_u/px_size, −I_v/px_size, 1]ᵀ`，`g_W=Qᵀg_C`，`C=Rᵀg_W`。
-公共前 12 列顺序是 pos、右扰动 rot、右扰动 extrinsic rot、IMU 系 extrinsic translation：
+拟采用的公共前 12 列顺序为 pos、右扰动 rot、右扰动 extrinsic rot、IMU 系 extrinsic translation：
 
 ```text
 H = dr/dδ = [ g_Wᵀ, (a×C)ᵀ, (p_L×AᵀC)ᵀ, Cᵀ ]
-extrinsic_est_en=false: 最后六列为零，前六列不变。
 ```
+
+若 `extrinsic_est_en=false`，拟将最后六列置零，前六列不变。
 
 `include/use-ikfom.hpp:12–13` 给出状态顺序；SO3 右乘见
 `include/IKFoM_toolkit/mtk/types/SOn.hpp` 的 `boxplus`；对比作者 `ls.cpp:101–112,174–180`。
-速度、bias、gravity 没有此 LiDAR 行的直接列，其更新由公共协方差交叉项传递。
+拟议的 LiDAR 行不直接填写速度、bias、gravity 列；其更新通过公共协方差交叉项传递。
 **不得归一化 g_W**：其长度包含高度图切向梯度信息；不能塞进会正规化 normal 的通用点面路径。
-设计独立 `HeightMatch/HeightObservation` 记录与分派，保留 `p_L`、voxel generation、图像坐标及梯度语义。
+应设计独立 `HeightMatch/HeightObservation` 记录与分派，保留 `p_L`、voxel generation、图像坐标及梯度语义。
 不要把作者六列 `[rot,local translation]` 原样复制到公共 `[world pos,rot,...]`。
 
 ## 5. 鲁棒权重、不确定性和近似
@@ -107,8 +109,8 @@ extrinsic_est_en=false: 最后六列为零，前六列不变。
 接口 `dyn_share.R` 存逆方差，见 `esekfom.hpp:2105–2142`；不要再次平方 w。
 这是相对公共 IMU 先验的新噪声尺度选择，必须先定标/消融；不声称来自作者概率模型。
 scatter 是坐标分布（m²），像素 weight 是融合权重，均不是已标定的高度残差逆方差。
-不重复加入共享状态 P 形成的 pose covariance，也不导入作者重力 prior/惯性窗口。
-未来若加入点传感器协方差或像素相关性，须另做信息模型；当前对角接口忽略共享像素相关性。
+拟议信息模型不重复加入共享状态 P 形成的 pose covariance，也不导入作者重力 prior/惯性窗口。
+未来若加入点传感器协方差或像素相关性，须另做信息模型；本设计的对角接口会忽略共享像素相关性。
 零残差 w=1；非有限 r/H、非有限或非正 sigma²/info、无观测分支须显式拒绝，不能虚构约束。
 
 ## 6. 导入前必须关闭的具体缺口
@@ -139,6 +141,6 @@ scatter 是坐标分布（m²），像素 weight 是融合权重，均不是已�
   旧后端回归后，再以已核准标定/单位/时间戳的短 bag 验证输入排空、末 stamp、有效像素/行数、
   有限 h/H/info、地图容量与配置/source/binary 身份。失败显式记录，不用非空轨迹当完整成功。
 
-注册采样首版沿用公共采样并记录分辨率；`sampleInformed`（`BIEVR/src/preprocess.cpp:68–152`）
+注册采样拟在首版沿用公共采样并记录分辨率；`sampleInformed`（`BIEVR/src/preprocess.cpp:68–152`）
 的 MID 选区/双分辨率采样为独立开关、独立阶段和独立 run manifest，不能由地图 selector 暗启。
 完整作者系统只能作为独立基线；共同 KF 的 IMU 先验、迭代/对应点刷新及信息尺度会改变估计行为。

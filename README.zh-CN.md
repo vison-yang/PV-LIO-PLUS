@@ -50,12 +50,10 @@ FAST-LIO2 和 Faster-LIO 分别通过 ikd-tree、iVox 及本框架的观测适�
 | 地图 / 方法 | 已收集的官方源码 | 已记录的编译结果 | 后续集成工作 |
 | --- | --- | --- | --- |
 | Hybrid-VoxelMap | `src/Hybrid-VoxelMap` | ROS1 共享构建通过 | 条件候选：定义语义标签输入及 Plane/NDT 匹配类型，再适配两类残差；纯平面或无标签变体须明确命名。 |
-| BIEVR-LIO | `upstream/BIEVR-LIO` | 隔离 ROS1 目标编译通过 | 条件候选：将体素 bump image 与高度图残差适配共同状态/滤波器，地图引导采样单独评估。 |
+| BIEVR-LIO | `upstream/BIEVR-LIO` | 独立上游 ROS1 目标编译通过 | 尚未集成；目前只有[移植设计草稿](doc/BIEVR_IKFOM_PORT.md)。设计拟保留定向高度图并将高度残差映射到共同滤波器；地图引导采样单独评估。 |
 | LIO-GVM | `upstream/lio_gvm` | 作者发布源码不完整，构建阻塞 | 每体素维护质心/协方差的增量高斯地图；先补齐作者定制 Fast-VGICP、IKFoM 及地图源码，再适配地图与残差。 |
 
 FR-LIO/RC-Vox、SV-LIO 的论文具备地图结构创新依据，但本地收集记录尚未确认官方实现；两者保留为论文储备，待源码核验后再进入实现排期。
-
-KISS-ICP、GenZ-LIO 使用已有地图结构，论文所列创新不构成新的地图数据结构；CT-VoxelMap、Environment-Adaptive Solid-State LIO 在已审版本中缺少独立结构创新的充分证据；SA-LIVO v3 继承体素平面地图组织，贡献聚焦视觉误差建模与估计融合。以上五项已从当前集成清单与排期移除；SA-LIVO 论文和笔记现归档于[独立工作空间](../../../livo_src/paper/README.md)，其余论文、源码和构建记录按原边界作为背景资料。逐项依据见[资格审查](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)，保留项的实施安排见[计划](PLAN.md)。源码可用性以固定本地收集记录为准，未更新远程 HEAD，也不据此断言未核验的官方实现不存在。
 
 ### 对照实验约束
 
