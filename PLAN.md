@@ -84,7 +84,7 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 | KISS-ICP / VoxelHashMap | 归档系统资料 | 论文贡献和实现沿用已有 voxel hash；kNN/残差适配不足以满足地图结构创新条件。既有 C++ 构建记录保留为历史证据。 |
 | GenZ-LIO | 归档系统资料 | v3 贡献包括扫描尺度、混合更新和剪枝，地图沿用 VoxelMap；既有共享构建和 21 项 CTest 记录保留。 |
 | CT-VoxelMap | 相关连续时间估计研究 | 目前核验未证明独立地图结构改进；本地来源记录未确认作者实现。 |
-| SA-LIVO | 相关视觉/估计研究 | v3 贡献为估计效率/融合，继承 VoxelMap 组织；本地来源记录未确认独立地图实现。 |
+| SA-LIVO | 相关视觉/估计研究（独立归档） | v3 贡献为视觉误差建模、子空间融合与联合估计效率，继承体素平面地图组织；不作为 PV-LIO-PLUS 地图后端候选。资料见[独立工作空间笔记](../../../livo_src/paper/notes/SA-LIVO.md)。 |
 | Environment-Adaptive Solid-State LIO | 相关地图维护研究 | 帧级门控和体素质量 EMA 尚未证明空间、层级或几何地图结构改进；本地来源记录未确认作者实现。 |
 | FAST-LIO / PV-LIO | 框架与项目演进来源 | 用于解释共享估计框架和项目历史，不作为新增地图候选。 |
 

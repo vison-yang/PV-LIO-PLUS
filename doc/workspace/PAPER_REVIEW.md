@@ -1,6 +1,8 @@
+> 历史记录：本报告审校时的 SA-LIVO 笔记包含 v2 主体与 v3 摘要；现仅在独立工作空间保留 v3。此处旧行号和版本比较描述当时的文档状态，不代表当前笔记仍混用版本。
+>
 > 最终状态：以下五组问题均已在笔记正文修复，并由同一审校 agent 逐项复核通过；i-Octree 精确 kNN 的补注也已通过。本报告下文记录修复前的问题及原文依据。
 
-修复文件：[VoxelMap++](../../paper/notes/VoxelMap++.md)、[Environment-Adaptive](../../paper/notes/Environment-Adaptive-Solid-State-LIO.md)、[ikd-Tree](../../paper/notes/ikd-Tree.md)、[KISS-ICP](../../paper/notes/KISS-ICP.md)、[SA-LIVO](../../paper/notes/SA-LIVO.md)、[i-Octree](../../paper/notes/i-Octree.md)。
+修复文件：[VoxelMap++](../../paper/notes/VoxelMap++.md)、[Environment-Adaptive](../../paper/notes/Environment-Adaptive-Solid-State-LIO.md)、[ikd-Tree](../../paper/notes/ikd-Tree.md)、[KISS-ICP](../../paper/notes/KISS-ICP.md)、[SA-LIVO](../../../../../livo_src/paper/notes/SA-LIVO.md)、[i-Octree](../../paper/notes/i-Octree.md)。
 
 # 论文笔记实质审校
 

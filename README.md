@@ -102,7 +102,8 @@ a distinct map-data-structure contribution in the reviewed versions. SA-LIVO
 inherits VoxelMap and contributes primarily to visual/inertial estimation.
 These methods have no current map-integration schedule; their papers and any
 collected sources/build records remain background or independent baseline
-artifacts. See the [eligibility review](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)
+artifacts. SA-LIVO v3 is archived in its [independent workspace](../../../livo_src/paper/README.md).
+See the [eligibility review](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)
 for individual decisions and the [plan](PLAN.md) for the retained work.
 Source-availability statements refer to the fixed local collection, without
 claiming that unverified official code does not exist or updating remote HEADs.

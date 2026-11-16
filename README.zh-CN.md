@@ -55,7 +55,7 @@ FAST-LIO2 和 Faster-LIO 分别通过 ikd-tree、iVox 及本框架的观测适�
 
 FR-LIO/RC-Vox、SV-LIO 的论文具备地图结构创新依据，但本地收集记录尚未确认官方实现；两者保留为论文储备，待源码核验后再进入实现排期。
 
-KISS-ICP、GenZ-LIO 使用已有地图结构，论文所列创新不构成新的地图数据结构；CT-VoxelMap、Environment-Adaptive Solid-State LIO 在已审版本中缺少独立结构创新的充分证据；SA-LIVO 沿用 VoxelMap，贡献主要在视觉/惯性估计。以上五项已从当前集成清单与排期移除，论文及已收集源码、构建记录仅作背景或独立基线存档。逐项依据见[资格审查](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)，保留项的实施安排见[计划](PLAN.md)。源码可用性以固定本地收集记录为准，未更新远程 HEAD，也不据此断言未核验的官方实现不存在。
+KISS-ICP、GenZ-LIO 使用已有地图结构，论文所列创新不构成新的地图数据结构；CT-VoxelMap、Environment-Adaptive Solid-State LIO 在已审版本中缺少独立结构创新的充分证据；SA-LIVO v3 继承体素平面地图组织，贡献聚焦视觉误差建模与估计融合。以上五项已从当前集成清单与排期移除；SA-LIVO 论文和笔记现归档于[独立工作空间](../../../livo_src/paper/README.md)，其余论文、源码和构建记录按原边界作为背景资料。逐项依据见[资格审查](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)，保留项的实施安排见[计划](PLAN.md)。源码可用性以固定本地收集记录为准，未更新远程 HEAD，也不据此断言未核验的官方实现不存在。
 
 ### 对照实验约束
 

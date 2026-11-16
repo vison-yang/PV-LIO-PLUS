@@ -1,7 +1,7 @@
 {
   "checked_on": "2026-11-14",
-  "canonical_papers": 22,
-  "note_archives": 2,
+  "canonical_papers": 21,
+  "note_archives": 1,
   "papers": [
     {
       "algorithm": "VoxelMap",
@@ -233,20 +233,6 @@
       "notes": "notes/GenZ-LIO.md"
     },
     {
-      "algorithm": "SA-LIVO",
-      "file": "SA-LIVO.pdf",
-      "version": "2606.25699v3",
-      "archived_for_notes": false,
-      "pages": 17,
-      "bytes": 9048831,
-      "sha256": "334aa626050ad0ac48699514175a746bfd36ebb92f54d2da28b1268a22d5a1d2",
-      "paper_url": "https://arxiv.org/abs/2606.25699v3",
-      "source_repository": null,
-      "author_source_status": "not_verified",
-      "acquisition_url": "https://arxiv.org/pdf/2606.25699v3",
-      "notes": "notes/SA-LIVO.md"
-    },
-    {
       "algorithm": "SV-LIO",
       "file": "SV-LIO.pdf",
       "version": "doi:10.3390/electronics15081744",
@@ -287,20 +273,6 @@
       "author_source_status": "verified",
       "acquisition_url": null,
       "notes": "notes/GenZ-LIO.md"
-    },
-    {
-      "algorithm": "SA-LIVO",
-      "file": "SA-LIVO-v2.pdf",
-      "version": "2606.25699v2",
-      "archived_for_notes": true,
-      "pages": 18,
-      "bytes": 8985509,
-      "sha256": "22324d43c0b93c84c4e97d03285f249e0bd8f714a65217297fdea7b2ca1e2c67",
-      "paper_url": "https://arxiv.org/abs/2606.25699v2",
-      "source_repository": null,
-      "author_source_status": "not_verified",
-      "acquisition_url": null,
-      "notes": "notes/SA-LIVO.md"
     },
     {
       "algorithm": "i-Octree",
