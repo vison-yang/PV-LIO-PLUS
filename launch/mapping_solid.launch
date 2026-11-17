@@ -1,5 +1,5 @@
 <launch>
-    <arg name="backend" default=""/>
+    <arg name="backend" default="ivox"/>
     <arg name="observation" default=""/>
     <arg name="rviz" default="true"/>
     <include file="$(find pv_lio_plus)/launch/mapping.launch">

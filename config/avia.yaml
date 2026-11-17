@@ -19,46 +19,9 @@ preprocess:
     feature_extract_enable: false
 
 mapping:
-    map_type: voxelmap_plus                # 后端 selector 与参数见 config/README.md
-    local_window_en: false
-    down_sample_size: 0.1                 # m
+    down_sample_size: 0.1                  # m
     max_iteration: 10
-    det_range: 100.0                      # m; local-window half extent
-
-    voxel_size: 0.5                       # m
-    max_layer: 4                           # valid layer indices: 0..max_layer
-    layer_point_size: [5, 5, 5, 5, 5]     # layers 0..max_layer
-    plannar_threshold: 0.01                # keep historical spelling; key read by the node
-    max_points_size: 1000
-    max_cov_points_size: 1000
-    sigma_num: 3
-    update_size_threshold: 5                # VoxelMap++ only
-
-    nearest_point_count: 5
-    nearest_max_range: 5.0                 # physical query radius in meters for ikd-tree and iVox
-    plane_fit_threshold: 0.1
-    point_map_downsample_size: 0.1         # m
-
-    ikd_delete_param: 0.5
-    ikd_balance_param: 0.7
-    ikd_box_length: 0.2                    # m
-
-    ivox_resolution: 0.2                  # m
-    ivox_nearby_type: 18                   # 0, 6, 18 or 26 neighboring voxels
-    ivox_capacity: 1000000
-    ivox_optimized: false                  # false=legacy (compatible default), true=optimized storage/query path
-
-    octvox_resolution: 0.5                 # m; Super-LIO native octant grid
-    octvox_capacity: 1000000               # native LRU grid capacity; local_window_en must stay false
-
-    c3p_enable_voxel_merging: false
-    c3p_merge_theta_thresh: 0.05
-    c3p_merge_dist_thresh: 0.05
-    c3p_merge_cov_min_eigen_val_thresh: 0.002
-    c3p_merge_x_coord_diff_thresh: 5.0
-    c3p_merge_y_coord_diff_thresh: 5.0
-
-    extrinsic_est_en: false                 # enable online IMU-LiDAR extrinsic estimation
+    extrinsic_est_en: false                # enable online IMU-LiDAR extrinsic estimation
     extrinsic_T: [0.04165, 0.02326, -0.0284] # LiDAR-to-IMU translation [m]
     extrinsic_R: [1, 0, 0,
                   0, 1, 0,

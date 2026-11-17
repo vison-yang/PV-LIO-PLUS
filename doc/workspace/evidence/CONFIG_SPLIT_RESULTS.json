@@ -1,0 +1,167 @@
+{
+  "checked_on": "2026-11-17",
+  "repository": "/home/yxy/src/lio_map_ws/src/PV-LIO-PLUS",
+  "base_commit": "b0a598952ebf7f5aa9f101c3b3d955e0e89b7b8b",
+  "scope": "strict single ownership of map parameters in selected backend YAML; no C++ changes",
+  "load_order": [
+    "main sensor YAML",
+    "selected backend YAML",
+    "optional observation YAML",
+    "forced backend selector"
+  ],
+  "removed_layers": [
+    "config/backends/common.yaml",
+    "config/backends/sensors/",
+    "map_defaults/map_config arguments",
+    "manifest map_configs layers"
+  ],
+  "backend_count": 11,
+  "backend_algorithm_parameters": "each backend profile supplies exactly its consumed map keys; sensor mapping and backend mapping have no shared keys",
+  "sensor_mapping_key_counts": {
+    "avia": 5,
+    "mid360_indoor": 5,
+    "solid": 5
+  },
+  "sensor_shared_fields": [
+    "down_sample_size",
+    "max_iteration",
+    "extrinsic_est_en",
+    "extrinsic_T",
+    "extrinsic_R"
+  ],
+  "map_parameter_owners": {
+    "point_map_downsample_size": [
+      "ikdtree",
+      "ivox"
+    ],
+    "det_range": [
+      "voxelmap",
+      "voxelmap_plus",
+      "c3p_voxelmap",
+      "ikdtree",
+      "ivox",
+      "i_octree"
+    ],
+    "c3p_*": [
+      "c3p_voxelmap"
+    ],
+    "ikd_*": [
+      "ikdtree"
+    ],
+    "ivox_*": [
+      "ivox"
+    ],
+    "octvox_*": [
+      "octvox"
+    ]
+  },
+  "priority": "Selected backend supplies all map parameters after sensor YAML; an old external sensor YAML cannot override keys supplied by the selected backend or its selector.",
+  "solid_effective_default_changes_from_pre_split_wrapper": {
+    "nearest_max_range_m": {
+      "before": 1.75,
+      "after": 5.0
+    },
+    "point_map_downsample_size_m": {
+      "before": 0.5,
+      "after": 0.1
+    },
+    "ivox_resolution_m": {
+      "before": 0.5,
+      "after": 0.2
+    },
+    "ivox_capacity": {
+      "before": 200000,
+      "after": 1000000
+    },
+    "det_range_m": {
+      "before": 70.0,
+      "after": 100.0,
+      "active": false,
+      "reason": "local_window_en=false"
+    }
+  },
+  "solid_octvox_selection": {
+    "octvox_capacity": {
+      "before_sensor_value": 200000,
+      "after_backend_value": 1000000
+    }
+  },
+  "r_voxelmap_cleanup": "max_cov_points_size removed from profile: native R-VoxelMap stores this value but does not read it for map operations; max_points_size retained.",
+  "runner_backend_mode": "sensor_then_backend",
+  "runner_backend_presets_flag": "retained as a compatibility no-op; selected backend file is always loaded",
+  "validation": {
+    "tests": 11,
+    "failures": 0,
+    "errors": 0,
+    "mapping_comparisons": 174,
+    "golden_sensor_and_backend_values": "tests/data/config_pre_split.json",
+    "process": {
+      "argv": [
+        "python3",
+        "tests/config_profiles_tests.py"
+      ],
+      "exit_code": 0,
+      "elapsed_sec": 19.963821948040277,
+      "source_drift": [],
+      "recorded_utc": "2026-11-17T03:59:54.119112+00:00"
+    },
+    "coverage": [
+      "11 backend profiles have all actual consumed map keys and no unrelated algorithm keys",
+      "all 3 sensor YAML files retain only five shared mapping keys; non-mapping sensor facts unchanged",
+      "3 sensors x 11 backend choices have no overlapping mapping keys",
+      "default and explicit wrapper backend selections",
+      "runner canonical and archived backend configurations agree with launch",
+      "sequential mapping parameter-table composition across sensor/backend switches",
+      "archived sensor/backend SHA-256 and generated launch references",
+      "alias/external paths need no sensor-name detection; selected backend wins old sensor map keys",
+      "optional observation profile loading order and rejection of obsolete map layers",
+      "Solid effective iVox and OctVox backend defaults"
+    ],
+    "static_checks": [
+      "Python AST syntax",
+      "frozen YAML fixture matches source_commit exactly",
+      "git diff --check",
+      "no C++/build definition changes"
+    ],
+    "post_test_input_drift": [],
+    "post_test_documentation_updates": [
+      "config/README.md"
+    ],
+    "precommit_recheck": {
+      "tests": 11,
+      "failures": 0,
+      "errors": 0,
+      "mapping_comparisons": 174,
+      "process": {
+        "argv": [
+          "python3",
+          "tests/config_profiles_tests.py"
+        ],
+        "exit_code": 0,
+        "elapsed_sec": 21.806446973991115,
+        "source_drift": [],
+        "recorded_utc": "2026-11-17T05:55:31.078862+00:00",
+        "yaml_files_checked_for_duplicate_keys": 16,
+        "fixture_verified": true,
+        "python_ast_valid": true,
+        "diff_check_passed": true
+      },
+      "archive_dir": "/home/yxy/output/agent/pv_lio_plus_config_ownership/20261117_precommit",
+      "ros_node_or_master_started": false,
+      "cpp_compilation_performed": false,
+      "replay_performed": false
+    }
+  },
+  "archive_dir": "/home/yxy/output/agent/pv_lio_plus_config_ownership/20261117_round2",
+  "source_manifest": "/home/yxy/output/agent/pv_lio_plus_config_ownership/20261117_round2/source_manifest.json",
+  "source_drift": [],
+  "cpp_changes": [],
+  "cpp_compilation_performed": false,
+  "ros_node_or_master_started": false,
+  "replay_performed": false,
+  "limitations": [
+    "Offline Noetic launch parsing and parameter-table composition; no live ROS master or replay validation",
+    "Observation profiles remain optional; omitted observation parameters are not guaranteed cleared on an existing master",
+    "Frozen fixture preserves sensor facts and backend baselines, rather than asserting unchanged old Solid effective tuning"
+  ]
+}

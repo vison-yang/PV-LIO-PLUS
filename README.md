@@ -225,30 +225,34 @@ source devel/setup.bash
 
 ## Select a local map
 
-Set the backend in the PV-LIO-PLUS YAML configuration:
+Select the backend with the launch `backend` argument. Its YAML declares the corresponding map type:
 
 ```yaml
 mapping:
   map_type: octvox    # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap, octvox, r_voxelmap, hvox, i_octree, ig_lio_plane, bievr
 ```
 
-The local-window mode is selected with the existing `mapping` window
-parameters. Sensor YAML is loaded first, then the selected backend profile
-overlays its leaves; common observation parameters remain shared. See the
-[configuration profile guide](config/README.md). For example:
+Each of the 11 backend YAML files owns that backend's map parameters. The
+three main sensor YAML files keep sensor settings and only five `mapping` keys:
+`down_sample_size`, `max_iteration`, `extrinsic_est_en`, `extrinsic_T`, and
+`extrinsic_R`. Loading order is **sensor → selected backend → optional
+observation**, then launch forces `mapping/map_type` from `backend`. The later
+backend layer wins on overlapping keys; there is no `common.yaml` or
+`sensors/` layer. See the [configuration guide](config/README.md) for the
+resulting Solid baseline changes. Configure local-window behavior through the
+existing `mapping` window parameters.
 
 ```bash
 roslaunch pv_lio_plus mapping_avia.launch backend:=ig_lio_plane rviz:=false
-roslaunch pv_lio_plus mapping_avia.launch backend:=ikdtree observation:=geman_mcclure rviz:=false
+roslaunch pv_lio_plus mapping_solid.launch backend:=ivox observation:=geman_mcclure rviz:=false
 ```
 
-The batch runner preserves each dataset's full YAML settings by default. Pass
-`--backend-presets` to opt into the same backend-profile overlay used by the
-generic launch; the run archive records the effective `backend_config.yaml`
-and `backend_config_mode` so results from the two modes stay distinguishable.
-Pass `--observation-profile geman_mcclure` to opt into the independent fixed-scale
-weight profile; the runner archives its profile and SHA-256. Its `gm_scale_m=0.1`
-is a starting value, not a sensor-noise or calibration-accuracy claim.
+The batch runner follows the same sensor-then-backend order, recorded as
+`backend_config_mode=sensor_then_backend`. The old `--backend-presets` flag is
+now a compatibility no-op because the selected backend is always loaded.
+Backend, sensor and optional observation YAML files are archived with SHA-256
+values, and the generated launch reads those copies. `gm_scale_m=0.1` remains
+a starting robust-weight scale, not a calibration result.
 
 `octvox` retains Super-LIO's
 capacity/LRU eviction and rejects geometric local-window mode. `hvox` uses its

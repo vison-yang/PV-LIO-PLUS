@@ -5,12 +5,11 @@
     <arg name="rviz" default="true"/>
 
     <rosparam command="load" file="$(arg sensor_config)"/>
-    <group if="$(eval arg('backend') != '')">
-        <rosparam command="load" file="$(find pv_lio_plus)/config/backends/$(arg backend).yaml"/>
-    </group>
-    <group if="$(eval arg('observation') != '')">
+    <rosparam command="load" file="$(find pv_lio_plus)/config/backends/$(arg backend).yaml"/>
+    <group if="$(eval arg('observation') not in ['', 'none'])">
         <rosparam command="load" file="$(find pv_lio_plus)/config/observations/$(arg observation).yaml"/>
     </group>
+    <param name="mapping/map_type" value="$(arg backend)"/>
 
     <node pkg="pv_lio_plus" type="pv_lio_plus_node"
           name="pv_lio_plus_node" output="screen"/>

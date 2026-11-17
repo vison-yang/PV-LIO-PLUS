@@ -1,4 +1,12 @@
-# 显式配置基线；地图尺寸和点数上限沿用传感器配置。
+# VoxelMap 使用的体素几何、点数限制与匹配参数。
 mapping:
   map_type: voxelmap
   local_window_en: false
+  det_range: 100.0
+  voxel_size: 0.5
+  max_layer: 4
+  layer_point_size: [5, 5, 5, 5, 5]
+  plannar_threshold: 0.01
+  max_points_size: 1000
+  max_cov_points_size: 1000
+  sigma_num: 3

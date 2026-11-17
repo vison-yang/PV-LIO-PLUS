@@ -1,7 +1,13 @@
-# 显式配置基线；公共体素几何沿用传感器配置。
+# C3P 使用的体素几何与合并参数。
 mapping:
   map_type: c3p_voxelmap
   local_window_en: false
+  det_range: 100.0
+  voxel_size: 0.5
+  max_layer: 4
+  layer_point_size: [5, 5, 5, 5, 5]
+  plannar_threshold: 0.01
+  sigma_num: 3
   c3p_enable_voxel_merging: false
   c3p_merge_theta_thresh: 0.05
   c3p_merge_dist_thresh: 0.05

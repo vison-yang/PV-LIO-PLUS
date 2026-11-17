@@ -120,20 +120,21 @@ source devel/setup.bash
 
 ## 选择局部地图
 
-在 PV-LIO-PLUS 的 YAML 配置文件中设置地图类型：
+通过 launch 的 `backend` 参数选择后端，其配置文件声明对应地图类型：
 
 ```yaml
 mapping:
-  map_type: octvox    # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap, octvox, r_voxelmap, hvox, i_octree, ig_lio_plane
+  map_type: octvox    # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap, octvox, r_voxelmap, hvox, i_octree, ig_lio_plane, bievr
 ```
 
-局部窗口模式使用现有的 `mapping` 窗口参数配置。传感器 YAML 先加载，再由所选后端 profile 覆盖对应叶节点；公共观测参数保持共享。详见[配置 profile 说明](config/README.md)。例如：
+11 份后端 YAML 各自保存该后端的地图参数。三份主传感器 YAML 的 `mapping` 下仅保留 `down_sample_size`、`max_iteration`、`extrinsic_est_en`、`extrinsic_T`、`extrinsic_R` 五项。加载顺序为“传感器 → 所选后端 → 可选观测”，之后由 launch 根据 `backend` 强制设置 `mapping/map_type`；同名参数以后加载的后端值为准。没有 `common.yaml` 或 `sensors/` 层。Solid 基线值的变化见[配置说明](config/README.md)。局部窗口模式通过现有 `mapping` 窗口参数配置。
 
 ```bash
 roslaunch pv_lio_plus mapping_avia.launch backend:=ig_lio_plane rviz:=false
+roslaunch pv_lio_plus mapping_solid.launch backend:=ivox observation:=geman_mcclure rviz:=false
 ```
 
-批处理 runner 默认保留各数据集 YAML 中的完整参数；显式传入 `--backend-presets` 才会选择与 generic launch 相同的后端 profile 覆盖。运行归档会保存生效的 `backend_config.yaml` 和 `backend_config_mode`，便于区分两种配置模式。
+批量 runner 与 launch 使用相同的“传感器 → 后端 → 可选观测”顺序，记录模式为 `sensor_then_backend`。后端始终加载，旧参数 `--backend-presets` 现在是兼容用的 no-op。后端、传感器和可选观测配置均归档副本及 SHA-256，生成的 launch 只读取归档副本。
 
 `octvox` 保留 Super-LIO 的容量/LRU 淘汰语义，因此会拒绝几何局部窗口模式。`hvox` 使用原生移动盒，不支持公共几何局部窗口模式。`i_octree` 通过树上裁剪保留闭合公共窗口内的点，不重建整棵树；`ig_lio_plane` 拒绝几何局部窗口并使用原生容量/LRU 行为。
 

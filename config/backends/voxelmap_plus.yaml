@@ -1,6 +1,10 @@
-# 显式配置基线；不是性能优选参数。
+# VoxelMap++ 使用的体素几何、点数限制与匹配参数；不是性能优选参数。
 mapping:
   map_type: voxelmap_plus
   local_window_en: false
-  update_size_threshold: 5
+  det_range: 100.0
+  voxel_size: 0.5
+  plannar_threshold: 0.01
+  max_points_size: 1000
   sigma_num: 3
+  update_size_threshold: 5

@@ -1,7 +1,8 @@
-# 共用五近邻点面观测；point_map_downsample_size 由传感器配置继承。
+# 共用五近邻点面观测；不使用 ikd-tree/iVox 的地图维护降采样参数。
 mapping:
   map_type: i_octree
   local_window_en: false
+  det_range: 100.0
   nearest_point_count: 5
   nearest_max_range: 5.0
   plane_fit_threshold: 0.1
