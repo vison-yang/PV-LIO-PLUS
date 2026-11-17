@@ -199,6 +199,14 @@ bool Config::Load(ros::NodeHandle& nh)
     nh.param<int>("pcd_save/interval", pcd_save_interval_, -1);
     nh.param<bool>("logging/timing_en", timing_log_en_, false);
     nh.param<std::string>("logging/timing_path", timing_log_path_, std::string());
+    // 实验可显式隔离输出，避免覆盖编译时目录中的已有地图和轨迹。
+    nh.param<std::string>("output/root_dir", root_dir_, root_dir_);
+    if (root_dir_.empty())
+    {
+        ROS_FATAL("output/root_dir must not be empty");
+        return false;
+    }
+    if (root_dir_.back() != '/') root_dir_ += '/';
 
     // ------------------------------ Preprocessing -----------------------------
     nh.param<double>("preprocess/blind", preprocess_->blind, 0.01);
@@ -210,6 +218,14 @@ bool Config::Load(ros::NodeHandle& nh)
     nh.param<int>("preprocess/lidar_type", preprocess_->lidar_type, AVIA);
     nh.param<int>("preprocess/scan_line", preprocess_->N_SCANS, 16);
     nh.param<int>("preprocess/scan_rate", preprocess_->SCAN_RATE, 10);
+    nh.param<std::string>("preprocess/solid_timestamp_mode", preprocess_->solidTimestampMode_, "frame_absolute");
+    if (preprocess_->lidar_type == SOLID &&
+        (preprocess_->SCAN_RATE <= 0 || (preprocess_->solidTimestampMode_ != "frame_absolute" &&
+                                       preprocess_->solidTimestampMode_ != "point_absolute")))
+    {
+        ROS_FATAL("SOLID requires a positive scan_rate and solid_timestamp_mode=frame_absolute/point_absolute");
+        return false;
+    }
     nh.param<int>("preprocess/point_filter_num", preprocess_->point_filter_num, 1);
     nh.param<bool>("preprocess/feature_extract_enable", preprocess_->feature_enabled, false);
 

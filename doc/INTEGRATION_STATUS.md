@@ -1,11 +1,12 @@
 # Current Backend Contracts and Verification Status
 
-Updated: 2026-11-16. The backend replay evidence below is from 2026-11-15;
-the current refactor's validation is recorded separately below. This document records eleven `MapManager`
-backend paths, contract fixes, separate synthetic test suites, and complete-input
-replays. The `ig_lio_plane` source integration is complete; the round-2
-specified build targets and synthetic tests passed, while runtime acceptance
-is pending. i-Octree feature `5c27a79` is cherry-picked into main as `6876a8e`;
+Updated: 2026-11-17. Earlier backend replay evidence remains dated in its own
+sections; the 2026-11-17 runs below on the SOLID point-time dataset (record 01) are separate from those records. This
+document records eleven `MapManager` backend paths, contract fixes, separate
+synthetic test suites, and complete-input replays. BIEVR and `ig_lio_plane`
+runtime acceptance passed on the listed SOLID point-time dataset (record 01). The i-Octree adapter
+refactor pilot remains separately pending its dedicated replay and equivalence
+checks. i-Octree feature `5c27a79` is cherry-picked into main as `6876a8e`;
 the main node/link, CTest 7/7 (49 regular GTest cases, ASan off), and a
 30-second complete-input replay passed. Its isolated sanitizer/numerical tests
 and feature 30/141-second replays also passed. hVox feature commit `997c00a` is cherry-picked into main as `c81f12f`;
@@ -16,7 +17,21 @@ with 22 GTest cases (ASan was off in this main configuration). Paper eligibility
 future adapter boundaries remain in the
 [map/residual review](../paper/notes/MAP_BACKEND_SCOPE_REVIEW.md).
 
-2026-11-16 两类首包验收：节点及 11 个 C++ 测试目标共 12 个构建目标通过，节点 `ldd -r` 通过；CTest 12/12，89 个 GTest 与 9 项 Python 配置测试，0 失败/错误/禁用。130 个源码/配置/测试文件哈希一致，18 项新编译单元与 consumer 参数比较一致，ASan 关闭；未回放、GUI/设备或精度/性能 A/B。详见[本轮记录](workspace/evidence/TWO_TRACK_RESULTS.json)。
+2026-11-16 两类首包（历史记录）：节点及 11 个 C++ 测试目标共 12 个构建目标通过，节点 `ldd -r` 通过；CTest 12/12，89 个 GTest 与 9 项 Python 配置测试，0 失败/错误/禁用。130 个源码/配置/测试文件哈希一致，18 项新编译单元与 consumer 参数比较一致，ASan 关闭；**该轮当时未回放**，也没有 GUI/设备或精度/性能 A/B。详见[历史记录](workspace/evidence/TWO_TRACK_RESULTS.json)。
+
+## 2026-11-17 SOLID point-time dataset (record 01) runtime acceptance
+
+本轮运行时原始基线为 `master` `3d4d0e3` 加纳入本轮构建/运行 manifest 的未提交源码；117 个源码/配置/测试文件最终哈希复核一致，运行期间源码、输入与 node binary 均未漂移。增量构建 13 个目标退出 0，node `ldd -r` 退出 0；CTest 13/13、105 个 GTest（0 failure/error/disabled），另有 12 个 Python 配置测试及 185 次 mapping 比较通过。ASan/UBSan 未启用。
+
+三次均使用同一份 SOLID 逐点时标数据（回归记录 01）：SHA-256 `0e01bca27ae119dc9f04bf736b55dc2f5fbb500389fc944102f07f6d7816e694`，30 秒记录窗 `[12614334000000,12644334000000] ns`，299 LiDAR、6056 IMU；配置为 `config/solid_point_time.yaml`，保留真实逐点绝对时间并用 `point_absolute` 将其减去消息 header stamp。每次 replay 的输入计数及 header/payload 哈希均与源 record 相符；所选窗口迭代器自然耗尽后末帧排空，节点退出 0，各有 287 行 Odometry、timing 和 trajectory，首末时间为 `12615.699065` / `12644.323818` 秒，时间和轨迹有限、四元数单位化、8 个计时列非负。每次 PCD 均含 3,072,986 个 XYZ 点。
+
+| 运行 | 有效约束/帧 | 拒绝观测 | converged 帧 | 地图 revision |
+| --- | ---: | ---: | ---: | --- |
+| `bievr` | 433–1232 | 0 | 195/287 | 4→290，单调增长 |
+| `ig_lio_plane` | 529–1353 | 0 | 170/287 | 4→290，单调增长 |
+| `ig_lio_plane` + GM (`c=0.1 m`) | 532–1355 | 0 | 176/287 | 4→290，单调增长 |
+
+未收敛迭代帧不等于观测被拒绝；表中三次均有 0 个被拒绝观测，不能描述成所有帧均收敛。revision 增长证明地图更新调用提交，不表示每个点都贡献入图。GM on/off 只比较了 `ig_lio_plane` 的 `c=0.1 m` 组合；其他三个兼容地图尚未做 A/B。该 30 秒回归不是长序列、噪声标定、ATE、GUI/设备验证或受控性能比较，也没有精度改善结论。逐项来源、检查布尔值和摘要哈希见[本轮运行证据](workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。
 
 ## Observation and weighting track
 
@@ -26,7 +41,7 @@ The [second integration track](OBSERVATION_INTEGRATION_PLAN.md) now has an opt-i
 
 The `bievr` height-map variant is source-integrated from the current official author snapshot `2306022e341e98ce84244f92ba7d26f047b41dbc`. It retains oriented pixels, weighted fusion, normal reprojection and LRU; uses full common undistorted clouds for updates, common downsampled registration points, exact masked-bilinear derivatives and 12-column shared IKFoM observations. It does not import author LM/Ceres or map-guided sampling. The old upstream build was for a different snapshot and remains historical.
 
-Current node build/link, synthetic tests and source identities are recorded in [two-track results](workspace/evidence/TWO_TRACK_RESULTS.json). No replay, device/GUI or accuracy/performance A/B was run. Height sigma requires calibration. Native n>=4 maturity and m>=23 rows do not establish rank or observability; sparse initial maps may stall. New BIEVR/GM paths reject invalid/fewer-than-23 rows, restore predicted x/P after any rejected iteration or nonfinite final estimate, and skip map updates. Invalid input is prechecked before mutation; runtime resource/numerical failures can partially update map state, invalidate revision and propagate, rather than guarantee transactional recovery.
+Current node build/link, synthetic tests and source identities are recorded in the historical [two-track results](workspace/evidence/TWO_TRACK_RESULTS.json); that 2026-11-16 package did not replay. The 2026-11-17 BIEVR run on the SOLID point-time dataset (record 01) passed the short input/output checks in the [current run record](workspace/evidence/INTEGRATION_PROGRESS_20261117.json). Long replay, device/GUI, ATE and controlled performance remain untested. Height sigma is not calibrated. Native n>=4 maturity and m>=23 rows do not establish rank or observability; sparse initial maps may stall. New BIEVR/GM paths reject invalid/fewer-than-23 rows, restore predicted x/P after any rejected iteration or nonfinite final estimate, and skip map updates. Invalid input is prechecked before mutation; runtime resource/numerical failures can partially update map state, invalidate revision and propagate, rather than guarantee transactional recovery.
 
 ## Contract fixes
 
@@ -56,7 +71,7 @@ for those three paths (288 output rows each); see
 [`DIAGNOSTIC_RACE_RESULTS.json`](workspace/evidence/DIAGNOSTIC_RACE_RESULTS.json).
 This check does not establish general thread safety.
 
-## iG-LIO point-plane adapter: build and synthetic tests passed; runtime pending
+## iG-LIO point-plane adapter: round-2 build/synthetic tests and 11-17 short replay
 
 The new selector `ig_lio_plane` retains the iG-LIO incremental voxel map and
 uses PV-LIO-PLUS's shared five-point float-QR scalar point-to-plane observation.
@@ -73,10 +88,10 @@ eight GTest targets exited 0. CTest passed 9/9: eight GTest CTest
 entries with 65 GTest cases (including 11 new iG cases), plus the configuration
 profile test; there were no failures, errors, or skips. The config suite's six
 Python tests covered 30 sensor/backend launch combinations and 30 runner-preset
-comparisons. ASan was off. This round's build and synthetic evidence does not
-establish replay, GUI/device behavior, ATE, or performance. The Avia and S3 bag
-paths in the current run manifests were checked and are missing, so no replay
-was performed; see
+comparisons. ASan was off. **That 2026-11-16 round-2 build/synthetic package did
+not replay:** the required bag paths were missing. The separate 2026-11-17
+iG-LIO and iG-LIO+GM runs on the SOLID point-time dataset (record 01) passed the short runtime checks above; this does
+not establish GUI/device behavior, ATE, or performance. See
 [`IG_LIO_RESULTS.json`](workspace/evidence/IG_LIO_RESULTS.json) and the current
 source snapshot in [`SOURCE_MANIFEST.json`](workspace/SOURCE_MANIFEST.json).
 
@@ -357,3 +372,5 @@ The R ASan limitation above remains: one invocation hung, its cause is unknown,
 and leak checking was disabled for ptrace incompatibility. Stage 1 flow
 regression is complete; it does not establish ground-truth accuracy or a
 controlled performance comparison. hVox main-line build, conventional tests, and short replay passed.
+
+历史名称清理后的提交对应关系见[提交映射](workspace/evidence/HISTORY_COMMIT_MAP_20261117.json)；原有构建和回放记录仍保留实际验证时的提交 ID。

@@ -1,0 +1,421 @@
+{
+  "checked_on": "2026-11-17",
+  "repository": "/home/yxy/src/lio_map_ws/src/PV-LIO-PLUS",
+  "branch": "master",
+  "base_commit": "3d4d0e3395a9d790dac8fc6a32eaefcfc9c26702",
+  "source_state": "base commit plus uncommitted changes captured in build and per-run source manifests",
+  "scope": "First 30-second SOLID point-time runtime acceptance for BIEVR and iG-LIO point-plane; one second-track GM on/off regression; input-time adapter and next-component design",
+  "selectors": 11,
+  "sensor_profiles": 4,
+  "build": {
+    "argv": [
+      "cmake",
+      "--build",
+      "/home/yxy/src/lio_map_ws/build",
+      "--target",
+      "pv_lio_plus_node",
+      "pv_lio_plus_observation_tests",
+      "pv_lio_plus_map_contract_tests",
+      "pv_lio_plus_r_voxelmap_tests",
+      "pv_lio_plus_hvox_map_tests",
+      "pv_lio_plus_hvox_observation_tests",
+      "pv_lio_plus_i_octree_tests",
+      "pv_lio_plus_i_octree_numeric_oracle_tests",
+      "pv_lio_plus_ig_lio_tests",
+      "pv_lio_plus_bievr_map_tests",
+      "pv_lio_plus_bievr_observation_tests",
+      "pv_lio_plus_weight_model_tests",
+      "pv_lio_plus_solid_time_tests",
+      "--",
+      "-j2"
+    ],
+    "exit_code": 0,
+    "elapsed_sec": 24.543047890998423,
+    "finished_utc": "2026-11-17T06:50:49.987538+00:00"
+  },
+  "ctest": {
+    "argv": [
+      "ctest",
+      "-R",
+      "^(_ctest_pv_lio_plus_gtest_|pv_lio_plus_config_profiles)",
+      "--output-on-failure"
+    ],
+    "exit_code": 0,
+    "elapsed_sec": 21.829661946045235,
+    "finished_utc": "2026-11-17T06:51:11.818250+00:00",
+    "gtest": {
+      "tests": 105,
+      "failures": 0,
+      "errors": 0,
+      "disabled": 0
+    },
+    "source_drift": [],
+    "ldd": {
+      "exit_code": 0,
+      "unresolved": false
+    },
+    "node": {
+      "path": "/home/yxy/src/lio_map_ws/devel/lib/pv_lio_plus/pv_lio_plus_node",
+      "sha256": "ccad1442137974442ee06737f2d12f9436b999bc6a8c21da110377cd07e7fa1c",
+      "size": 1967304,
+      "archived_binary": "/home/yxy/output/agent/pv_lio_plus_integration/20261117_round2/pv_lio_plus_node"
+    }
+  },
+  "python_config_tests": 12,
+  "mapping_comparisons": 185,
+  "source_manifest": "/home/yxy/output/agent/pv_lio_plus_integration/20261117_round2/source_manifest.json",
+  "source_manifest_sha256": "f06c054c3c565283e20190ee31f617886c099554aa5f2bf9e9aba1dca730e140",
+  "source_files_checked": 117,
+  "post_validation_input_drift": [],
+  "input": {
+    "bag": "external://record_01/source.bag",
+    "bytes": 892916188,
+    "sha256": "0e01bca27ae119dc9f04bf736b55dc2f5fbb500389fc944102f07f6d7816e694",
+    "record_window_ns_inclusive": [
+      12614334000000,
+      12644334000000
+    ],
+    "duration_sec": 30,
+    "lidar_messages": 299,
+    "imu_messages": 6056,
+    "output_frames_expected": 287,
+    "initialization_skip_breakdown": {
+      "first_scan": 1,
+      "imu_initialization": 10,
+      "initial_map": 1
+    },
+    "sensor_config": "config/solid_point_time.yaml",
+    "calibration_info": "external://record_01/calibration.yaml",
+    "calibration_info_sha256": "f579332586fdc26a266574c28eff1eda9797098c6cbe2407c19b98c205142267",
+    "time_mode": "point_absolute",
+    "time_formula": "curvature_ms = 1000 * (timestamp_sec - header_stamp_sec), after finite/range validation",
+    "extrinsic_formula": "R_IL=R_IC*R_LC^T; t_IL=t_IC-R_IL*t_LC",
+    "noise_calibrated": false
+  },
+  "runs": {
+    "bievr": {
+      "summary": "/home/yxy/output/agent/pv_lio_plus_integration/20261117_round2/replay_bievr/summary.json",
+      "summary_sha256": "cd8b0cae8afabd582c9c196f3e70230e50d9374ee054196093002beb515f3b0a",
+      "window_eof": true,
+      "tail_drained": true,
+      "node_exit_code": 0,
+      "input_monitors": {
+        "/lidar/data": {
+          "count_matches": true,
+          "expected_count": 299,
+          "expected_header_payload_sha256": "09f19694454c671d7dd9a08d31176d7da89131ce0cce8f63de97498bfd213022",
+          "hash_matches": true,
+          "observed_count": 299,
+          "observed_header_payload_sha256": "09f19694454c671d7dd9a08d31176d7da89131ce0cce8f63de97498bfd213022",
+          "publisher_monitor_seq_normalization": "Header.seq set to zero before serialization",
+          "source_header_record_equal_count": 299,
+          "source_header_record_mismatch_count": 0
+        },
+        "/s316_imu": {
+          "count_matches": true,
+          "expected_count": 6056,
+          "expected_header_payload_sha256": "ec4a4f85a31268cf87631ebfce586d93d53bb50a653d79236845fe4fd360495d",
+          "hash_matches": true,
+          "observed_count": 6056,
+          "observed_header_payload_sha256": "ec4a4f85a31268cf87631ebfce586d93d53bb50a653d79236845fe4fd360495d",
+          "publisher_monitor_seq_normalization": "Header.seq set to zero before serialization",
+          "source_header_record_equal_count": 6056,
+          "source_header_record_mismatch_count": 0
+        }
+      },
+      "rows": 287,
+      "first_stamp_sec": 12615.699065,
+      "last_stamp_sec": 12644.323818,
+      "effective_constraints": {
+        "max": 1232,
+        "min": 433,
+        "zero_rows": 0
+      },
+      "observation_rejected": 0,
+      "map_revision": {
+        "first": 4,
+        "last": 290,
+        "max": 290,
+        "nondecreasing": true,
+        "strictly_increased_after_first": true
+      },
+      "map_size_native": {
+        "first": 453,
+        "last": 2854,
+        "max": 2854
+      },
+      "converged_frames": 195,
+      "not_converged_frames": 92,
+      "pcd_points": 3072986,
+      "all_acceptance_checks": {
+        "expected_output_frame_count": true,
+        "first_and_last_time_match": true,
+        "input_bag_unchanged_during_run": true,
+        "input_counts_and_hashes_match": true,
+        "input_header_equals_record_time": true,
+        "natural_bag_eof": true,
+        "node_binary_unchanged": true,
+        "node_normal_exit_zero": true,
+        "observation_flags_and_map_revision_valid": true,
+        "odometry_count_matches": true,
+        "pcd_has_points_and_xyz": true,
+        "production_filtered_support_computed": true,
+        "quaternions_normalized": true,
+        "reference_first_time_matches": true,
+        "reference_last_time_matches": true,
+        "source_unchanged_during_run": true,
+        "timestamps_strictly_increasing": true,
+        "timing_and_trajectory_finite": true,
+        "timing_fields_nonnegative": true,
+        "trajectory_count_matches": true
+      },
+      "source_drift": {
+        "changed_during_run": false,
+        "changed_files": [],
+        "diff_sha256_after": "f33819331702eb60902f8bd3d659c6edcf8d96f4fe9be65687c81c5d67f6841c",
+        "diff_sha256_before": "f33819331702eb60902f8bd3d659c6edcf8d96f4fe9be65687c81c5d67f6841c",
+        "head_after": "3d4d0e3395a9d790dac8fc6a32eaefcfc9c26702",
+        "head_before": "3d4d0e3395a9d790dac8fc6a32eaefcfc9c26702"
+      },
+      "binary_sha256": "ccad1442137974442ee06737f2d12f9436b999bc6a8c21da110377cd07e7fa1c"
+    },
+    "ig_lio_plane": {
+      "summary": "/home/yxy/output/agent/pv_lio_plus_integration/20261117_round2/replay_ig_lio_plane/summary.json",
+      "summary_sha256": "5492a56095c91f1f18cc730eca40ec734de8412e8214d1fcb082945ba460b4f3",
+      "window_eof": true,
+      "tail_drained": true,
+      "node_exit_code": 0,
+      "input_monitors": {
+        "/lidar/data": {
+          "count_matches": true,
+          "expected_count": 299,
+          "expected_header_payload_sha256": "09f19694454c671d7dd9a08d31176d7da89131ce0cce8f63de97498bfd213022",
+          "hash_matches": true,
+          "observed_count": 299,
+          "observed_header_payload_sha256": "09f19694454c671d7dd9a08d31176d7da89131ce0cce8f63de97498bfd213022",
+          "publisher_monitor_seq_normalization": "Header.seq set to zero before serialization",
+          "source_header_record_equal_count": 299,
+          "source_header_record_mismatch_count": 0
+        },
+        "/s316_imu": {
+          "count_matches": true,
+          "expected_count": 6056,
+          "expected_header_payload_sha256": "ec4a4f85a31268cf87631ebfce586d93d53bb50a653d79236845fe4fd360495d",
+          "hash_matches": true,
+          "observed_count": 6056,
+          "observed_header_payload_sha256": "ec4a4f85a31268cf87631ebfce586d93d53bb50a653d79236845fe4fd360495d",
+          "publisher_monitor_seq_normalization": "Header.seq set to zero before serialization",
+          "source_header_record_equal_count": 6056,
+          "source_header_record_mismatch_count": 0
+        }
+      },
+      "rows": 287,
+      "first_stamp_sec": 12615.699065,
+      "last_stamp_sec": 12644.323818,
+      "effective_constraints": {
+        "max": 1353,
+        "min": 529,
+        "zero_rows": 0
+      },
+      "observation_rejected": 0,
+      "map_revision": {
+        "first": 4,
+        "last": 290,
+        "max": 290,
+        "nondecreasing": true,
+        "strictly_increased_after_first": true
+      },
+      "map_size_native": {
+        "first": 454,
+        "last": 2882,
+        "max": 2882
+      },
+      "converged_frames": 170,
+      "not_converged_frames": 117,
+      "pcd_points": 3072986,
+      "all_acceptance_checks": {
+        "expected_output_frame_count": true,
+        "first_and_last_time_match": true,
+        "input_bag_unchanged_during_run": true,
+        "input_counts_and_hashes_match": true,
+        "input_header_equals_record_time": true,
+        "natural_bag_eof": true,
+        "node_binary_unchanged": true,
+        "node_normal_exit_zero": true,
+        "observation_flags_and_map_revision_valid": true,
+        "odometry_count_matches": true,
+        "pcd_has_points_and_xyz": true,
+        "production_filtered_support_computed": true,
+        "quaternions_normalized": true,
+        "reference_first_time_matches": true,
+        "reference_last_time_matches": true,
+        "source_unchanged_during_run": true,
+        "timestamps_strictly_increasing": true,
+        "timing_and_trajectory_finite": true,
+        "timing_fields_nonnegative": true,
+        "trajectory_count_matches": true
+      },
+      "source_drift": {
+        "changed_during_run": false,
+        "changed_files": [],
+        "diff_sha256_after": "f33819331702eb60902f8bd3d659c6edcf8d96f4fe9be65687c81c5d67f6841c",
+        "diff_sha256_before": "f33819331702eb60902f8bd3d659c6edcf8d96f4fe9be65687c81c5d67f6841c",
+        "head_after": "3d4d0e3395a9d790dac8fc6a32eaefcfc9c26702",
+        "head_before": "3d4d0e3395a9d790dac8fc6a32eaefcfc9c26702"
+      },
+      "binary_sha256": "ccad1442137974442ee06737f2d12f9436b999bc6a8c21da110377cd07e7fa1c"
+    },
+    "ig_lio_plane_gm": {
+      "summary": "/home/yxy/output/agent/pv_lio_plus_integration/20261117_round2/replay_ig_lio_plane_gm/summary.json",
+      "summary_sha256": "b0576758bff38e503c89666e340624037843152e6d5612b2996e44e9fc723062",
+      "window_eof": true,
+      "tail_drained": true,
+      "node_exit_code": 0,
+      "input_monitors": {
+        "/lidar/data": {
+          "count_matches": true,
+          "expected_count": 299,
+          "expected_header_payload_sha256": "09f19694454c671d7dd9a08d31176d7da89131ce0cce8f63de97498bfd213022",
+          "hash_matches": true,
+          "observed_count": 299,
+          "observed_header_payload_sha256": "09f19694454c671d7dd9a08d31176d7da89131ce0cce8f63de97498bfd213022",
+          "publisher_monitor_seq_normalization": "Header.seq set to zero before serialization",
+          "source_header_record_equal_count": 299,
+          "source_header_record_mismatch_count": 0
+        },
+        "/s316_imu": {
+          "count_matches": true,
+          "expected_count": 6056,
+          "expected_header_payload_sha256": "ec4a4f85a31268cf87631ebfce586d93d53bb50a653d79236845fe4fd360495d",
+          "hash_matches": true,
+          "observed_count": 6056,
+          "observed_header_payload_sha256": "ec4a4f85a31268cf87631ebfce586d93d53bb50a653d79236845fe4fd360495d",
+          "publisher_monitor_seq_normalization": "Header.seq set to zero before serialization",
+          "source_header_record_equal_count": 6056,
+          "source_header_record_mismatch_count": 0
+        }
+      },
+      "rows": 287,
+      "first_stamp_sec": 12615.699065,
+      "last_stamp_sec": 12644.323818,
+      "effective_constraints": {
+        "max": 1355,
+        "min": 532,
+        "zero_rows": 0
+      },
+      "observation_rejected": 0,
+      "map_revision": {
+        "first": 4,
+        "last": 290,
+        "max": 290,
+        "nondecreasing": true,
+        "strictly_increased_after_first": true
+      },
+      "map_size_native": {
+        "first": 454,
+        "last": 2944,
+        "max": 2944
+      },
+      "converged_frames": 176,
+      "not_converged_frames": 111,
+      "pcd_points": 3072986,
+      "all_acceptance_checks": {
+        "expected_output_frame_count": true,
+        "first_and_last_time_match": true,
+        "input_bag_unchanged_during_run": true,
+        "input_counts_and_hashes_match": true,
+        "input_header_equals_record_time": true,
+        "natural_bag_eof": true,
+        "node_binary_unchanged": true,
+        "node_normal_exit_zero": true,
+        "observation_flags_and_map_revision_valid": true,
+        "odometry_count_matches": true,
+        "pcd_has_points_and_xyz": true,
+        "production_filtered_support_computed": true,
+        "quaternions_normalized": true,
+        "reference_first_time_matches": true,
+        "reference_last_time_matches": true,
+        "source_unchanged_during_run": true,
+        "timestamps_strictly_increasing": true,
+        "timing_and_trajectory_finite": true,
+        "timing_fields_nonnegative": true,
+        "trajectory_count_matches": true
+      },
+      "source_drift": {
+        "changed_during_run": false,
+        "changed_files": [],
+        "diff_sha256_after": "f33819331702eb60902f8bd3d659c6edcf8d96f4fe9be65687c81c5d67f6841c",
+        "diff_sha256_before": "f33819331702eb60902f8bd3d659c6edcf8d96f4fe9be65687c81c5d67f6841c",
+        "head_after": "3d4d0e3395a9d790dac8fc6a32eaefcfc9c26702",
+        "head_before": "3d4d0e3395a9d790dac8fc6a32eaefcfc9c26702"
+      },
+      "binary_sha256": "ccad1442137974442ee06737f2d12f9436b999bc6a8c21da110377cd07e7fa1c"
+    }
+  },
+  "gm_paired_difference": {
+    "backend": "ig_lio_plane",
+    "scale_m": 0.1,
+    "paired_frames": 287,
+    "frame_stamps_identical": true,
+    "position_difference_rms_m": 0.02852508656511035,
+    "position_difference_max_m": 0.09450237481672104,
+    "position_difference_last_m": 0.006984907587076589,
+    "interpretation": "Difference between two estimated trajectories, not ground-truth error or evidence of an accuracy improvement. No controlled timing comparison."
+  },
+  "harness": {
+    "path": "external://validation_harness/replay.py",
+    "sha256": "52931181a5ffd66415ba562097aa6cc2c181a11951927527cf286b6cdf6d8b4e",
+    "archive": "external://validation_harness/archive.py.txt",
+    "replay_rate": 0.5,
+    "independent_master_per_run": true,
+    "use_sim_time": true,
+    "startup_connections_waited": true,
+    "window_iterator_exhausted_before_shutdown": true,
+    "owned_process_groups_only": true
+  },
+  "prior_attempts": [
+    {
+      "archive": "/home/yxy/output/agent/pv_lio_plus_integration/20261117_round1",
+      "build_attempt1": "New test target was generated during make, but original goal list had no rule; clean retry passed all 13 targets.",
+      "ctest": "12/13 passed; one timestamp test tolerance was below FLOAT64 absolute epoch ULP. Corrected using the epoch ULP.",
+      "review_fix": "Return before PCL conversion on empty input; reject missing time fields; preserve old native-time ordering. Added production boundary test."
+    }
+  ],
+  "next_work": {
+    "genz_hybrid": "Mathematical contract documented; implementation remains unsupported. See doc/GENZ_HYBRID_DESIGN.md.",
+    "hybrid": "Input contract and current source reviewed; semantic labels required before the qualified hybrid map is implemented. See doc/HYBRID_INPUT_CONTRACT.md.",
+    "long_replay": "Pending for these new map/weight combinations.",
+    "i_octree_adapter": "This increment did not independently replay the adapter pilot."
+  },
+  "limitations": [
+    "No independent ground truth, accuracy claim, calibrated noise, GUI/device validation, or controlled performance comparison.",
+    "30-second SOLID point-time regression is independent from older S3/Avia evidence and does not substitute for long-sequence acceptance.",
+    "GM on/off tested only on ig_lio_plane, not every supported backend.",
+    "Non-converged iteration count is distinct from rejected observations; all three runs had zero rejected rows.",
+    "Native map size/revision and accumulated output PCD point count use different units. Revision growth establishes committed map update calls, not each point contribution.",
+    "ASan/UBSan not enabled for this increment.",
+    "Legacy native time:FLOAT32 decoding retains its prior input-validation boundaries; new timestamp checks apply to the absolute timestamp path."
+  ],
+  "archive_dir": "/home/yxy/output/agent/pv_lio_plus_integration/20261117_round2",
+  "source_snapshot": {
+    "path": "/home/yxy/output/agent/pv_lio_plus_integration/20261117_round2/source_snapshot.tar.gz",
+    "sha256": "5ff4ab5d5af5e58af21c8e11efc80e24e6eb56c49ed08fa3ba27ed9b359c221d",
+    "files": 117
+  },
+  "final_static_checks": {
+    "git_diff_check": true,
+    "new_documentation_links_resolve": true,
+    "compiled_tested_inputs_unchanged": true,
+    "replay_node_pids_no_longer_present": true,
+    "changes_committed": false
+  },
+  "neutralized_metadata": {
+    "purpose": "Remove private platform/device names and identifying paths from this repository view.",
+    "aliases": "Logical external URIs identify records; they are not filesystem paths. Original raw records and hashes remain in the external validation archive.",
+    "profile_rename": "Current profile name is config/solid_point_time.yaml; parsed numeric and runtime options are unchanged.",
+    "validation_scope": "Build, synthetic and replay results were recorded before reference cleanup. Only naming, comments and provenance presentation changed afterward.",
+    "history_commit_map": "doc/workspace/evidence/HISTORY_COMMIT_MAP_20261117.json",
+    "original_validation_commit_retained": true
+  },
+  "current_repository_base_commit": "8e001c73a035d514cff53121fba970f9aee4a541"
+}

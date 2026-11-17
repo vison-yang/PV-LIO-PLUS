@@ -6,7 +6,7 @@ PV-LIO-PLUS 是一个 ROS1 激光-惯性里程计（LIO）框架，集成多种�
 
 本项目最早源自 [PV-LIO](https://github.com/HViktorTsoi/PV-LIO)。PV-LIO 在 **FAST-LIO2 的源码框架**中，以概率体素地图 [VoxelMap](https://github.com/hku-mars/VoxelMap) 替换 ikd-tree。PV-LIO-PLUS 在此基础上先集成 [VoxelMapPlus（VoxelMap++）](https://github.com/uestc-icsp/VoxelMapPlus_Public)，随后大幅重构并优化代码框架，再进一步集成更多地图结构及其对应的残差模型。
 
-当前统一配置包含十一个地图后端。i-Octree feature `5c27a79` 已以 `6876a8e` 合入；隔离构建、数值复核、测试和30/141秒回放通过，主线节点/链接、CTest 7/7（49 个普通 GTest 条目，主线 ASan 关闭）及30秒完整输入回放也已通过。iG-LIO 的 `ig_lio_plane` 源码已接入；round 2 节点构建与 `ldd -r` 通过，指定九个构建目标通过，CTest 9/9（65 个 GTest 条目，含 11 个 iG 用例、ASan 关闭），但尚未执行回放。详见[iG-LIO 结果记录](doc/workspace/evidence/IG_LIO_RESULTS.json)。工作空间另行收集官方上游工程，用于源码追溯与独立的完整系统基线；这些工程的完整估计节点分别构建。
+当前统一配置包含十一个地图后端。i-Octree feature `5c27a79` 已以 `6876a8e` 合入；隔离构建、数值复核、测试和30/141秒回放通过，主线节点/链接、CTest 7/7（49 个普通 GTest 条目，主线 ASan 关闭）及30秒完整输入回放也已通过。iG-LIO 的 `ig_lio_plane` 源码已接入；round 2 节点构建与 `ldd -r` 通过，指定九个构建目标通过，CTest 9/9（65 个 GTest 条目，含 11 个 iG 用例、ASan 关闭）；该 11-16 Round 2 当时未回放，详见[iG-LIO 历史构建记录](doc/workspace/evidence/IG_LIO_RESULTS.json)。11-17 本轮 SOLID 逐点时标数据（回归记录 01）上 BIEVR、iG-LIO、iG-LIO+GM 三次回放均通过输入/输出完整性检查，运行边界见[本轮记录](doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。该短回归不代表精度或性能结论。工作空间另行收集官方上游工程，用于源码追溯与独立的完整系统基线；这些工程的完整估计节点分别构建。
 
 ## 主要工作
 
@@ -48,7 +48,7 @@ FAST-LIO2 和 Faster-LIO 分别通过 ikd-tree、iVox 及本框架的观测适�
 
 ### 已收集源码与后续集成
 
-原始源码快照于 **2026-11-15** 核对；路径相对于工作空间根目录，固定作者提交和兼容性补丁见[源码清单](doc/workspace/SOURCE_MANIFEST.json)。当前工作区已没有完整 `src/ig_lio` checkout；native 地图核心是基于作者提交 `2d79259e3aaa5bbb10d6b13234398760bbacf8f5` 源文件的安全重实现。2026-11-14 的共享构建记录仅描述较早的完整 checkout。新的 `ig_lio_plane` 选择器已接入，round 2 指定构建和合成测试通过；本轮尚未回放。完整 iG-LIO GICP 是单独的观测设计任务。BIEVR 已接入 `bievr`；以下两项地图候选仍无选择器。
+原始源码快照于 **2026-11-15** 核对；路径相对于工作空间根目录，固定作者提交和兼容性补丁见[源码清单](doc/workspace/SOURCE_MANIFEST.json)。当前工作区已没有完整 `src/ig_lio` checkout；native 地图核心是基于作者提交 `2d79259e3aaa5bbb10d6b13234398760bbacf8f5` 源文件的安全重实现。2026-11-14 的共享构建记录仅描述较早的完整 checkout。新的 `ig_lio_plane` 选择器已接入，round 2 指定构建和合成测试通过；该 Round 2 当时未回放（所需输入缺失）；11-17 在 SOLID 逐点时标数据（回归记录 01）上的独立运行已通过，见[本轮记录](doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。完整 iG-LIO GICP 是单独的观测设计任务。BIEVR 已接入 `bievr`；以下两项地图候选仍无选择器。
 
 | 地图 / 方法 | 已收集的官方源码 | 已记录的编译结果 | 后续集成工作 |
 | --- | --- | --- | --- |
@@ -65,7 +65,7 @@ FR-LIO/RC-Vox、SV-LIO 的论文具备地图结构创新依据，但本地收集
 
 ikd-tree 和 iVox 的 `nearest_max_range` 现统一以米表示。ikd-tree 将第五近邻平方距离与 `r²` 比较并包含边界；iVox 将 `r` 传给原生查询，采用严格的 `< r`，且查询受配置的附近体素范围限制。因此数值表示相同物理单位，但边界行为和搜索域仍不同。旧 ikd-tree 曾把配置值 `v` 当平方距离，若要复现旧阈值，新半径应设为 `sqrt(v)` 米；现有 iVox 数值不变。
 
-既有示例数据清单包含此前十个 selector；新增 `bievr` 可用 runner 的 `--algorithms bievr` 指定。原有六后端契约测试、修复计时后的长短回归、R-VoxelMap 与 hVox 主线验证均有记录。i-Octree feature 工作树构建和链接检查、独立数值核验通过；隔离 CTest 9/9（60 次执行，含 sanitizer 重复，不代表 60 个独立用例），30/141 秒完整输入回放通过。主线 `6876a8e` 节点/链接、CTest 7/7（49 个普通 GTest 条目，ASan 关闭）和30秒完整输入回放通过。feature 正向 ASan/UBSan 检查通过，LeakSanitizer 未启用。iG-LIO round 2 的指定构建、CTest 9/9（65 个 GTest 条目）及配置合成矩阵已通过；该轮没有启用 ASan，也没有回放、GUI/设备验收、ATE 或性能 A/B。历史测试数仍只描述各自旧阶段。详细边界见[集成状态](doc/INTEGRATION_STATUS.md)、[iG-LIO 结果](doc/workspace/evidence/IG_LIO_RESULTS.json)与[i-Octree 结果](doc/workspace/evidence/I_OCTREE_RESULTS.json)。
+当前示例数据清单包含 11 个 selector，包括 `bievr`；此前十个 selector 仅是旧清单状态。原有六后端契约测试、修复计时后的长短回归、R-VoxelMap 与 hVox 主线验证均有记录。i-Octree feature 工作树构建和链接检查、独立数值核验通过；隔离 CTest 9/9（60 次执行，含 sanitizer 重复，不代表 60 个独立用例），30/141 秒完整输入回放通过。主线 `6876a8e` 节点/链接、CTest 7/7（49 个普通 GTest 条目，ASan 关闭）和30秒完整输入回放通过。feature 正向 ASan/UBSan 检查通过，LeakSanitizer 未启用。iG-LIO round 2 的指定构建、CTest 9/9（65 个 GTest 条目）及配置合成矩阵已通过；该轮没有启用 ASan，也没有回放、GUI/设备验收、ATE 或性能 A/B。11-17 当前增量 13 个构建目标退出 0、`ldd -r` 通过、CTest 13/13（105 个 GTest）、12 项 Python 配置测试和 185 次 mapping 比较通过，ASan 关闭。新 SOLID 回归记录 01 的三次运行均输出 287 帧且零观测拒绝；其余非收敛迭代帧不等于观测拒绝。历史测试数仍只描述各自旧阶段。详见[本轮运行记录](doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。详细边界见[集成状态](doc/INTEGRATION_STATUS.md)、[iG-LIO 结果](doc/workspace/evidence/IG_LIO_RESULTS.json)与[i-Octree 结果](doc/workspace/evidence/I_OCTREE_RESULTS.json)。
 
 严格的索引/地图表示消融是可选实验，需额外对齐残差、雅可比、权重、门限、保留点集和地图预算。完整上游系统则作为独立的端到端基线。结果应按实际改变的因素解释。
 
@@ -127,7 +127,7 @@ mapping:
   map_type: octvox    # voxelmap, voxelmap_plus, ikdtree, ivox, c3p_voxelmap, octvox, r_voxelmap, hvox, i_octree, ig_lio_plane, bievr
 ```
 
-11 份后端 YAML 各自保存该后端的地图参数。三份主传感器 YAML 的 `mapping` 下仅保留 `down_sample_size`、`max_iteration`、`extrinsic_est_en`、`extrinsic_T`、`extrinsic_R` 五项。加载顺序为“传感器 → 所选后端 → 可选观测”，之后由 launch 根据 `backend` 强制设置 `mapping/map_type`；同名参数以后加载的后端值为准。没有 `common.yaml` 或 `sensors/` 层。Solid 基线值的变化见[配置说明](config/README.md)。局部窗口模式通过现有 `mapping` 窗口参数配置。
+11 份后端 YAML 各自保存该后端的地图参数。四份主传感器 YAML 的 `mapping` 下仅保留 `down_sample_size`、`max_iteration`、`extrinsic_est_en`、`extrinsic_T`、`extrinsic_R` 五项。加载顺序为“传感器 → 所选后端 → 可选观测”，之后由 launch 根据 `backend` 强制设置 `mapping/map_type`；同名参数以后加载的后端值为准。没有 `common.yaml` 或 `sensors/` 层。Solid 基线值的变化见[配置说明](config/README.md)。局部窗口模式通过现有 `mapping` 窗口参数配置。
 
 ```bash
 roslaunch pv_lio_plus mapping_avia.launch backend:=ig_lio_plane rviz:=false
@@ -215,7 +215,7 @@ python3 src/PV_LIO_PLUS/scripts/build_upstream.py --jobs 2
 
 独立构建脚本逐项保存并继续处理失败项；LIO-GVM 仍需作者补齐源码。编译结果不等同地图精度结论。
 
-本轮 BIEVR 与 GM 的源码、构建及合成验收见[结果记录](doc/workspace/evidence/TWO_TRACK_RESULTS.json)。启用示例：
+2026-11-16 BIEVR 与 GM 的源码、构建及合成验收见[历史结果](doc/workspace/evidence/TWO_TRACK_RESULTS.json)，该轮当时未回放。11-17 BIEVR 与 iG-LIO 回放及单一 iG-LIO GM 配对结果见[本轮运行记录](doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。启用示例：
 
 ```bash
 roslaunch pv_lio_plus mapping.launch backend:=bievr

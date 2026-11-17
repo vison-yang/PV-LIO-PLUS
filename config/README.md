@@ -1,10 +1,10 @@
 # 配置文件
 
-配置按职责分成传感器配置、地图后端配置和可选观测配置。11 个后端的地图参数各自只归属 `backends/<backend>.yaml`；没有 `common.yaml` 或 `sensors/` 子目录。三份主传感器 YAML 的 `mapping` 下仅保留五项：`down_sample_size`、`max_iteration`、`extrinsic_est_en`、`extrinsic_T`、`extrinsic_R`。
+配置按职责分成传感器配置、地图后端配置和可选观测配置。11 个后端的地图参数各自只归属 `backends/<backend>.yaml`；没有 `common.yaml` 或 `sensors/` 子目录。四份主传感器 YAML 的 `mapping` 下仅保留五项：`down_sample_size`、`max_iteration`、`extrinsic_est_en`、`extrinsic_T`、`extrinsic_R`。
 
 | 位置 | 内容 |
 | --- | --- |
-| `avia.yaml`、`mid360_indoor.yaml`、`solid.yaml` | topic、时间、预处理、噪声、外参和传感器采样设置；`mapping` 下仅有上述五项。 |
+| `avia.yaml`、`mid360_indoor.yaml`、`solid.yaml`、`solid_point_time.yaml` | topic、时间、预处理、噪声、外参和传感器采样设置；`mapping` 下仅有上述五项。 |
 | `backends/<backend>.yaml` | 该后端实际使用的地图几何、查询、容量、合并等默认参数；包含 selector。 |
 | `observations/<profile>.yaml` | 可选观测/权重组件参数。 |
 
@@ -61,3 +61,31 @@ python3 scripts/run_backend_tests.py --manifest scripts/datasets.example.json --
 ```
 
 `--backend-presets` 仅作为兼容旧命令的 no-op 保留，当前总是加载所选后端文件。每次结果归档 backend、sensor 和可选 observation 的副本及 SHA-256；生成的 launch 引用归档副本。
+
+## SOLID 逐点时标数据
+
+`preprocess/solid_timestamp_mode` 只控制 SOLID 在缺少 `time`、提供 `timestamp:FLOAT64` 时的解释；已有 `time:FLOAT32` 相对秒路径保持原约定。
+
+| 模式 | 输入契约 |
+| --- | --- |
+| `frame_absolute`（默认） | 旧转换器将相同帧时间写入所有点；时间跨度不得超过 1 微秒，输出点内偏移为零。真实逐点变化会拒绝整帧，并提示切换模式。 |
+| `point_absolute` | 每点绝对秒。以 `header.stamp` 为原点，保留逐点相对时间并排序；允许最多 1 微秒的负舍入并钳为零，正偏移不超过 `2 / scan_rate` 秒。 |
+
+点模式使用 `curvature = 1000 × (timestamp - header.stamp)`，内部单位为毫秒，供公共同步及 IMU 去畸变消费。字段布局、有限性、越界与端序检查失败时拒绝整帧；不合成固定子扫描组数。`scan_rate` 必须为正，时间模式名称在节点初始化时校验。
+
+`solid_point_time.yaml` 仅固定 SOLID 回归记录 01（采集时间 `2026-09-24_17-29-45`）的外参，不能直接推广至其他记录。标定文件说明保存在项目外归档，逻辑引用为 `external://record_01/calibration.yaml`；该 URI 不是可直接访问的物理路径。SHA-256 为 `f579332586fdc26a266574c28eff1eda9797098c6cbe2407c19b98c205142267`。按相机到 IMU、相机到 LiDAR 的变换组合：
+
+\[
+R_{IL}=R_{IC}R_{LC}^{\mathsf T},\qquad
+t_{IL}=t_{IC}-R_{IL}t_{LC},\qquad p_I=R_{IL}p_L+t_{IL}.
+\]
+
+下标表示从右侧坐标系变换到左侧坐标系，平移单位为米；结果直接写入该配置的外参。配置使用 30 m 量程、0.2 m 扫描降采样，以及只排除后向点的宽角度范围；这与旧传感器配置是独立输入基线。噪声字段沿用 SOLID 方差基线，尚未重新标定。
+
+```bash
+roslaunch pv_lio_plus mapping.launch sensor_config:=$(rospack find pv_lio_plus)/config/solid_point_time.yaml backend:=bievr rviz:=false
+```
+
+`output/root_dir` 可显式指定本次地图、轨迹和默认 timing CSV 的输出目录；未指定时仍使用编译时目录。应为每次实验准备独立目录。runner 的 `--output-root` 同时写入这个运行参数；其常规成功标记仅检查输出文件，不代表完整输入或 EOF 排空验收。
+
+timing CSV 末尾新增 `observation_rejected` 与 `map_revision`：前者明确记录受保护观测路径是否回滚，后者记录地图修订状态。未收敛不等于观测被拒绝；修订号增长表示地图更新提交，不等于新增点数。2026-11-17 的 BIEVR、iG-LIO 和 iG-LIO+GM 独立 SOLID 回归记录 01 短回归均通过，具体范围见[验收记录](../doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。

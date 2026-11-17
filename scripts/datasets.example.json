@@ -9,7 +9,8 @@
     "r_voxelmap",
     "hvox",
     "i_octree",
-    "ig_lio_plane"
+    "ig_lio_plane",
+    "bievr"
   ],
   "datasets": [
     {
@@ -33,6 +34,16 @@
       "imu_type": "sensor_msgs/Imu",
       "imu_topic": "/s316_imu",
       "duration": 60
+    },
+    {
+      "name": "solid_point_time_record",
+      "bag": "/absolute/path/to/solid_point_time.bag",
+      "config": "../config/solid_point_time.yaml",
+      "lidar_type": "solid",
+      "lidar_topic": "/lidar/data",
+      "imu_type": "sensor_msgs/Imu",
+      "imu_topic": "/s316_imu",
+      "duration": 30
     }
   ]
 }

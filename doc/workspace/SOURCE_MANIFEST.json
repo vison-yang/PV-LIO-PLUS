@@ -4,12 +4,15 @@
   "project_repository": "src/PV_LIO_PLUS",
   "note": "Historical source/build collection: upstream_commit pins author provenance; local_commit and patches record compatibility edits. Current PV-LIO-PLUS integration status is recorded separately in current_snapshot. The workspace root is not a Git repository.",
   "current_snapshot": {
-    "checked_on": "2026-11-16",
+    "checked_on": "2026-11-17",
     "project_checkout": {
       "branch": "master",
-      "base_commit": "7a83f0c",
+      "base_commit": "8e001c73a035d514cff53121fba970f9aee4a541",
       "local_paths_relative_to": "PV-LIO-PLUS checkout root",
-      "workspace_paths_relative_to": "lio_map_ws workspace root"
+      "workspace_paths_relative_to": "lio_map_ws workspace root",
+      "uncommitted_changes": true,
+      "working_tree_provenance_record": "doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json",
+      "validation_base_commit_before_history_cleanup": "3d4d0e3395a9d790dac8fc6a32eaefcfc9c26702"
     },
     "ig_lio": {
       "author_repository": "https://github.com/zijiechenrobotics/ig_lio",
@@ -31,8 +34,9 @@
         "method": "Safety-focused local reimplementation based on the pinned upstream voxel-map source; not a byte-for-byte copy of the complete author package.",
         "selector": "ig_lio_plane",
         "observation": "Shared five-point float-QR scalar point-to-plane adapter; author GICP is not included.",
-        "status": "Source integration complete; round-2 node build/link, specified build targets, and synthetic tests passed; replay pending.",
-        "validation_record": "doc/workspace/evidence/IG_LIO_RESULTS.json"
+        "status": "Source-integrated; node build/link, synthetic tests and first complete-input 30-second SOLID point-time regression passed. Author GICP and long-sequence acceptance remain separate.",
+        "validation_record": "doc/workspace/evidence/IG_LIO_RESULTS.json",
+        "runtime_validation_record": "doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json"
       },
       "historical_build_record": {
         "path": "doc/workspace/BUILD_REPORT.md",
@@ -40,7 +44,7 @@
         "scope": "Build evidence for the earlier complete author checkout, not evidence that the complete checkout is currently present or builds from this snapshot."
       }
     },
-    "status_checked_at_commit": "7a83f0c",
+    "status_checked_at_commit": "8e001c73a035d514cff53121fba970f9aee4a541",
     "bievr_lio": {
       "framework_status": "source_integrated",
       "implementation_status": "oriented_height_map_shared_ikfom_bilinear",
@@ -49,7 +53,7 @@
       "framework_height_observation": true,
       "framework_backend_config": true,
       "framework_integration_tests": true,
-      "framework_replay": false,
+      "framework_replay": true,
       "design_record": "doc/BIEVR_IKFOM_PORT.md",
       "upstream_source": {
         "workspace_path": "upstream/BIEVR-LIO",
@@ -61,7 +65,9 @@
         "scope": "Historical independent upstream build, not a PV-LIO-PLUS backend integration result."
       },
       "native_path": "include/map_manager/native/bievr",
-      "validation_record": "doc/workspace/evidence/TWO_TRACK_RESULTS.json"
+      "validation_record": "doc/workspace/evidence/TWO_TRACK_RESULTS.json",
+      "framework_replay_scope": "First complete-input 30-second SOLID point-time window: 299 LiDAR, 6056 IMU, 287 output frames, zero observation rejection; long sequence and calibrated accuracy remain unvalidated.",
+      "runtime_validation_record": "doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json"
     },
     "implementation_record": "doc/workspace/evidence/TWO_TRACK_RESULTS.json",
     "observation_components": {
@@ -75,16 +81,59 @@
           "i_octree",
           "ig_lio_plane"
         ],
-        "scale": "fixed metres; zero-residual-normalized component variant, not complete KISS-ICP"
+        "scale": "fixed metres; zero-residual-normalized component variant, not complete KISS-ICP",
+        "runtime_validation": {
+          "record": "doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json",
+          "backend": "ig_lio_plane",
+          "window_sec": 30,
+          "off_and_on_passed": true,
+          "scope": "One backend only; trajectory difference is not an accuracy metric."
+        }
       },
       "genz_hybrid": {
         "status": "not_implemented",
         "workspace_path": "src/GenZ-ICP",
         "commit": "b19b2455e9b1272a68990969271685af54126b0d",
         "existing_dirty_file": "ros/CMakeLists.txt",
-        "note": "Observed only; untouched. No upstream build evidence transferred."
+        "note": "Observed only; untouched. No upstream build evidence transferred.",
+        "design_record": "doc/GENZ_HYBRID_DESIGN.md",
+        "reviewed_source_sha256": {
+          "cpp/genz_icp/core/Registration.cpp": "66a85a4208052a2e1b3bb75c099137c104a3b18da837bd0753ee0f601aa2e30f",
+          "cpp/genz_icp/core/VoxelHashMap.cpp": "bb7f60c2e5a9012eb569a4b8be20c89f0865879e0e4b4fb9c62df1885ad226e4",
+          "cpp/genz_icp/pipeline/GenZICP.cpp": "2185842658b1c16b4aed006135ae4bc272db68dc2c9775f45202cc05841a0d3a"
+        },
+        "working_tree_diff_sha256": "26ee4ac8d22dbbe077fa4b72f8226b8f995aed3378d18fc6749b13e67fdfa069"
       }
-    }
+    },
+    "sensor_inputs": {
+      "solid_point_time": {
+        "profile": "config/solid_point_time.yaml",
+        "timestamp_mode": "point_absolute",
+        "calibration_record": "external://record_01/calibration.yaml",
+        "calibration_info_sha256": "f579332586fdc26a266574c28eff1eda9797098c6cbe2407c19b98c205142267",
+        "validation_record": "doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json",
+        "noise_calibrated": false
+      }
+    },
+    "hybrid_voxelmap": {
+      "workspace_path": "src/Hybrid-VoxelMap",
+      "current_head": "b57ce03eaf8461d3c9a8f15db6df2e82048de9ff",
+      "tracked_dirty_files": 36,
+      "untracked_status_entries": 6,
+      "scope": "Read-only current-source audit; no current build or integration. Semantic per-point input remains required. Historical author snapshot is separate.",
+      "input_contract": "doc/HYBRID_INPUT_CONTRACT.md",
+      "reviewed_source_sha256": {
+        "include/voxelmapplus_util.hpp": "766cf7f57ca2491f54fe72340c0679a3c944f6dcfeef87f635e1bccc3cbdd772",
+        "src/voxelMapping.cpp": "b7e5adf7f93092756ebc0bb9ea7c512677094b8281e2e034dded1e617da7165c",
+        "src/preprocess.cpp": "3c75caa0b3a6d28c4fbbafdd8ff7d82332d5acf4e757f437710f7bea9d216811",
+        "scripts/generic_semantic_field_bridge.py": "d5095dd5691a9d00e42fd6c4531372170bf927fd47136defc967a969980108b0",
+        "RandLA-Net/Inf_scan_ros.py": "65eef1f7eb70490477a11eecc0e50fb8d4960abf94b1b22c83698d1c841d8ec7"
+      },
+      "working_tree_diff_sha256": "2bf2bf208283e6917248e285ef40efb2ca0c6bbd67d186bde476786d13c28e6d"
+    },
+    "latest_validation_record": "doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json",
+    "metadata_view": "Private platform/device names and paths are represented by neutral record aliases; original validation archives remain external.",
+    "history_commit_map": "doc/workspace/evidence/HISTORY_COMMIT_MAP_20261117.json"
   },
   "sources": [
     {

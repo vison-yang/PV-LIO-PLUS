@@ -1,0 +1,50 @@
+# SOLID 逐点时标配置；外参仅对应固定回归记录01。
+# 标定推导与时间输入契约见 config/README.md；其它设备/记录须重新核对外参。
+time_offset: 0.0
+common:
+  lid_topic: /lidar/data
+  imu_topic: /s316_imu
+  time_sync_en: false
+preprocess:
+  lidar_type: 4
+  solid_timestamp_mode: point_absolute
+  scan_line: 1
+  scan_rate: 10
+  blind: 0.2
+  maximum_range: 30.0
+  vertical_angle_min: -90.0
+  vertical_angle_max: 90.0
+  horizontal_angle_min: -89.9
+  horizontal_angle_max: 89.9
+  point_filter_num: 1
+  feature_extract_enable: false
+mapping:
+  down_sample_size: 0.2
+  max_iteration: 4
+  extrinsic_est_en: false
+  extrinsic_T: [-0.04028899213969623, 0.018125874850227954, -0.01708411038577863]
+  extrinsic_R: [0.02303408469048269, 0.0013645092227678375, -0.9997337490837515,
+                0.012608948698167635, -0.9999199269935699, -0.00107425039039145,
+                -0.9996551632213976, -0.01258084717955297, -0.023049445308859037]
+# 沿用 SOLID 的实现方差基线；未对本设备重新标定。
+noise_model:
+  ranging_cov: 0.05
+  angle_cov: 0.0001
+  acc_cov: 0.3
+  gyr_cov: 0.1
+  b_acc_cov: 0.005
+  b_gyr_cov: 0.001
+publish:
+  pub_voxel_map: false
+  map_en: false
+  path_en: true
+  scan_publish_en: false
+  dense_publish_en: false
+  scan_bodyframe_pub_en: false
+  scan_lidarframe_pub_en: false
+pcd_save:
+  pcd_save_en: true
+  interval: -1
+logging:
+  timing_en: true
+  timing_path: ''

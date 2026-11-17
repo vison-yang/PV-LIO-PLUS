@@ -1203,12 +1203,12 @@ void Mapping::OpenTimingLog()
 
     timing_output_ << "frame,stamp_sec,elapsed_sec,converged,pos_x_m,pos_y_m,pos_z_m,quat_w,quat_x,quat_y,quat_z,"
                    << "search_ms,search_avg_ms,ikf_update_ms,ikf_update_avg_ms,map_update_ms,map_update_avg_ms,"
-                   << "total_ms,total_avg_ms,effective_points,map_size_native\n";
+                   << "total_ms,total_avg_ms,effective_points,map_size_native,observation_rejected,map_revision\n";
     timing_output_ << std::fixed << std::setprecision(6);
     ROS_INFO("Per-frame timing log: %s", timing_output_path_.c_str());
 }
 
-/** @brief Emits one pose and its current/mean stage timings without forcing a disk flush. */
+/** @brief 记录单帧位姿、耗时及观测拒绝/地图修订状态，不强制逐帧刷盘。 */
 void Mapping::WriteTimingLog(double lidar_end_time, bool converged)
 {
     if (!config_.timing_log_en_)
@@ -1232,7 +1232,11 @@ void Mapping::WriteTimingLog(double lidar_end_time, bool converged)
                    << state_point_.pos(2) << ',' << geo_quat_.w << ',' << geo_quat_.x << ',' << geo_quat_.y << ','
                    << geo_quat_.z << ',' << search_time_ << ',' << avg_search_time_ << ',' << eseikf_time_ << ','
                    << avg_eseikf_time_ << ',' << update_time_ << ',' << avg_update_time_ << ',' << total_time_ << ','
-                   << avg_total_time_ << ',' << effective_feature_num_ << ',' << map_manager_->size() << '\n';
+                   << avg_total_time_ << ',' << effective_feature_num_ << ',' << map_manager_->size() << ','
+                   << static_cast<int>((config_.map_manager_config().type == MapType::BIEVR ||
+                                        config_.observationWeightModel_ == "geman_mcclure") &&
+                                       isObservationRejected_)
+                   << ',' << map_manager_->revision() << '\n';
 }
 
 /** @brief Closes the optional timing log once the single-threaded mapping loop stops. */

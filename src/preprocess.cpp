@@ -1,4 +1,5 @@
 #include "preprocess.h"
+#include "preprocess/solid_time.h"
 #include <cmath>
 
 #define RETURN0     0x00
@@ -455,59 +456,59 @@ void Preprocess::velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
     }
 }
 
+/** @brief 转换 SOLID 点云并将帧内时间写入 curvature。 */
 void Preprocess::solid_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
 {
     pl_surf.clear();
     pl_corn.clear();
     pl_full.clear();
+    // PCL 1.10 的转换入口会取空数组首元素，空帧必须在调用前退出。
+    if (msg->width == 0 || msg->height == 0) return;
 
-    // the dataset converter uses "timestamp" while the native point type uses "time".
-    sensor_msgs::PointCloud2 normalized_msg;
-    const sensor_msgs::PointCloud2 *input_msg = msg.get();
-    bool has_time = false;
-    bool has_timestamp = false;
+    bool hasTime = false;
+    bool hasTimestamp = false;
     for (const auto &field : msg->fields)
     {
-        has_time = has_time || field.name == "time";
-        has_timestamp = has_timestamp || field.name == "timestamp";
+        hasTime = hasTime || field.name == "time";
+        hasTimestamp = hasTimestamp || field.name == "timestamp";
     }
-    if (!has_time && has_timestamp)
+    if (!hasTime && !hasTimestamp)
     {
-        normalized_msg = *msg;
-        for (auto &field : normalized_msg.fields)
-        {
-            if (field.name == "timestamp")
-            {
-                const uint32_t time_offset = field.offset;
-                field.name = "time";
-                field.datatype = sensor_msgs::PointField::FLOAT32;
+        ROS_ERROR_THROTTLE(5.0, "Rejecting SOLID cloud without time or timestamp field");
+        return;
+    }
 
-                // The converter stores an absolute FLOAT64 frame stamp here;
-                // SOLID consumes a FLOAT32 relative offset, which is zero
-                // for this per-frame converted cloud.
-                for (uint32_t row = 0; row < normalized_msg.height; ++row)
-                {
-                    for (uint32_t column = 0; column < normalized_msg.width; ++column)
-                    {
-                        const std::size_t offset = row * normalized_msg.row_step +
-                                                   column * normalized_msg.point_step + time_offset;
-                        if (offset + sizeof(float) <= normalized_msg.data.size())
-                        {
-                            std::fill(normalized_msg.data.begin() + offset,
-                                      normalized_msg.data.begin() + offset + sizeof(float), 0);
-                        }
-                    }
-                }
-                break;
-            }
+    // timestamp 是绝对时间；先完整验证并转换，避免局部修补消息字节。
+    const bool usesAbsoluteTimestamp = !hasTime && hasTimestamp;
+    sensor_msgs::PointCloud2 normalizedMsg;
+    const sensor_msgs::PointCloud2 *inputMsg = msg.get();
+    std::vector<float> timestampOffsetsSec;
+    if (usesAbsoluteTimestamp)
+    {
+        std::string reason;
+        if (!solid_time::PrepareTimestampOffsets(*msg, solidTimestampMode_, msg->header.stamp.toSec(), SCAN_RATE,
+                                                 timestampOffsetsSec, &reason))
+        {
+            ROS_ERROR_THROTTLE(5.0, "Rejecting SOLID timestamp cloud: %s", reason.c_str());
+            return;
         }
-        input_msg = &normalized_msg;
+        if (!solid_time::PreparePclInput(*msg, timestampOffsetsSec, normalizedMsg, &reason))
+        {
+            ROS_ERROR_THROTTLE(5.0, "Rejecting SOLID timestamp cloud: %s", reason.c_str());
+            return;
+        }
+        inputMsg = &normalizedMsg;
     }
 
     pcl::PointCloud<velodyne_ros::Point> pl_orig;
-    pcl::fromROSMsg(*input_msg, pl_orig);
+    pcl::fromROSMsg(*inputMsg, pl_orig);
     if (pl_orig.empty())
     {
+        return;
+    }
+    if (usesAbsoluteTimestamp && timestampOffsetsSec.size() != pl_orig.size())
+    {
+        ROS_ERROR_THROTTLE(5.0, "Rejecting SOLID timestamp cloud: converted point count does not match layout");
         return;
     }
 
@@ -519,10 +520,16 @@ void Preprocess::solid_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
     const double sin_vertical_max = std::sin(vertical_angle_max * M_PI / 180.0);
     const double tan_horizontal_min = std::tan(horizontal_angle_min * M_PI / 180.0);
     const double tan_horizontal_max = std::tan(horizontal_angle_max * M_PI / 180.0);
-    const float first_point_time = pl_orig.points.front().time;
+    const float firstPointTime = pl_orig.points.front().time;
 
     for (const auto &point : pl_orig.points)
     {
+        if (usesAbsoluteTimestamp &&
+            (!std::isfinite(point.x) || !std::isfinite(point.y) || !std::isfinite(point.z)))
+        {
+            continue;
+        }
+
         const double sq_dist = point.x * point.x + point.y * point.y + point.z * point.z;
         if (sq_dist <= 1e-7 || sq_dist > maximum_range_sq)
         {
@@ -554,11 +561,17 @@ void Preprocess::solid_handler(const sensor_msgs::PointCloud2::ConstPtr &msg)
         added_pt.y         = point.y;
         added_pt.z         = point.z;
         added_pt.intensity = point.intensity;
-        added_pt.curvature = (point.time - first_point_time) * 1000.0;  // curvature unit: ms
+        added_pt.curvature = (point.time - (usesAbsoluteTimestamp ? 0.0F : firstPointTime)) * 1000.0;
         added_pt.normal_x  = 0;
         added_pt.normal_y  = 0;
         added_pt.normal_z  = 0;
         pl_surf.points.push_back(added_pt);
+    }
+
+    if (usesAbsoluteTimestamp)
+    {
+        std::stable_sort(pl_surf.points.begin(), pl_surf.points.end(),
+                         [](const PointType &left, const PointType &right) { return left.curvature < right.curvature; });
     }
 }
 

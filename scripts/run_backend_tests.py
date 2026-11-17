@@ -370,14 +370,16 @@ def observation_profile_metadata(profile: Optional[str], run_dir: Path) -> Dict[
 
 
 def launch_text(dataset: Dataset, backend: str, backend_config: Optional[Path] = None,
-                observation_config: Optional[Path] = None) -> str:
+                observation_config: Optional[Path] = None, output_root: Optional[Path] = None) -> str:
     selected_backend_config = backend_config if backend_config is not None else backend_preset_path(backend)
     preset_tag = (f'  <rosparam command="load" file="{xml_escape(str(selected_backend_config))}"/>\n')
     base_tag = f'  <rosparam command="load" file="{xml_escape(str(dataset.config))}"/>\n'
     observation_tag = (f'  <rosparam command="load" file="{xml_escape(str(observation_config))}"/>\n'
                        if observation_config is not None else "")
+    output_tag = (f'  <param name="output/root_dir" value="{xml_escape(str(output_root))}" type="str"/>\n'
+                  if output_root is not None else "")
     return f'''<launch>
-{base_tag}{preset_tag}{observation_tag}  <param name="common/lid_topic" value="{xml_escape(dataset.lidar_topic)}"/>
+{base_tag}{preset_tag}{observation_tag}{output_tag}  <param name="common/lid_topic" value="{xml_escape(dataset.lidar_topic)}"/>
   <param name="common/imu_topic" value="{xml_escape(dataset.imu_topic)}"/>
   <param name="preprocess/lidar_type" value="{dataset.lidar_type}" type="int"/>
   <param name="mapping/map_type" value="{backend}"/>
@@ -668,7 +670,7 @@ def run_one(dataset: Dataset, backend: str, args: argparse.Namespace,
     observation_config = Path(observation_record["archive"]) if observation_record else None
     launch_dataset = replace(dataset, config=base_config)
     launch_file.write_text(launch_text(launch_dataset, backend, backend_config,
-                                       observation_config), encoding="utf-8")
+                                       observation_config, output_root), encoding="utf-8")
 
     run_env = dict(env)
     run_env["ROS_HOME"] = str(run_dir / "ros_home")

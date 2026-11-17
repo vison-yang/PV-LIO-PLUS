@@ -1,0 +1,110 @@
+{
+  "checked_on": "2026-11-17",
+  "scope": "Current working tree including ignored text files and names; Git internals are audited separately.",
+  "policy": "Neutral names for private platform/device references in project files; retain mathematical identifiers, numerical multipliers and original third-party media.",
+  "current_file_name_and_text_hits": 0,
+  "files_enumerated": 250,
+  "text_files_checked": 217,
+  "neutral_profile": "config/solid_point_time.yaml",
+  "logical_paths": "external:// record URIs are aliases, not physical paths. Original provenance remains outside this repository.",
+  "originals_archive": "/home/yxy/output/agent/pv_lio_plus_reference_hygiene/20261117_round1/originals",
+  "original_manifest": "/home/yxy/output/agent/pv_lio_plus_reference_hygiene/20261117_round1/original_file_manifest.json",
+  "changed_files": {
+    "README.md": {
+      "before_sha256": "d71b6724a9ea6a83404dd426e9167b06c102c93b345132e23b3a313eedb98d48",
+      "after_sha256": "1ea4f7e325d053822c95fc99d21192a20c688be8a91eeff419abb0b90c4c6a35"
+    },
+    "PLAN.md": {
+      "before_sha256": "baa8ee3ea91b597eb9b42875575a98b4fe41ad76ad3e997eb8a06f04e8d2d982",
+      "after_sha256": "686c53edf1ac1fdd7bbe95685844079194294310adfa9ef0d9e6980bd8392e67"
+    },
+    "README.zh-CN.md": {
+      "before_sha256": "6d751dc16965b2398df8f347c024cec960c1a248f5d1d39575e17be791cab26b",
+      "after_sha256": "0aaeaec7e9ab280768c89b48524b3ae3af9e4181e426e568f60398a0d8641b90"
+    },
+    "scripts/datasets.example.json": {
+      "before_sha256": "b638239d62781d47873f607c99a3974f3bb8f666cf09948ccff04820faf8d7fd",
+      "after_sha256": "2e7385faa220d2d2138ed5bfb675ff126b487a4124ff675f42add16c5f5b24f4"
+    },
+    "tests/config_profiles_tests.py": {
+      "before_sha256": "102f6a90206aa16cdaa5e2da1f4dceb613b05d89020b0021060ec9f046737a54",
+      "after_sha256": "cc9132a616346fe79f51568196737d37b296d23df5c082256f4e0032640fe634"
+    },
+    "doc/INTEGRATION_STATUS.md": {
+      "before_sha256": "d75f62a2b684fed3c45d5a2ff744047915bc78d96d9c8ffdcb1b1d3d4ce5d73f",
+      "after_sha256": "35549dba572f5da2340ab5918432ab18fe8ce61b9328788f571753e3c40c06ce"
+    },
+    "doc/BIEVR_IKFOM_PORT.md": {
+      "before_sha256": "d3efb8cb5a1fcf1c16ea506134e88281ff72a8e500db7f22704358ab10ac610a",
+      "after_sha256": "973b14ef8825f96726f5e04c9a7d050889ba97813f6e14d4d09d90061a36ee88"
+    },
+    "doc/OBSERVATION_INTEGRATION_PLAN.md": {
+      "before_sha256": "ff40e1453ded16c684c82e69bb1c150d51ccc65bc094acebfc5f5898e794e2c9",
+      "after_sha256": "3daa7cb3bc08f1fc3d083b92b8ac0fa0c4e86eb8569a54c547c091a09c5fa053"
+    },
+    "doc/HYBRID_INPUT_CONTRACT.md": {
+      "before_sha256": "f53b53a4ac156e6fb7e770a1fa92f79aaa1b0cc2e3149c4514ff17ea7c8644d8",
+      "after_sha256": "6c70bc91895248b750e8e4964cef0aefe95da5b1486e5f1b1542d543d193f960"
+    },
+    "doc/workspace/SOURCE_MANIFEST.json": {
+      "before_sha256": "cbb13ba5d9f318041229b76c95565c87aac6c56748280712979e6dc098202514",
+      "after_sha256": "2f1231675fbe3bb3db6893fc32c2157e881d66bd1b73cd2269dc5ac2277c7039"
+    },
+    "doc/workspace/evidence/TWO_TRACK_RESULTS.json": {
+      "before_sha256": "4b84db9b79278f9d54ea3555e0324a76c5017ad1271278fb323fd27282074d5d",
+      "after_sha256": "882ca3c8cc294caf03d9c9ed32d2fc44efd2318f8babe878ab548a85daa500ff"
+    },
+    "doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json": {
+      "before_sha256": "618effd8977efc54b1b0f344d860d06e8cd5beb37b6592be53f284d59440a088",
+      "after_sha256": "a81fe10aa5b2930dec453a0be7340d008a9e1b079c83228e3c6aa07a5b35041b"
+    },
+    "config/README.md": {
+      "before_sha256": "56dd5eb362b1e3d909499d6f59e41ac8c715dbd52780f71d3cbd9fdea8309092",
+      "after_sha256": "f68c4e69dfe4eb9767061b83551b4e2f9926a13bcfc81787d8835811faa943b9"
+    },
+    "config/solid_point_time.yaml": {
+      "before_sha256": "d3f5a2928de624e74355fa460efe8cc691bd025f4a76decca019ee1f41e10de5",
+      "after_sha256": "7b21487191758b9b8a279ce3fcafcc2be86ae8026749bac32b8d21d136abd968"
+    }
+  },
+  "validation": {
+    "argv": [
+      "python3",
+      "tests/config_profiles_tests.py"
+    ],
+    "exit_code": 0,
+    "elapsed_sec": 22.244576230004895,
+    "sensor_yaml_values_unchanged": true,
+    "cpp_and_build_files_unchanged": true,
+    "code_files_compared": 89,
+    "cpp_compilation_performed": false,
+    "replay_performed": false
+  },
+  "configuration_tests": 12,
+  "mapping_comparisons": 185,
+  "git_history": {
+    "rewritten": true,
+    "pushed": true,
+    "remote_synced": true,
+    "original_master": "3d4d0e3395a9d790dac8fc6a32eaefcfc9c26702",
+    "rewritten_master": "8e001c73a035d514cff53121fba970f9aee4a541",
+    "commits_preserved": 52,
+    "rewritten_commits": 45,
+    "merge_commits_preserved": 2,
+    "deleted_local_branch": "agent/pv-lio-plus-source-refactor",
+    "deleted_local_tracking_ref": "origin/agent/pv-lio-plus-source-refactor",
+    "remote_branch_confirmed_absent": true,
+    "remote_branch_was_already_absent": true,
+    "main_preserved": "9b0f05444feda7385781f6708b4657f296817b0b",
+    "commit_map": "doc/workspace/evidence/HISTORY_COMMIT_MAP_20261117.json",
+    "publication_record": "/home/yxy/output/agent/pv_lio_plus_reference_hygiene/20261117_round1/history/publication.json",
+    "backup_bundle": "/home/yxy/output/agent/pv_lio_plus_reference_hygiene/20261117_round1/history/repository-before.bundle",
+    "uncommitted_files_preserved": 247,
+    "scope": "Specified branch-reachable history; external recovery backups and local unreachable/reflog objects are not physically purged.",
+    "reachable_commits_after": 53,
+    "reachable_blobs_after": 644,
+    "verified_text_blobs_after": 601,
+    "remaining_name_hits": 0
+  },
+  "binary_review": "Original third-party documents/images were retained. Compressed PDF stream and metadata audit found no private engineering identifiers; full glyph decoding/OCR was not performed."
+}

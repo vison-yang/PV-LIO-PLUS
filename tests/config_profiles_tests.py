@@ -291,6 +291,23 @@ class MapConfigProfileTests(unittest.TestCase):
                                       (("backend", "octvox"), ("rviz", "false"))))
         self.assertEqual(octvox["/mapping/octvox_capacity"], 1000000)
 
+    def test_point_time_sensor_profile_and_explicit_runtime_output_directory(self):
+        sensor = "solid_point_time"
+        values = read_yaml(self.sensor_path(sensor))
+        self.assertEqual(set(values["mapping"]), SENSOR_KEYS)
+        self.assertEqual(values["preprocess"]["solid_timestamp_mode"], "point_absolute")
+        for backend in BACKENDS:
+            mapping = read_yaml(REPO_ROOT / "config/backends" / f"{backend}.yaml")["mapping"]
+            self.assertFalse(SENSOR_KEYS.intersection(mapping))
+            config = self.load(REPO_ROOT / "launch/mapping.launch",
+                (("sensor_config", self.sensor_path(sensor)), ("backend", backend), ("rviz", "false")))
+            self.assert_mapping(self.values(config), sensor, backend)
+        output = Path(self._temporary.name) / "isolated output"
+        text = self._runner.launch_text(self.dataset(sensor), "bievr", output_root=output)
+        actual = self.values(self.load_text("point_time_output.launch", text))
+        self.assertEqual(actual["/output/root_dir"], str(output))
+        self.assertEqual(actual["/preprocess/solid_timestamp_mode"], "point_absolute")
+
     def test_removed_map_layers_fail_explicitly_and_unknown_backends_are_rejected(self):
         root = Path(self._temporary.name)
         bag = root / "placeholder.bag"

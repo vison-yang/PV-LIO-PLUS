@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <string>
 
 using namespace std;
 
@@ -128,6 +129,9 @@ class Preprocess
   double horizontal_angle_min, horizontal_angle_max;
   bool feature_enabled, given_offset_time;
   ros::Publisher pub_full, pub_surf, pub_corn;
+
+  /** @brief timestamp 字段的解释方式。 */
+  std::string solidTimestampMode_{"frame_absolute"};
     
 
   private:

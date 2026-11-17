@@ -87,13 +87,18 @@ the [source manifest](doc/workspace/SOURCE_MANIFEST.json). iG-LIO's full
 map core is a safety-focused reimplementation based on author commit
 `2d79259e3aaa5bbb10d6b13234398760bbacf8f5`. Its 2026-11-14 shared-build record
 describes the earlier complete checkout only. The `ig_lio_plane` selector is
-source-integrated; its prior build and synthetic-test evidence is recorded
-separately, while runtime replay remains pending. See the
+source-integrated; the 2026-11-16 round-2 build and synthetic-test record did
+not include replay because the required sensor inputs were missing. See the
 [iG-LIO result record](doc/workspace/evidence/IG_LIO_RESULTS.json). BIEVR's
 local height-map backend is source-integrated from author baseline
-`2306022e341e98ce84244f92ba7d26f047b41dbc`; its current build and synthetic-test evidence is recorded in the
-[two-track results](doc/workspace/evidence/TWO_TRACK_RESULTS.json); replay remains pending. The old `38f98b9` source/build record is
-historical. See [`doc/BIEVR_IKFOM_PORT.md`](doc/BIEVR_IKFOM_PORT.md).
+`2306022e341e98ce84244f92ba7d26f047b41dbc`; its 2026-11-16 build/synthetic
+record likewise had no replay. On 2026-11-17, fresh master runs for BIEVR,
+iG-LIO, and iG-LIO+GM each passed the 30-second input/output completeness checks on the SOLID point-time dataset (record 01). This does not establish accuracy or controlled performance; see the
+[run record](doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json), the
+[historical iG-LIO result](doc/workspace/evidence/IG_LIO_RESULTS.json), the
+[historical two-track result](doc/workspace/evidence/TWO_TRACK_RESULTS.json),
+and [`doc/BIEVR_IKFOM_PORT.md`](doc/BIEVR_IKFOM_PORT.md). The old `38f98b9`
+source/build record is historical.
 Two map candidates remain without selectors; full iG-LIO GICP is a separate
 observation-design task.
 
@@ -144,9 +149,9 @@ physical unit but do not imply identical boundary or search-domain behavior.
 To reproduce an old ikd-tree threshold configured as squared-distance value
 `v`, set the new radius to `sqrt(v)` metres; existing iVox values are unchanged.
 
-The example dataset manifest still lists the previous ten-selector baseline;
-add `bievr` to the selected algorithms to include the new backend. The prior eight-selector
-baseline passed main-line build/link, CTest 5/5 (33 GTest cases), and the hVox
+The current example dataset manifest lists eleven selectors, including
+`bievr`. The prior eight-selector baseline passed main-line build/link, CTest
+5/5 (33 GTest cases), and the hVox
 30-second replay. i-Octree's feature build/link, independent numerical review,
 isolated tests, and complete-input 30/141-second replays passed. On main-line
 commit `6876a8e`, the node build/link, CTest 7/7 (49 regular GTest cases, ASan
@@ -233,14 +238,16 @@ mapping:
 ```
 
 Each of the 11 backend YAML files owns that backend's map parameters. The
-three main sensor YAML files keep sensor settings and only five `mapping` keys:
+four main sensor YAML files keep sensor settings and only five `mapping` keys:
 `down_sample_size`, `max_iteration`, `extrinsic_est_en`, `extrinsic_T`, and
 `extrinsic_R`. Loading order is **sensor → selected backend → optional
 observation**, then launch forces `mapping/map_type` from `backend`. The later
 backend layer wins on overlapping keys; there is no `common.yaml` or
 `sensors/` layer. See the [configuration guide](config/README.md) for the
-resulting Solid baseline changes. Configure local-window behavior through the
-existing `mapping` window parameters.
+resulting Solid baseline changes. The SOLID point-time profile for record 01
+preserves absolute per-point times and uses record-specific extrinsics; it does
+not define a general calibration. See the same guide before using it. Configure
+local-window behavior through the existing `mapping` window parameters.
 
 ```bash
 roslaunch pv_lio_plus mapping_avia.launch backend:=ig_lio_plane rviz:=false
@@ -369,4 +376,10 @@ python3 src/PV_LIO_PLUS/scripts/build_upstream.py --jobs 2
 The upstream script records and continues individual failures; LIO-GVM still
 requires missing author source. These commands validate builds, not map quality.
 
-The current two-track increment passed all 12 build targets, node dynamic-link checking and CTest 12/12 (89 GTest cases and 9 Python configuration tests), with ASan disabled. No replay or accuracy/performance A/B was run; see [the evidence](doc/workspace/evidence/TWO_TRACK_RESULTS.json).
+The 2026-11-16 two-track increment passed 12 build targets, node dynamic-link
+checking, and CTest 12/12 (89 GTest cases and 9 Python configuration tests),
+with ASan disabled; that package did not replay. The separate 2026-11-17
+increment built 13 targets and passed CTest 13/13 (105 GTest cases), with 12
+Python configuration tests and 185 mapping comparisons; ASan was disabled and
+117 source/config/test files remained hash-consistent. Its three runs on the SOLID point-time dataset (record 01) and
+their limits are recorded in [the run evidence](doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json).

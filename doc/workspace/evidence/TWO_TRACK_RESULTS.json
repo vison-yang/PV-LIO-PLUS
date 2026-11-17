@@ -193,7 +193,7 @@
       "/home/yxy/data/avia/outdoor_Mainbuilding_100Hz_2020-12-24-16-46-29.bag": false,
       "/home/yxy/src/lio_map_ws/bags/S3_2026-08-04_08-40-43_intensity_continuous.bag": false
     },
-    "note": "Other local bags exist but were not selected; their calibration/time/point-format provenance was not established for this run."
+    "note": "Other local datasets exist but were not selected; their calibration/time/point-format provenance was not established for this run."
   },
   "limitations": [
     "No replay, GUI/device, accuracy or controlled performance A/B",
@@ -204,5 +204,9 @@
     "Invalid parameter/input prechecks preserve map; resource/numerical update exceptions may partially commit and propagate",
     "Full-state/P finite postcheck reviewed statically; no direct solver failure injection or SPD proof",
     "Current source contract and boxplus oracle do not assert a fresh equation-by-equation PDF review"
-  ]
+  ],
+  "neutralized_metadata": {
+    "purpose": "Neutral dataset naming in the repository copy; the original historical record remains external.",
+    "original_archive": "/home/yxy/output/agent/pv_lio_plus_reference_hygiene/20261117_round1/originals/doc/workspace/evidence/TWO_TRACK_RESULTS.json"
+  }
 }

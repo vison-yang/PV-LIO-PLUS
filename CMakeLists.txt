@@ -116,6 +116,12 @@ if(CATKIN_ENABLE_TESTING)
   add_test(NAME pv_lio_plus_config_profiles
     COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/config_profiles_tests.py)
   catkin_add_gtest(pv_lio_plus_observation_tests tests/observation_tests.cpp)
+  catkin_add_gtest(pv_lio_plus_solid_time_tests tests/solid_time_tests.cpp src/preprocess.cpp)
+  if(TARGET pv_lio_plus_solid_time_tests)
+    target_include_directories(pv_lio_plus_solid_time_tests BEFORE PRIVATE ${PV_LIO_PLUS_EIGEN_INCLUDE_DIRS})
+    add_dependencies(pv_lio_plus_solid_time_tests ${catkin_EXPORTED_TARGETS})
+    target_link_libraries(pv_lio_plus_solid_time_tests ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+  endif()
   catkin_add_gtest(pv_lio_plus_bievr_map_tests tests/bievr_map_tests.cpp
     include/map_manager/native/bievr/voxel_map.cpp)
   catkin_add_gtest(pv_lio_plus_bievr_observation_tests tests/bievr_observation_tests.cpp src/observation/measurement.cpp)

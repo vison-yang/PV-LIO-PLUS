@@ -1,10 +1,10 @@
 # BIEVR 高度图到共同 IKFoM 的设计与实施记录
 
-初始设计日期：2026-11-15；当前实施状态：2026-11-16。
+初始设计日期：2026-11-15；当前实施状态：2026-11-17。
 
 ## 当前实施
 
-`bievr` 已接入本项目，依据当前可读取的干净作者快照 `2306022e341e98ce84244f92ba7d26f047b41dbc` 安全重实现 C++17 地图核心。旧 `38f98b9` 在当前浅克隆不可读取，旧独立构建不转用于新版本。来源、逐文件 hash 和本地差异见 [SOURCE](../include/map_manager/native/bievr/SOURCE.md)；本轮构建与合成测试见[结果记录](workspace/evidence/TWO_TRACK_RESULTS.json)。尚未回放或标定高度噪声，不是作者完整 LIO 复现。
+`bievr` 已接入本项目，依据当前可读取的干净作者快照 `2306022e341e98ce84244f92ba7d26f047b41dbc` 安全重实现 C++17 地图核心。旧 `38f98b9` 在当前浅克隆不可读取，旧独立构建不转用于新版本。来源、逐文件 hash 和本地差异见 [SOURCE](../include/map_manager/native/bievr/SOURCE.md)；2026-11-16 构建/合成结果见[历史记录](workspace/evidence/TWO_TRACK_RESULTS.json)，该轮当时未回放。2026-11-17 的 SOLID 回归记录 01 上的新 BIEVR 回放通过输入/输出完整性检查，详见[本轮运行记录](workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。高度噪声仍未标定；该回归不构成作者完整 LIO 复现、精度或性能结论。
 
 实现保留定向图像、n−1 统计、pending 成熟投影、加权融合、掩码平滑、法向重投影及 LRU；修复单体素分组，检查 Morton/像素整数域与图像安全上限。公共完整去畸变云以 double 变换后写图，真实 IMU 系量程按当前外参逐点计算；注册使用公共降采样点。每次 callback 重新查询，采用精确 masked-bilinear 导数、独立 12 列观测和 Huber/σ² 信息；没有作者 LM/Ceres 或 MID 采样。
 
