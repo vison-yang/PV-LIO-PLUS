@@ -6,7 +6,9 @@ PV-LIO-PLUS 是一个 ROS1 激光-惯性里程计（LIO）框架，集成多种�
 
 本项目最早源自 [PV-LIO](https://github.com/HViktorTsoi/PV-LIO)。PV-LIO 在 **FAST-LIO2 的源码框架**中，以概率体素地图 [VoxelMap](https://github.com/hku-mars/VoxelMap) 替换 ikd-tree。PV-LIO-PLUS 在此基础上先集成 [VoxelMapPlus（VoxelMap++）](https://github.com/uestc-icsp/VoxelMapPlus_Public)，随后大幅重构并优化代码框架，再进一步集成更多地图结构及其对应的残差模型。
 
-当前统一配置包含十一个地图后端。i-Octree feature `5c27a79` 已以 `6876a8e` 合入；隔离构建、数值复核、测试和30/141秒回放通过，主线节点/链接、CTest 7/7（49 个普通 GTest 条目，主线 ASan 关闭）及30秒完整输入回放也已通过。iG-LIO 的 `ig_lio_plane` 源码已接入；round 2 节点构建与 `ldd -r` 通过，指定九个构建目标通过，CTest 9/9（65 个 GTest 条目，含 11 个 iG 用例、ASan 关闭）；该 11-16 Round 2 当时未回放，详见[iG-LIO 历史构建记录](doc/workspace/evidence/IG_LIO_RESULTS.json)。11-17 本轮 SOLID 逐点时标数据（回归记录 01）上 BIEVR、iG-LIO、iG-LIO+GM 三次回放均通过输入/输出完整性检查，运行边界见[本轮记录](doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。该短回归不代表精度或性能结论。工作空间另行收集官方上游工程，用于源码追溯与独立的完整系统基线；这些工程的完整估计节点分别构建。
+提交 `acc32793e31026f75e96849f7f6764121e09ba89` 包含当前十一个可选地图后端。在 SOLID 逐点时标数据（回归记录 01）上，BIEVR、iG-LIO、iG-LIO+GM 均完成 30 秒短回归并通过输入/输出完整性检查；该结果不代表精度或受控性能结论。当前 binary 的 i-Octree 专项 30 秒短回归已通过：299 帧 LiDAR、6056 条 IMU 消息，输出 287 帧，有效约束数为 539–1368，观测拒绝为 0，地图修订号由 4 增至 290，节点退出码为 0；source/binary 无漂移，详见[验收记录](doc/workspace/evidence/MAP_ACCEPTANCE_20261117.json)。BIEVR 与 iG-LIO 点面变体均通过 197.190 秒完整 IMU 支持窗口回归，各输入 1971 帧 LiDAR / 39835 条 IMU、输出 1959 帧且观测拒绝为零。原 bag 末尾两帧 LiDAR 缺少完整 IMU 覆盖而被裁出，故不称全 bag 覆盖。下一步验收按[集成计划](PLAN.md)推进。运行边界见[本轮记录](doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)；历史阶段的构建与测试结果仍见[iG-LIO 记录](doc/workspace/evidence/IG_LIO_RESULTS.json)及[双轨集成记录](doc/workspace/evidence/TWO_TRACK_RESULTS.json)。工作空间另行收集官方上游工程，用于源码追溯与独立的完整系统基线；这些工程的完整估计节点分别构建。
+
+
 
 ## 主要工作
 
@@ -61,9 +63,9 @@ FR-LIO/RC-Vox、SV-LIO 的论文具备地图结构创新依据，但本地收集
 
 主要实验比较共同框架中的**地图结构及其对应残差模型**。统一传感器标定、输入片段、IMU 处理、状态定义、滤波时序及评测方法；记录各后端的残差类型、协方差/信息量、鲁棒核、匹配门限、扫描采样和地图预算/淘汰策略。语义输入或地图引导采样须有明确的实验档案与消融。
 
-现有十条路径均采用平面观测，但参数化、不确定性模型和门限不同：OctVox 使用固定信息量，R-VoxelMap 保留递归概率平面匹配，hVox 使用分组内固定 L1 surfel 与适配后的 PKO 权重，i-Octree 使用全树 kNN 和共用点面适配器；`ig_lio_plane` 保留增量体素地图并使用共用五点 float QR 标量点面拟合，不是作者 GICP。VoxelMap++ 现已遵循 `extrinsic_est_en`：启用时，解析雅可比包含右扰动外参旋转和平移列；关闭时，这些列为零。`h = -float(dist)`、原生权重和面片门限未变。细节与测试边界见[集成状态](doc/INTEGRATION_STATUS.md)和[范围审查](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)。
+除 BIEVR 高度观测外，其余十条路径均采用平面观测，但参数化、不确定性模型和门限不同：OctVox 使用固定信息量，R-VoxelMap 保留递归概率平面匹配，hVox 使用分组内固定 L1 surfel 与适配后的 PKO 权重，i-Octree 使用全树 kNN 和共用点面适配器；`ig_lio_plane` 保留增量体素地图并使用共用五点 float QR 标量点面拟合，不是作者 GICP。VoxelMap++ 现已遵循 `extrinsic_est_en`：启用时，解析雅可比包含右扰动外参旋转和平移列；关闭时，这些列为零。`h = -float(dist)`、原生权重和面片门限未变。细节与测试边界见[集成状态](doc/INTEGRATION_STATUS.md)和[范围审查](paper/notes/MAP_BACKEND_SCOPE_REVIEW.md)。
 
-ikd-tree 和 iVox 的 `nearest_max_range` 现统一以米表示。ikd-tree 将第五近邻平方距离与 `r²` 比较并包含边界；iVox 将 `r` 传给原生查询，采用严格的 `< r`，且查询受配置的附近体素范围限制。因此数值表示相同物理单位，但边界行为和搜索域仍不同。旧 ikd-tree 曾把配置值 `v` 当平方距离，若要复现旧阈值，新半径应设为 `sqrt(v)` 米；现有 iVox 数值不变。
+ikd-tree 和 iVox 的 `nearest_max_range` 现统一以米表示。ikd-tree 将第五近邻平方距离与 `r²` 比较并包含边界；iVox 将 `r` 传给原生查询，采用严格的 `< r`，且查询受配置的附近体素范围限制。因此数值表示相同物理单位，但边界行为和搜索域仍不同。旧 ikd-tree 曾把配置值 `v` 当平方距离，若要复现旧阈值，新半径应设为 `sqrt(v)` 米。iVox 配置数值仅在当时的半径契约修复中保持不变；后续后端默认值已有变化，见[配置说明](config/README.md)。
 
 当前示例数据清单包含 11 个 selector，包括 `bievr`；此前十个 selector 仅是旧清单状态。原有六后端契约测试、修复计时后的长短回归、R-VoxelMap 与 hVox 主线验证均有记录。i-Octree feature 工作树构建和链接检查、独立数值核验通过；隔离 CTest 9/9（60 次执行，含 sanitizer 重复，不代表 60 个独立用例），30/141 秒完整输入回放通过。主线 `6876a8e` 节点/链接、CTest 7/7（49 个普通 GTest 条目，ASan 关闭）和30秒完整输入回放通过。feature 正向 ASan/UBSan 检查通过，LeakSanitizer 未启用。iG-LIO round 2 的指定构建、CTest 9/9（65 个 GTest 条目）及配置合成矩阵已通过；该轮没有启用 ASan，也没有回放、GUI/设备验收、ATE 或性能 A/B。11-17 当前增量 13 个构建目标退出 0、`ldd -r` 通过、CTest 13/13（105 个 GTest）、12 项 Python 配置测试和 185 次 mapping 比较通过，ASan 关闭。新 SOLID 回归记录 01 的三次运行均输出 287 帧且零观测拒绝；其余非收敛迭代帧不等于观测拒绝。历史测试数仍只描述各自旧阶段。详见[本轮运行记录](doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。详细边界见[集成状态](doc/INTEGRATION_STATUS.md)、[iG-LIO 结果](doc/workspace/evidence/IG_LIO_RESULTS.json)与[i-Octree 结果](doc/workspace/evidence/I_OCTREE_RESULTS.json)。
 
@@ -88,7 +90,8 @@ MapManager：地图存储、更新与匹配
   |-- R-VoxelMap     --> 递归概率平面观测
   |-- hVox           --> PKO 加权的预计算 surfel 观测
   |-- i-Octree       --> 共用点面观测适配器
-  `-- iG-LIO         --> 共用五点 float QR 标量点面观测
+  |-- iG-LIO         --> 共用五点 float QR 标量点面观测
+  `-- BIEVR          --> 专用 HeightSample 高度观测
       |
       v
 后端观测分发 --> 共用 IKFoM 更新
@@ -97,7 +100,7 @@ MapManager：地图存储、更新与匹配
 地图更新、轨迹 / 地图 / 耗时输出
 ```
 
-`MapManager` 管理地图存储与查询，对应观测路径构造残差、雅可比和信息量。通用带类型 surfel、高斯与高度图残差接口仍是未来设计；hVox 当前通过专用适配接入共用 `PlaneMatch` 与滤波循环。
+`MapManager` 管理地图存储与查询，对应观测路径构造残差、雅可比和信息量。通用带类型 surfel、高斯与可复用高度图观测接口仍是未来设计；BIEVR 已通过专用 `HeightSample` 路径接入高度观测，hVox 则通过专用适配接入共用 `PlaneMatch` 与滤波循环。
 
 ## 环境与编译
 

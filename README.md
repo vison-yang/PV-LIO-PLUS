@@ -92,13 +92,24 @@ not include replay because the required sensor inputs were missing. See the
 [iG-LIO result record](doc/workspace/evidence/IG_LIO_RESULTS.json). BIEVR's
 local height-map backend is source-integrated from author baseline
 `2306022e341e98ce84244f92ba7d26f047b41dbc`; its 2026-11-16 build/synthetic
-record likewise had no replay. On 2026-11-17, fresh master runs for BIEVR,
-iG-LIO, and iG-LIO+GM each passed the 30-second input/output completeness checks on the SOLID point-time dataset (record 01). This does not establish accuracy or controlled performance; see the
-[run record](doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json), the
-[historical iG-LIO result](doc/workspace/evidence/IG_LIO_RESULTS.json), the
+record likewise had no replay. Commit
+`acc32793e31026f75e96849f7f6764121e09ba89` contains eleven selectable map
+backends. On the SOLID per-point timestamp dataset (regression record 01),
+BIEVR, iG-LIO, and iG-LIO+GM each completed a 30-second short regression and
+passed input/output completeness checks. This does not establish accuracy or
+controlled performance. The current binary's dedicated 30-second i-Octree regression passed: 299
+LiDAR frames, 6,056 IMU messages, 287 output frames, 539–1,368 effective
+constraints, zero observation rejections, map revision 4→290, and node exit
+status 0. No source/binary drift was found; see [the acceptance
+record](doc/workspace/evidence/MAP_ACCEPTANCE_20261117.json). BIEVR and iG-LIO point-plane also passed the 197.190-second IMU-supported window, each with 1,959 outputs. The final two LiDAR frames lack IMU coverage and are excluded; this is not full-bag LiDAR coverage. The next acceptance steps follow the
+[integration plan](PLAN.md). See the [run record](doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json),
+[historical iG-LIO result](doc/workspace/evidence/IG_LIO_RESULTS.json),
 [historical two-track result](doc/workspace/evidence/TWO_TRACK_RESULTS.json),
 and [`doc/BIEVR_IKFOM_PORT.md`](doc/BIEVR_IKFOM_PORT.md). The old `38f98b9`
 source/build record is historical.
+
+
+
 Two map candidates remain without selectors; full iG-LIO GICP is a separate
 observation-design task.
 
@@ -147,7 +158,9 @@ iVox passes `r` to its native query, which uses a strict `< r` test and searches
 only the configured nearby voxel domain. Equal values therefore share a
 physical unit but do not imply identical boundary or search-domain behavior.
 To reproduce an old ikd-tree threshold configured as squared-distance value
-`v`, set the new radius to `sqrt(v)` metres; existing iVox values are unchanged.
+`v`, set the new radius to `sqrt(v)` metres. The iVox configuration numbers
+were unchanged in that radius-contract fix only; later backend-default changes
+are documented in the [configuration guide](config/README.md).
 
 The current example dataset manifest lists eleven selectors, including
 `bievr`. The prior eight-selector baseline passed main-line build/link, CTest
@@ -206,8 +219,9 @@ Map update, trajectory / map / timing outputs
 Map storage and query are managed by `MapManager`; residuals, Jacobians, and
 information are constructed by the corresponding observation paths. `hvox`
 uses a dedicated surfel-to-`PlaneMatch` adapter, and `bievr` has a dedicated
-height-sample path. General typed `Surfel`, `Gaussian`, and reusable
-`HeightImage` observation interfaces remain future work.
+height-sample path using the dedicated `HeightSample` type. General typed
+`Surfel`, `Gaussian`, and reusable `HeightImage` observation interfaces remain
+future work.
 
 ## Requirements and build
 

@@ -1,0 +1,503 @@
+{
+  "recorded_on": "2026-11-17",
+  "repository": "/home/yxy/src/lio_map_ws/src/PV-LIO-PLUS",
+  "branch": "master",
+  "source_commit": "acc32793e31026f75e96849f7f6764121e09ba89",
+  "scope": "Current i-Octree adapter short replay and BIEVR/iG-LIO point-plane longest IMU-supported record window; no new selector or estimator changes.",
+  "build_performed_this_round": false,
+  "binary_identity": {
+    "path": "/home/yxy/src/lio_map_ws/devel/lib/pv_lio_plus/pv_lio_plus_node",
+    "sha256": "ccad1442137974442ee06737f2d12f9436b999bc6a8c21da110377cd07e7fa1c",
+    "compiled_cpp_and_cmake_inputs_matched": 89,
+    "prior_build_and_synthetic_record": "doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json"
+  },
+  "dataset": {
+    "alias": "record_01",
+    "bag": "external://record_01/source.bag",
+    "sha256": "0e01bca27ae119dc9f04bf736b55dc2f5fbb500389fc944102f07f6d7816e694",
+    "sensor_profile": "config/solid_point_time.yaml",
+    "timestamp_mode": "point_absolute",
+    "full_bag_record_duration_sec": 197.4,
+    "full_bag_counts": {
+      "lidar": 1973,
+      "imu": 39835
+    },
+    "supported_window": {
+      "record_ns_inclusive": [
+        12614334000000,
+        12811524000000
+      ],
+      "duration_sec": 197.19,
+      "counts": {
+        "lidar": 1971,
+        "imu": 39835
+      },
+      "output_frames_expected": 1959,
+      "startup_skips": {
+        "first_scan": 1,
+        "imu_initialization": 10,
+        "initial_map": 1
+      },
+      "last_supported_lidar_end_ns": 12811523812025,
+      "last_imu_header_ns": 12811524000000,
+      "excluded_tail_lidar_frames": 2,
+      "excluded_tail_lidar_end_ns": [
+        12811623812819,
+        12811723810529
+      ],
+      "reason": "Last two LiDAR scans do not have full IMU coverage. Selected record-window EOF is checked; full-bag LiDAR coverage is not claimed.",
+      "contract_archive": "/home/yxy/output/agent/pv_lio_plus_map_acceptance/20261117_round1/input_window_contract.json",
+      "contract_sha256": "9d5786f44a2376aa2956c5a48a2e268f457cf49dde68737831043045e4886581"
+    }
+  },
+  "harness": {
+    "path": "/home/yxy/src/scripts/agent/pv_lio_plus_map_acceptance.py",
+    "sha256": "5e4608ce73a9a7367c88cea45244aa0b9338cc3eda67d561fbf26fc1f82506c1",
+    "changes_from_prior_harness": [
+      "Point sensor configuration to the current neutral profile path.",
+      "Add i_octree backend/profile/output stem."
+    ],
+    "replay_rate": 0.5,
+    "fresh_master_per_run": true,
+    "runs_sequential": true,
+    "process_cleanup": "Owned process groups only, after final supported Odometry and output drain."
+  },
+  "runs": {
+    "i_octree_reference30": {
+      "backend": "i_octree",
+      "observation": "backend_default",
+      "window_ns_inclusive": [
+        12614334000000,
+        12644334000000
+      ],
+      "summary": "/home/yxy/output/agent/pv_lio_plus_map_acceptance/20261117_round1/i_octree_reference30/summary.json",
+      "summary_sha256": "c43ae29e918504feeeb0f3bf496a1961315adbda4539cac71385ad09b5685cca",
+      "expected_output_frames": 287,
+      "rows": 287,
+      "first_stamp_sec": 12615.699065,
+      "last_stamp_sec": 12644.323818,
+      "input_monitors": {
+        "/lidar/data": {
+          "count_matches": true,
+          "expected_count": 299,
+          "expected_header_payload_sha256": "09f19694454c671d7dd9a08d31176d7da89131ce0cce8f63de97498bfd213022",
+          "hash_matches": true,
+          "observed_count": 299,
+          "observed_header_payload_sha256": "09f19694454c671d7dd9a08d31176d7da89131ce0cce8f63de97498bfd213022",
+          "publisher_monitor_seq_normalization": "Header.seq set to zero before serialization",
+          "source_header_record_equal_count": 299,
+          "source_header_record_mismatch_count": 0
+        },
+        "/s316_imu": {
+          "count_matches": true,
+          "expected_count": 6056,
+          "expected_header_payload_sha256": "ec4a4f85a31268cf87631ebfce586d93d53bb50a653d79236845fe4fd360495d",
+          "hash_matches": true,
+          "observed_count": 6056,
+          "observed_header_payload_sha256": "ec4a4f85a31268cf87631ebfce586d93d53bb50a653d79236845fe4fd360495d",
+          "publisher_monitor_seq_normalization": "Header.seq set to zero before serialization",
+          "source_header_record_equal_count": 6056,
+          "source_header_record_mismatch_count": 0
+        }
+      },
+      "selected_window_natural_eof": true,
+      "final_supported_odometry_observed": true,
+      "drain_target_ns": 12644323817987,
+      "timing_file_stable_before_sigint": true,
+      "sigint_after_final_drain": true,
+      "node_exit_code": 0,
+      "effective_constraints": {
+        "max": 1368,
+        "min": 539,
+        "zero_rows": 0
+      },
+      "observation_rejected_rows": 0,
+      "converged_frames": 165,
+      "not_converged_frames": 122,
+      "map_revision": {
+        "first": 4,
+        "last": 290,
+        "max": 290,
+        "nondecreasing": true,
+        "strictly_increased_after_first": true
+      },
+      "map_size_native": {
+        "first": 11681,
+        "last": 305092,
+        "max": 305092
+      },
+      "pcd_points": 3072986,
+      "configuration_sha256": {
+        "backend": "2ee118acb69ba2cfd7ed95fe8af8333a0743d0ebe067abd4d556734c2f73d0a8",
+        "observation": "9e379b142a5434520c82660f322216dffa24865bd7b83c55358e3d9ff86ff041",
+        "sensor": "7b21487191758b9b8a279ce3fcafcc2be86ae8026749bac32b8d21d136abd968"
+      },
+      "source_drift": {
+        "changed_during_run": false,
+        "changed_files": [],
+        "diff_sha256_after": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "diff_sha256_before": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "head_after": "acc32793e31026f75e96849f7f6764121e09ba89",
+        "head_before": "acc32793e31026f75e96849f7f6764121e09ba89"
+      },
+      "acceptance_checks": {
+        "expected_output_frame_count": true,
+        "first_and_last_time_match": true,
+        "input_bag_unchanged_during_run": true,
+        "input_counts_and_hashes_match": true,
+        "input_header_equals_record_time": true,
+        "natural_bag_eof": true,
+        "node_binary_unchanged": true,
+        "node_normal_exit_zero": true,
+        "observation_flags_and_map_revision_valid": true,
+        "odometry_count_matches": true,
+        "pcd_has_points_and_xyz": true,
+        "production_filtered_support_computed": true,
+        "quaternions_normalized": true,
+        "reference_first_time_matches": true,
+        "reference_last_time_matches": true,
+        "source_unchanged_during_run": true,
+        "timestamps_strictly_increasing": true,
+        "timing_and_trajectory_finite": true,
+        "timing_fields_nonnegative": true,
+        "trajectory_count_matches": true
+      }
+    },
+    "bievr_supported_window": {
+      "backend": "bievr",
+      "observation": "backend_default",
+      "window_ns_inclusive": [
+        12614334000000,
+        12811524000000
+      ],
+      "summary": "/home/yxy/output/agent/pv_lio_plus_map_acceptance/20261117_round1/bievr_supported_window/summary.json",
+      "summary_sha256": "251631f4bbba1e692610a39e3a31747bca59cdbc9ed27d3509567f08bc6d4ab9",
+      "expected_output_frames": 1959,
+      "rows": 1959,
+      "first_stamp_sec": 12615.699065,
+      "last_stamp_sec": 12811.523812,
+      "input_monitors": {
+        "/lidar/data": {
+          "count_matches": true,
+          "expected_count": 1971,
+          "expected_header_payload_sha256": "2be197bb4803704a76db1c87f6617677dad8c19833ac3b712d3f1040eb8c5bd6",
+          "hash_matches": true,
+          "observed_count": 1971,
+          "observed_header_payload_sha256": "2be197bb4803704a76db1c87f6617677dad8c19833ac3b712d3f1040eb8c5bd6",
+          "publisher_monitor_seq_normalization": "Header.seq set to zero before serialization",
+          "source_header_record_equal_count": 1971,
+          "source_header_record_mismatch_count": 0
+        },
+        "/s316_imu": {
+          "count_matches": true,
+          "expected_count": 39835,
+          "expected_header_payload_sha256": "ac67cad15fe252f7a77662356188c4476284d954dce8c1fffc117c20f23857a6",
+          "hash_matches": true,
+          "observed_count": 39835,
+          "observed_header_payload_sha256": "ac67cad15fe252f7a77662356188c4476284d954dce8c1fffc117c20f23857a6",
+          "publisher_monitor_seq_normalization": "Header.seq set to zero before serialization",
+          "source_header_record_equal_count": 39835,
+          "source_header_record_mismatch_count": 0
+        }
+      },
+      "selected_window_natural_eof": true,
+      "final_supported_odometry_observed": true,
+      "drain_target_ns": 12811523812025,
+      "timing_file_stable_before_sigint": true,
+      "sigint_after_final_drain": true,
+      "node_exit_code": 0,
+      "effective_constraints": {
+        "max": 2496,
+        "min": 309,
+        "zero_rows": 0
+      },
+      "observation_rejected_rows": 0,
+      "converged_frames": 798,
+      "not_converged_frames": 1161,
+      "map_revision": {
+        "first": 4,
+        "last": 1962,
+        "max": 1962,
+        "nondecreasing": true,
+        "strictly_increased_after_first": true
+      },
+      "map_size_native": {
+        "first": 453,
+        "last": 16037,
+        "max": 16037
+      },
+      "pcd_points": 20371697,
+      "configuration_sha256": {
+        "backend": "3b91cf4d3362f1ba02f194bcad7d6adca3353f7c568076086526ba4c8e4fddf1",
+        "observation": "9e379b142a5434520c82660f322216dffa24865bd7b83c55358e3d9ff86ff041",
+        "sensor": "7b21487191758b9b8a279ce3fcafcc2be86ae8026749bac32b8d21d136abd968"
+      },
+      "source_drift": {
+        "changed_during_run": false,
+        "changed_files": [],
+        "diff_sha256_after": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "diff_sha256_before": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "head_after": "acc32793e31026f75e96849f7f6764121e09ba89",
+        "head_before": "acc32793e31026f75e96849f7f6764121e09ba89"
+      },
+      "acceptance_checks": {
+        "expected_output_frame_count": true,
+        "first_and_last_time_match": true,
+        "input_bag_unchanged_during_run": true,
+        "input_counts_and_hashes_match": true,
+        "input_header_equals_record_time": true,
+        "natural_bag_eof": true,
+        "node_binary_unchanged": true,
+        "node_normal_exit_zero": true,
+        "observation_flags_and_map_revision_valid": true,
+        "odometry_count_matches": true,
+        "pcd_has_points_and_xyz": true,
+        "production_filtered_support_computed": true,
+        "quaternions_normalized": true,
+        "source_unchanged_during_run": true,
+        "timestamps_strictly_increasing": true,
+        "timing_and_trajectory_finite": true,
+        "timing_fields_nonnegative": true,
+        "trajectory_count_matches": true
+      }
+    },
+    "ig_lio_plane_supported_window": {
+      "backend": "ig_lio_plane",
+      "observation": "backend_default",
+      "window_ns_inclusive": [
+        12614334000000,
+        12811524000000
+      ],
+      "summary": "/home/yxy/output/agent/pv_lio_plus_map_acceptance/20261117_round1/ig_lio_plane_supported_window/summary.json",
+      "summary_sha256": "61f43662d456ba26a9924721b265c2723ce7f57e1c775b24b26fb22d562878a3",
+      "expected_output_frames": 1959,
+      "rows": 1959,
+      "first_stamp_sec": 12615.699065,
+      "last_stamp_sec": 12811.523812,
+      "input_monitors": {
+        "/lidar/data": {
+          "count_matches": true,
+          "expected_count": 1971,
+          "expected_header_payload_sha256": "2be197bb4803704a76db1c87f6617677dad8c19833ac3b712d3f1040eb8c5bd6",
+          "hash_matches": true,
+          "observed_count": 1971,
+          "observed_header_payload_sha256": "2be197bb4803704a76db1c87f6617677dad8c19833ac3b712d3f1040eb8c5bd6",
+          "publisher_monitor_seq_normalization": "Header.seq set to zero before serialization",
+          "source_header_record_equal_count": 1971,
+          "source_header_record_mismatch_count": 0
+        },
+        "/s316_imu": {
+          "count_matches": true,
+          "expected_count": 39835,
+          "expected_header_payload_sha256": "ac67cad15fe252f7a77662356188c4476284d954dce8c1fffc117c20f23857a6",
+          "hash_matches": true,
+          "observed_count": 39835,
+          "observed_header_payload_sha256": "ac67cad15fe252f7a77662356188c4476284d954dce8c1fffc117c20f23857a6",
+          "publisher_monitor_seq_normalization": "Header.seq set to zero before serialization",
+          "source_header_record_equal_count": 39835,
+          "source_header_record_mismatch_count": 0
+        }
+      },
+      "selected_window_natural_eof": true,
+      "final_supported_odometry_observed": true,
+      "drain_target_ns": 12811523812025,
+      "timing_file_stable_before_sigint": true,
+      "sigint_after_final_drain": true,
+      "node_exit_code": 0,
+      "effective_constraints": {
+        "max": 2788,
+        "min": 310,
+        "zero_rows": 0
+      },
+      "observation_rejected_rows": 0,
+      "converged_frames": 274,
+      "not_converged_frames": 1685,
+      "map_revision": {
+        "first": 4,
+        "last": 1962,
+        "max": 1962,
+        "nondecreasing": true,
+        "strictly_increased_after_first": true
+      },
+      "map_size_native": {
+        "first": 454,
+        "last": 19343,
+        "max": 19343
+      },
+      "pcd_points": 20371697,
+      "configuration_sha256": {
+        "backend": "cef993b2ef5e8da141de62e85e0a552e703ec325067f67a3ea261660df5037f7",
+        "observation": "9e379b142a5434520c82660f322216dffa24865bd7b83c55358e3d9ff86ff041",
+        "sensor": "7b21487191758b9b8a279ce3fcafcc2be86ae8026749bac32b8d21d136abd968"
+      },
+      "source_drift": {
+        "changed_during_run": false,
+        "changed_files": [],
+        "diff_sha256_after": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "diff_sha256_before": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "head_after": "acc32793e31026f75e96849f7f6764121e09ba89",
+        "head_before": "acc32793e31026f75e96849f7f6764121e09ba89"
+      },
+      "acceptance_checks": {
+        "expected_output_frame_count": true,
+        "first_and_last_time_match": true,
+        "input_bag_unchanged_during_run": true,
+        "input_counts_and_hashes_match": true,
+        "input_header_equals_record_time": true,
+        "natural_bag_eof": true,
+        "node_binary_unchanged": true,
+        "node_normal_exit_zero": true,
+        "observation_flags_and_map_revision_valid": true,
+        "odometry_count_matches": true,
+        "pcd_has_points_and_xyz": true,
+        "production_filtered_support_computed": true,
+        "quaternions_normalized": true,
+        "source_unchanged_during_run": true,
+        "timestamps_strictly_increasing": true,
+        "timing_and_trajectory_finite": true,
+        "timing_fields_nonnegative": true,
+        "trajectory_count_matches": true
+      }
+    }
+  },
+  "limitations": [
+    "No ground truth, accuracy improvement, calibrated noise, GUI/device validation or controlled performance comparison.",
+    "Longer acceptance is one 197.190-second IMU-supported window, not all LiDAR messages in the 197.4-second bag.",
+    "Converged iteration flags and rejected observations are distinct. None of these runs converged on every frame.",
+    "The long window uses backend_default observation weights; GM still has only the earlier 30-second iG-LIO A/B.",
+    "Current i-Octree short replay does not prove pre/post-refactor bitwise or performance equivalence, or window-enabled runtime behavior.",
+    "Accumulated output PCD points and backend-native map size have different meanings. Revision growth counts committed update calls.",
+    "No new build, CTest or sanitizer run in this round; prior build/test identities remain in their original records."
+  ],
+  "independent_artifact_review": {
+    "path": "/home/yxy/output/agent/pv_lio_plus_map_acceptance/20261117_round1/quality_review.json",
+    "sha256": "4000d3296de8f634ad0be570d28e2a52472d76adb7469d7506077fba1d4ad8c0",
+    "overall_pass": true,
+    "runs": {
+      "i_octree_reference30": {
+        "checks": {
+          "summary_success": true,
+          "summary_acceptance_checks_all_true": true,
+          "timing_row_count": true,
+          "timing_all_columns_numeric_finite": true,
+          "timing_stamps_strictly_increasing": true,
+          "timing_quaternions_norm_1e-3": true,
+          "trajectory_row_count": true,
+          "trajectory_values_finite": true,
+          "trajectory_stamps_strictly_increasing": true,
+          "trajectory_quaternions_norm_1e-3": true,
+          "timing_trajectory_pose_agrees_1e-6": true,
+          "effective_constraints_integral": true,
+          "effective_constraints_min_positive": true,
+          "effective_constraints_zero_rows_none": true,
+          "map_revision_integral": true,
+          "map_revision_nondecreasing": true,
+          "map_revision_growth": true,
+          "observation_rejected_rows_none": true,
+          "pcd_schema_expected": true,
+          "pcd_binary_data_length_exact": true,
+          "pcd_all_xyz_finite_chunk_scan": true,
+          "pcd_stable_during_scan": true,
+          "same_input_record01_verified_by_input_hash": true
+        },
+        "pcd_points_scanned": 3072986,
+        "xyz_nonfinite_count": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "pcd_data_length_exact": true,
+        "maximum_quaternion_norm_error": 7.357992293233195e-07,
+        "timing_trajectory_maximum_pose_or_stamp_delta": 0.0
+      },
+      "bievr_supported_window": {
+        "checks": {
+          "summary_success": true,
+          "summary_acceptance_checks_all_true": true,
+          "timing_row_count": true,
+          "timing_all_columns_numeric_finite": true,
+          "timing_stamps_strictly_increasing": true,
+          "timing_quaternions_norm_1e-3": true,
+          "trajectory_row_count": true,
+          "trajectory_values_finite": true,
+          "trajectory_stamps_strictly_increasing": true,
+          "trajectory_quaternions_norm_1e-3": true,
+          "timing_trajectory_pose_agrees_1e-6": true,
+          "effective_constraints_integral": true,
+          "effective_constraints_min_positive": true,
+          "effective_constraints_zero_rows_none": true,
+          "map_revision_integral": true,
+          "map_revision_nondecreasing": true,
+          "map_revision_growth": true,
+          "observation_rejected_rows_none": true,
+          "pcd_schema_expected": true,
+          "pcd_binary_data_length_exact": true,
+          "pcd_all_xyz_finite_chunk_scan": true,
+          "pcd_stable_during_scan": true,
+          "same_input_record01_verified_by_input_hash": true
+        },
+        "pcd_points_scanned": 20371697,
+        "xyz_nonfinite_count": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "pcd_data_length_exact": true,
+        "maximum_quaternion_norm_error": 8.381683511693439e-07,
+        "timing_trajectory_maximum_pose_or_stamp_delta": 0.0
+      },
+      "ig_lio_plane_supported_window": {
+        "checks": {
+          "summary_success": true,
+          "summary_acceptance_checks_all_true": true,
+          "timing_row_count": true,
+          "timing_all_columns_numeric_finite": true,
+          "timing_stamps_strictly_increasing": true,
+          "timing_quaternions_norm_1e-3": true,
+          "trajectory_row_count": true,
+          "trajectory_values_finite": true,
+          "trajectory_stamps_strictly_increasing": true,
+          "trajectory_quaternions_norm_1e-3": true,
+          "timing_trajectory_pose_agrees_1e-6": true,
+          "effective_constraints_integral": true,
+          "effective_constraints_min_positive": true,
+          "effective_constraints_zero_rows_none": true,
+          "map_revision_integral": true,
+          "map_revision_nondecreasing": true,
+          "map_revision_growth": true,
+          "observation_rejected_rows_none": true,
+          "pcd_schema_expected": true,
+          "pcd_binary_data_length_exact": true,
+          "pcd_all_xyz_finite_chunk_scan": true,
+          "pcd_stable_during_scan": true,
+          "same_input_record01_verified_by_input_hash": true
+        },
+        "pcd_points_scanned": 20371697,
+        "xyz_nonfinite_count": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "pcd_data_length_exact": true,
+        "maximum_quaternion_norm_error": 8.608253705411073e-07,
+        "timing_trajectory_maximum_pose_or_stamp_delta": 0.0
+      }
+    },
+    "metadata_correction": "Initial review metadata had an incorrect output prefix for i_octree. Paths were corrected and rebound to existing artifacts before this evidence was published; scanned data and statistics were unchanged."
+  },
+  "external_execution_summary": {
+    "path": "/home/yxy/output/agent/pv_lio_plus_map_acceptance/20261117_round1/normalized_summary.json",
+    "sha256": "c62e284f816d3b053a39661a89096365ca47c984d7cc66cb93a23c4d5c756e7d"
+  },
+  "runtime_scope_closed": true,
+  "post_run_documentation": "Repository documentation and this evidence were updated after runtime/source-drift checks ended. Runtime commit/source identities above are preserved.",
+  "documentation_checks": {
+    "git_diff_check": true,
+    "readable_utf8_files_audited": 219,
+    "restricted_private_identifiers_found": 0,
+    "json_files_parsed": 30,
+    "changed_markdown_missing_relative_links": 0,
+    "scope": "Current filenames/readable UTF-8 text and changed-document relative links; no PDF visual/OCR audit in this round.",
+    "cpp_cmake_and_sensor_yaml_changes_this_followup": 0
+  }
+}

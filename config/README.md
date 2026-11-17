@@ -89,3 +89,5 @@ roslaunch pv_lio_plus mapping.launch sensor_config:=$(rospack find pv_lio_plus)/
 `output/root_dir` 可显式指定本次地图、轨迹和默认 timing CSV 的输出目录；未指定时仍使用编译时目录。应为每次实验准备独立目录。runner 的 `--output-root` 同时写入这个运行参数；其常规成功标记仅检查输出文件，不代表完整输入或 EOF 排空验收。
 
 timing CSV 末尾新增 `observation_rejected` 与 `map_revision`：前者明确记录受保护观测路径是否回滚，后者记录地图修订状态。未收敛不等于观测被拒绝；修订号增长表示地图更新提交，不等于新增点数。2026-11-17 的 BIEVR、iG-LIO 和 iG-LIO+GM 独立 SOLID 回归记录 01 短回归均通过，具体范围见[验收记录](../doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。
+
+最新第一类地图验收采用同一传感器 profile：i-Octree 专项 30 秒 / 287 帧，BIEVR 与 iG-LIO 默认权重各 197.190 秒 / 1959 帧。后者的末尾两帧 LiDAR 超出 IMU 覆盖而裁去，不能仅以 bag 总时长推断可处理帧数。实际配置 SHA、选窗及输出复核见[验收记录](../doc/workspace/evidence/MAP_ACCEPTANCE_20261117.json)；噪声值没有因回归通过而成为已标定参数。

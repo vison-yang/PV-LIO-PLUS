@@ -1,6 +1,6 @@
 # 论文与官方源码资料
 
-论文与源码资料核验日期：2026-11-14；PV-LIO-PLUS 集成范围更新日期：2026-11-16。本目录收录 17 篇论文，覆盖主 README 的算法清单，并补充 FAST-LIO 和 ikd-Tree 原始论文。
+论文与源码资料核验日期：2026-11-14；PV-LIO-PLUS 集成范围更新日期：2026-11-17。本目录收录 17 篇论文，覆盖主 README 的算法清单，并补充 FAST-LIO 和 ikd-Tree 原始论文。
 
 2026-11-14 的资料整理核验了本地 PDF 的页数与 SHA-256，并收录 i-Octree 和 iG-LIO 的作者论文及对应源码快照。已有论文版本继续固定在表列版本，不代表全部都核查为最新版本。2026-11-16 更新的集成范围是：主路线比较共同框架中具备新或实质改进地图数据结构的候选及其对应观测；仅改变残差、采样、查询算法或估计流程不构成结构准入。严格统一观测是可选消融；完整上游系统作为独立端到端基线。当前资格证据和实施条件见[地图与观测范围审查](notes/MAP_BACKEND_SCOPE_REVIEW.md)、[笔记索引](notes/README.md)和[集成计划](../PLAN.md)。
 
@@ -35,8 +35,8 @@
 
 ## 本项目的集成与复现状态
 
-- 当前有十一个地图 selector；`ig_lio_plane` 已接入，round 2 node build/link 与九个指定构建目标通过，CTest 9/9（65 个 GTest 条目，ASan 关闭）及配置合成测试通过。本轮尚无回放或精度/性能验证，详见[iG-LIO 结果记录](../doc/workspace/evidence/IG_LIO_RESULTS.json)。i-Octree feature `5c27a79` 已以 `6876a8e` 合入主线；feature 隔离测试、数值审查和 30/141 秒回放通过，主线构建/链接、CTest 7/7（49 个 GTest 条目，ASan 关闭）及 30 秒完整输入回放通过。详见[i-Octree 结果记录](../doc/workspace/evidence/I_OCTREE_RESULTS.json)。R-VoxelMap 与 hVox 的主线状态和证据见[集成状态](../doc/INTEGRATION_STATUS.md)、[R 结果记录](../doc/workspace/evidence/R_VOXELMAP_RESULTS.json)和[hVox 结果记录](../doc/workspace/evidence/HVOX_RESULTS.json)。历史回归不构成独立真值精度或受控性能结论。
-- BIEVR 的定向高度图变体 `bievr` 与第二类 GM 权重组件现已源码接入；本轮构建/合成验收见[结果记录](../doc/workspace/evidence/TWO_TRACK_RESULTS.json)，尚未回放。仍待接入的第一类为 Hybrid-VoxelMap 与 LIO-GVM；GenZ 混合观测保留为第二类候选。结构合格的 FR-LIO、SV-LIO 仍是论文储备。
+- 当前有十一个地图 selector；`ig_lio_plane` 已接入，round 2 node build/link 与九个指定构建目标通过，CTest 9/9（65 个 GTest 条目，ASan 关闭）及配置合成测试通过。该 11-16 Round 2 当时未回放，不含精度/性能验证，详见[iG-LIO 结果记录](../doc/workspace/evidence/IG_LIO_RESULTS.json)。i-Octree feature `5c27a79` 已以 `6876a8e` 合入主线；feature 隔离测试、数值审查和 30/141 秒回放通过，主线构建/链接、CTest 7/7（49 个 GTest 条目，ASan 关闭）及 30 秒完整输入回放通过。详见[i-Octree 结果记录](../doc/workspace/evidence/I_OCTREE_RESULTS.json)。R-VoxelMap 与 hVox 的主线状态和证据见[集成状态](../doc/INTEGRATION_STATUS.md)、[R 结果记录](../doc/workspace/evidence/R_VOXELMAP_RESULTS.json)和[hVox 结果记录](../doc/workspace/evidence/HVOX_RESULTS.json)。历史回归不构成独立真值精度或受控性能结论。
+- BIEVR 的定向高度图变体 `bievr` 与第二类 GM 权重组件现已源码接入；11-16 构建/合成验收见[历史结果](../doc/workspace/evidence/TWO_TRACK_RESULTS.json)，该轮当时未回放；11-17 BIEVR、iG-LIO 点面及 iG-LIO+GM 的独立 30 秒回归已通过运行完整性检查，见[运行记录](../doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。仍待接入的第一类为 Hybrid-VoxelMap 与 LIO-GVM；GenZ 混合观测保留为第二类候选。结构合格的 FR-LIO、SV-LIO 仍是论文储备。
 - 本地构建退出 0 不等于数据集精度复现。作者论文中的精度、耗时和运行条件不代表本工作区的实验结果。
 
 ## 源码核查边界
@@ -45,3 +45,5 @@
 - LIO-GVM 已公开仓库，但作者的 [Project Update](https://github.com/Ji1Xingyu/lio_gvm#project-update) 仍注明 `.hpp` 待更新；[issue #8](https://github.com/Ji1Xingyu/lio_gvm/issues/8) 与 [issue #13](https://github.com/Ji1Xingyu/lio_gvm/issues/13) 也报告缺少定制 Fast-VGICP 和 IKFoM 接口。通用依赖不能补足这些作者定制接口，因此“官方源码已获取”不等于其完整节点目前可编译。
 - “本地收集记录未确认”仅描述本地来源清单的状态；不代表远程不存在任何公开实现。本地源码状态按已固定快照和当前 manifest 记录，未拉取远程更新。
 - [IKFoM](https://github.com/hku-mars/IKFoM) 是 PV-LIO 使用的滤波工具库，其源码随项目的 `include/IKFoM_toolkit/` 保留，不另计为一个完整 LIO 基线。
+
+本轮当前节点 i-Octree adapter 专项 30 秒回归通过（287 帧）；BIEVR 与 iG-LIO 默认权重各通过 197.190 秒 IMU 支持窗回归（1959 帧），缺 IMU 支持的末尾两帧裁出。见[最新验收](../doc/workspace/evidence/MAP_ACCEPTANCE_20261117.json)。这些记录不替代噪声标定、真值精度或受控性能验收。

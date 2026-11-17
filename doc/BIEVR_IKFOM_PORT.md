@@ -4,7 +4,7 @@
 
 ## 当前实施
 
-`bievr` 已接入本项目，依据当前可读取的干净作者快照 `2306022e341e98ce84244f92ba7d26f047b41dbc` 安全重实现 C++17 地图核心。旧 `38f98b9` 在当前浅克隆不可读取，旧独立构建不转用于新版本。来源、逐文件 hash 和本地差异见 [SOURCE](../include/map_manager/native/bievr/SOURCE.md)；2026-11-16 构建/合成结果见[历史记录](workspace/evidence/TWO_TRACK_RESULTS.json)，该轮当时未回放。2026-11-17 的 SOLID 回归记录 01 上的新 BIEVR 回放通过输入/输出完整性检查，详见[本轮运行记录](workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。高度噪声仍未标定；该回归不构成作者完整 LIO 复现、精度或性能结论。
+`bievr` 已接入本项目，依据当前可读取的干净作者快照 `2306022e341e98ce84244f92ba7d26f047b41dbc` 安全重实现 C++17 地图核心。旧 `38f98b9` 在当前浅克隆不可读取，旧独立构建不转用于新版本。来源、逐文件 hash 和本地差异见 [SOURCE](../include/map_manager/native/bievr/SOURCE.md)；2026-11-16 构建/合成结果见[历史记录](workspace/evidence/TWO_TRACK_RESULTS.json)，该轮当时未回放。源码已交付于 `acc3279`。BIEVR 在 SOLID 逐点时标数据（回归记录 01）的 30 秒短回归通过后，本轮又完成 197.190 秒完整 IMU 支持窗口：1971 LiDAR / 39835 IMU，1959 帧输出，有效约束 309–2496、零观测拒绝、revision 4→1962，节点正常退出 0。原 bag 末尾两帧缺少 IMU 支持而裁出；输入监测、自然窗口 EOF、末帧排空、运行身份和独立 PCD XYZ 检查见[验收证据](workspace/evidence/MAP_ACCEPTANCE_20261117.json)。converged 为 798/1959，未收敛帧不等于拒绝观测。高度噪声仍未标定；没有真值精度、GUI/设备或受控性能结论。后续顺序见[计划](../PLAN.md)。
 
 实现保留定向图像、n−1 统计、pending 成熟投影、加权融合、掩码平滑、法向重投影及 LRU；修复单体素分组，检查 Morton/像素整数域与图像安全上限。公共完整去畸变云以 double 变换后写图，真实 IMU 系量程按当前外参逐点计算；注册使用公共降采样点。每次 callback 重新查询，采用精确 masked-bilinear 导数、独立 12 列观测和 Huber/σ² 信息；没有作者 LM/Ceres 或 MID 采样。
 

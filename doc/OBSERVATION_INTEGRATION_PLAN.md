@@ -1,6 +1,6 @@
 # 第二类：观测与权重组件集成方案
 
-更新：2026-11-17。计划提交为 `7a83f0c`；此后 GM 首包已接入，GenZ 仍未实现，`observation/model=genz_hybrid` 当前明确拒绝。BIEVR、iG-LIO 与 iG-LIO+GM 同一份 SOLID 逐点时标数据（回归记录 01）上的三次 30 秒完整输入回放均通过运行完整性检查；当前证据不包含精度或受控性能结论。详见[本轮运行记录](workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。第一类地图结构优先，完整顺序见 [PLAN](../PLAN.md)。GenZ 变体设计见[GENZ_HYBRID_DESIGN.md](GENZ_HYBRID_DESIGN.md)。
+更新：2026-11-17。原计划 `7a83f0c` 对应改写后历史 `81b136a`；源码交付于 `acc3279`。GM 首包已接入，仍只有 `ig_lio_plane`、`c=0.1 m` 的 30 秒固定输入 A/B；GenZ 尚未实现，`observation/model=genz_hybrid` 启动时明确拒绝。第一类本轮补齐 i-Octree adapter 30 秒专项和 BIEVR/iG-LIO 默认权重 197.190 秒支持窗回归，见[验收记录](workspace/evidence/MAP_ACCEPTANCE_20261117.json)。这些长窗没有启用 GM，不能扩大其 A/B 覆盖。完整优先级见[计划](../PLAN.md)，GenZ 变体见[设计](GENZ_HYBRID_DESIGN.md)。
 
 ## 准入与边界
 
@@ -20,7 +20,7 @@
 | `mapping/map_type` | 现有地图名称，以及将来新增的结构后端 | 第一类选择器；不因第二类选项改变。 |
 | `observation/weight_model` | `backend_default`、`geman_mcclure` | 首包实现，默认 `backend_default`；GM 只允许 `ikdtree`、`ivox`、`i_octree`、`ig_lio_plane`。 |
 | `observation/gm_scale_m` | 正有限长度，单位米 | GM 显式尺度；profile 提供起始值，需按数据校准，不是作者自适应尺度复现。 |
-| `observation/model` | `backend_default`、`genz_hybrid` | 后续包的拟议接口；实现前不能宣称配置已生效。 |
+| `observation/model` | `backend_default`、`genz_hybrid` | 当前支持 `backend_default`；`genz_hybrid` 尚未实现，并在节点启动时拒绝。 |
 | 自适应关联门限 | 独立布尔开关与尺度状态 | 后续设计；首包不改变搜索范围或匹配点集。 |
 
 GenZ 启用后须将 `observation/weight_model` 设为 `backend_default`，由混合观测本身构造信息，避免叠加第二层 GM。GenZ 观测行数按 1 行/点面、3 行/点点计数；混合系数则按两类匹配点数计算，二者不能混用。
@@ -40,7 +40,7 @@ q(r;c)=\left(\frac{c^2}{c^2+r^2}\right)^2,
 
 ## 验收与排期
 
-1. BIEVR 与 iG-LIO 当前集成变体已使用同一份 SOLID 逐点时标数据（回归记录 01）完成短回放验收；按实际输入、配置和产物检查结论见[本轮记录](workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。BIEVR 保留定向高度图、像素融合/重投影/LRU 与独立高度观测，不带入作者 LM/Ceres，也不转用旧快照构建证据。长序列与噪声标定仍待后续执行。
+1. BIEVR、iG-LIO 与 iG-LIO+GM 当前集成变体已使用同一份 SOLID 逐点时标数据（回归记录 01）完成 30 秒短回归，并通过输入/输出完整性检查；按实际输入、配置和产物检查结论见[本轮记录](workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。BIEVR 保留定向高度图、像素融合/重投影/LRU 与独立高度观测，不带入作者 LM/Ceres，也不转用旧快照构建证据。BIEVR/iG-LIO 默认权重又通过 197.190 秒支持窗，各 1959 帧；末尾两帧缺 IMU 支持而被裁出，见[长窗证据](workspace/evidence/MAP_ACCEPTANCE_20261117.json)。高度噪声标定、退化与精度仍待后续执行。
 2. GM helper、启动组合校验、可选 profile 和 runner 归档已接入；权重极值、非法参数、行数和回滚测试通过。固定输入 GM on/off 仅在 `ig_lio_plane`、`c=0.1 m` 这一组合完成 287 帧配对回归；其余三个兼容地图组合尚未做 A/B。该轨迹差异不是精度改善证据，亦无受控时延对比。
 3. 按[GenZ 设计](GENZ_HYBRID_DESIGN.md)实现独立 typed 匹配和原始 KNN 邻域 API；用真实状态 `boxplus` 对 12 列 Jacobian 做中心差分，并核对混合二次型、梯度和信息块、尺度单位、类别计数、退化回退及 23 行门控/失败回滚后，再接共享滤波。
 4. 分别记录静态、编译、合成测试和回放结果；源码接入、合成通过、实际回放与精度效果分开写。固定数据缺失时继续可独立实施的工作，保留回放待验状态。

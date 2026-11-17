@@ -40,7 +40,7 @@ II–IV、Figs.
 ## 2026-11-16 对 PV-LIO-PLUS 的范围说明
 
 - 当前完整作者 checkout `src/ig_lio` 不存在；固定提交、历史完整包构建与当前重实现文件分别记录于[工作空间来源清单](../../doc/workspace/SOURCE_MANIFEST.json)、[本地来源说明](../../include/map_manager/native/ig_lio/SOURCE.md)和[上游文件清单](../../include/map_manager/native/ig_lio/UPSTREAM_MANIFEST.json)。2026-11-14 的共享 ROS1 build 是旧完整 checkout 的证据，不表示当前完整作者包仍在本地或仍可构建。
-- `ig_lio_plane` 保留 iG 增量充分统计和批次/容量维护规则，使用共享五点 float QR 标量点面观测。Round 2 node build/link、九个指定构建目标、CTest 9/9（65 个 GTest 条目，含 11 个新 iG 用例，ASan 关闭）及配置合成测试通过；本轮没有回放。Round 1 初次 make 因目标列表陈旧未识别新目标，单目标重试又发现测试缺少 GTest `main`；修正后 round 2 通过。新增 config 成员与 `unique_ptr` 改变类布局，验收必须全量重编所有消费者。结果与失败轮次记录见[验收结果](../../doc/workspace/evidence/IG_LIO_RESULTS.json)。
+- `ig_lio_plane` 保留 iG 增量充分统计和批次/容量维护规则，使用共享五点 float QR 标量点面观测。Round 2 node build/link、九个指定构建目标、CTest 9/9（65 个 GTest 条目，含 11 个新 iG 用例，ASan 关闭）及配置合成测试通过；该 11-16 Round 2 当时没有回放。Round 1 初次 make 因目标列表陈旧未识别新目标，单目标重试又发现测试缺少 GTest `main`；修正后 round 2 通过。新增 config 成员与 `unique_ptr` 改变类布局，验收必须全量重编所有消费者。结果与失败轮次记录见[验收结果](../../doc/workspace/evidence/IG_LIO_RESULTS.json)。
 - GICP 是独立开放的观测设计，不因其残差不同而排除；需检查两侧表面协方差、3 维残差、完整信息矩阵和 Jacobian。`Grid::cov_` 不能直接解释为平面参数协方差。
 - 原 Cauchy 权重包含 `rho[2]` 二阶项；相关 3×3 信息和鲁棒二阶项不能直接压成一个标量对角 `R` 并声称等价。白化方案属于未来设计，须保留二次型并验证。完整 iG 优化循环与自适应扫描另行处理。
 
@@ -54,3 +54,5 @@ II–IV、Figs.
 
 体素尺寸、格容量和邻域配置共同决定查询覆盖和细节保留；GICP
 的表面协方差在该论文中服务分布匹配，脱离该目标不能直接复用。真实数据覆盖和指标仍受论文传感器与平台限制。
+
+2026-11-17 另已通过 30 秒 iG-LIO/iG-LIO+GM 回归，以及默认权重 197.190 秒支持窗回归（1959 帧）；完整 GICP 仍未接入，GM 长窗亦未执行。见[最新验收](../../doc/workspace/evidence/MAP_ACCEPTANCE_20261117.json)及[短回归](../../doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。

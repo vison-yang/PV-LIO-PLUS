@@ -140,7 +140,7 @@ BIEVR-LIO 把“细节是否存在”从地图中显式提取出来，再反过�
 
 ## 2026-11-15 对 PV-LIO-PLUS 的范围说明
 
-- 当前 `bievr` 高度图变体已按作者新快照 `2306022e341e98ce84244f92ba7d26f047b41dbc` 接入；保留定向像素结构、融合/重投影与 LRU，使用共同 IKFoM 高度观测。本轮构建与合成验收见[记录](../../doc/workspace/evidence/TWO_TRACK_RESULTS.json)，尚未回放。历史独立上游构建只对应旧快照，不是本轮验收。
+- 当前 `bievr` 高度图变体已按作者新快照 `2306022e341e98ce84244f92ba7d26f047b41dbc` 接入；保留定向像素结构、融合/重投影与 LRU，使用共同 IKFoM 高度观测。11-16 构建与合成验收见[历史记录](../../doc/workspace/evidence/TWO_TRACK_RESULTS.json)，该轮当时未回放；11-17 独立 SOLID 逐点时标数据（回归记录 01）的短回归已通过输入/输出完整性检查，见[运行记录](../../doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。本轮 BIEVR 默认权重另完成 197.190 秒完整 IMU 支持窗口回归，1959 帧、零观测拒绝；输入末尾两帧缺 IMU 支持而裁出，见[最新验收](../../doc/workspace/evidence/MAP_ACCEPTANCE_20261117.json)。噪声/真值精度及受控性能仍未验证。历史独立上游构建只对应旧快照，不是本轮验收。
 - 可研究高度图像素、缺失值、图像梯度 Jacobian/Huber 观测如何映射到共同状态和滤波器。不得调用 `computeTransformation`、`stepLm` 或另一个惯性优化器。
 - MID 驱动的地图引导采样须单列、记录或消融；成熟体素不保留通用 kNN 点集这一事实影响适配选择，但不改变高度图结构的候选资格。
 

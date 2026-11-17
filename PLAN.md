@@ -4,6 +4,24 @@
 > 本文记录本地代码状态、上游构建证据和未来集成门槛；不会把构建成功写成数据集精度复现。
 > 历史名称清理已改写提交 ID；旧构建/测试记录保留实际运行时的原始 ID，对应新历史见[提交映射](doc/workspace/evidence/HISTORY_COMMIT_MAP_20261117.json)。
 
+## 当前进度总览
+
+截至本次核对，源码与输入适配已交付于 `acc3279`。当前有 **11 个已接入地图 selector**；阶段编号表示工作包，允许并行推进，不表示后面一项已完成就能关闭前面的独立验收。
+
+| 工作包 | 源码/设计状态 | 运行验收与剩余工作 |
+| --- | --- | --- |
+| 阶段 1–2：原有六后端、R-VoxelMap、hVox | 已接入，契约/观测与独立历史记录齐全 | 各自已有短/长回归；当前配置拆分后的默认值不自动继承旧回归效果。 |
+| 阶段 3：i-Octree 原生地图 | 已接入并完成隔离数值检查 | 原实现已有短/长回归；拆分 adapter 的当前运行证据独立记录于阶段 4。 |
+| 阶段 4：MapManager 拆分试点 | i-Octree 非拥有 adapter 已实现、构建与合成测试通过；存储所有权未迁移 | 当前节点 30 秒专项回归通过（287 帧）；拆分前后逐位等价、性能与窗口模式回放仍待验证。 |
+| 阶段 5：iG-LIO 地图变体 | `ig_lio_plane` 已接入；完整 GICP 尚待设计/实现 | 30 秒短回归与 197.190 秒支持窗回归（1959 帧）通过；完整 GICP 尚未接入。 |
+| 阶段 6：BIEVR / Hybrid | `bievr` 高度图变体已接入；Hybrid 未接入 | BIEVR 30 秒与 197.190 秒支持窗回归通过；噪声标定、退化与精度待验。 Hybrid 等待真实逐点语义和类别策略。 |
+| 阶段 7–8：LIO-GVM 与论文储备 | LIO-GVM 缺作者定制头；论文储备未进入实施 | 前置条件满足前不增加 selector。 |
+| 阶段 9：观测/权重 | GM 默认关闭、四后端可选；GenZ 设计已形成，仍未实现 | GM 仅 iG-LIO `c=0.1 m` 做过短回归 A/B；其余组合、GenZ 与自适应关联待做。 |
+
+当前优先级：第一类继续 BIEVR 高度噪声/退化检查、i-Octree 拆分前后等价与窗口专项，再做完整 iG-LIO GICP 的独立设计；Hybrid、LIO-GVM 等待各自输入/源码条件。第二类先补其余 GM 组合的固定输入 A/B，再按已形成的设计实现 GenZ；不把外部条件等待写成已完成。现阶段没有独立真值精度、噪声标定、设备/GUI 或受控性能结论。
+
+本轮实际推进：当前 i-Octree adapter 的 30 秒专项回归通过（287 帧）；BIEVR 与 iG-LIO 点面变体均通过 197.190 秒完整 IMU 支持窗口回归，各输入 1971 帧 LiDAR / 39835 条 IMU、输出 1959 帧且观测拒绝为零。原 bag 末尾两帧 LiDAR 缺少完整 IMU 覆盖而被裁出，故不称全 bag 覆盖。三次运行均自然耗尽所选窗口并排空末帧，节点退出 0。逐次身份及完整检查见[地图专项与长窗验收](doc/workspace/evidence/MAP_ACCEPTANCE_20261117.json)。
+
 ## 1. 项目演进与目标
 
 PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 ikd-tree，并使用点与平面的不确定性形成滤波观测；工作区保留其作者基线于 `src/PV-LIO`（`494c27f6`，完整 SHA 见源码清单）。PV-LIO-PLUS 随后集成 VoxelMapPlus（VoxelMap++），再大幅重构、优化代码框架，继续加入更多地图及其对应匹配与残差路径。
@@ -47,7 +65,7 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 - 2026-11-16 在 `master` 基线 `e666799` 接入 `ig_lio_plane`：当前代码保留 iG-LIO 增量体素充分统计与地图维护，并使用共享五点 float QR 标量点面观测；这是适配变体，不是作者 GICP。固定作者提交为 `2d79259e3aaa5bbb10d6b13234398760bbacf8f5`。原完整 checkout `src/ig_lio` 当前缺失；本包基于固定源文件安全重实现 native 地图，2026-11-14 对原完整 checkout 的 ROS1 共享构建记录仅作历史证据。Round 2 指定九个构建目标退出码 0，node `ldd -r` 通过，CTest 9/9（65 个 GTest 条目，ASan 未启用）及配置合成测试通过；**该 11-16 轮当时未回放**，所需记录输入在其清单中缺失。11-17 新的 SOLID 回归记录 01 运行验收见下方独立记录，不替代旧构建历史。完整记录见[iG-LIO 结果](doc/workspace/evidence/IG_LIO_RESULTS.json)及[源码清单](doc/workspace/SOURCE_MANIFEST.json)。
 
 - 2026-11-16 第一类 `bievr` 与第二类 GM 首包：12 个指定构建目标、节点链接和 CTest 12/12（89 个 GTest、9 项配置测试）通过；130 文件哈希一致，**该首包当时未回放**。源版本、失败修复与验收边界仍见[原结果](doc/workspace/evidence/TWO_TRACK_RESULTS.json)；不要把其测试数替换成 11-17 新回归数字。
-- 2026-11-17 当前 `master` 基线 `3d4d0e3` 加本轮未提交源码的 13 构建目标、`ldd -r`、CTest 13/13（105 GTest，ASan 关闭）通过；另有 12 项 Python 配置测试与 185 次 mapping 比较。新 SOLID 回归记录 01 的 BIEVR、iG-LIO、iG-LIO+GM 三次 fresh master 回放均完成输入监测、所选窗口自然耗尽和 287 行输出检查。具体输入身份、逐帧范围及限制见[本轮运行记录](doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。
+- 2026-11-17 当时以 `master` 原始基线 `3d4d0e3` 加 manifest 收录的改动验证；这些改动后续已交付于 `acc3279`。该轮 13 构建目标、`ldd -r`、CTest 13/13（105 GTest，ASan 关闭）通过；另有 12 项 Python 配置测试与 185 次 mapping 比较。新 SOLID 回归记录 01 的 BIEVR、iG-LIO、iG-LIO+GM 三次 fresh master 回放均完成输入监测、所选窗口自然耗尽和 287 行输出检查。具体输入身份、逐帧范围及限制见[本轮运行记录](doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。
 
 ## 3. 十一个已接入后端
 
@@ -89,7 +107,7 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 
 ## 6. 集成顺序与每阶段完成条件
 
-2026-11-17 BIEVR/iG-LIO 首包运行验收已完成：相同独立 SOLID 逐点时标数据（回归记录 01）下，BIEVR、iG-LIO、iG-LIO+GM 三次 fresh master 回放均通过运行完整性门。后续优先完成长序列与高度噪声标定；GM 目前仅 iG-LIO `c=0.1 m` 这一组合做固定输入对照。随后再进入 GenZ 第二类观测实现；Hybrid 只有逐点语义输入契约及未决类别策略确认后才排实现。LIO-GVM 仍待作者源码完整。完整数字见[本轮运行记录](doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。GenZ 设计见[GenZ 混合观测设计](doc/GENZ_HYBRID_DESIGN.md)，Hybrid 前置条件见[Hybrid 输入契约](doc/HYBRID_INPUT_CONTRACT.md)。
+2026-11-17 BIEVR/iG-LIO 首包运行验收已完成：相同独立 SOLID 逐点时标数据（回归记录 01）下，BIEVR、iG-LIO、iG-LIO+GM 三次 fresh master 回放均通过运行完整性门。本轮已补 BIEVR/iG-LIO 的 197.190 秒支持窗回归，各 1959 帧；后续优先高度噪声标定与退化检查；GM 目前仅 iG-LIO `c=0.1 m` 这一组合做固定输入对照。随后再进入 GenZ 第二类观测实现；Hybrid 只有逐点语义输入契约及未决类别策略确认后才排实现。LIO-GVM 仍待作者源码完整。完整数字见[本轮运行记录](doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。GenZ 设计见[GenZ 混合观测设计](doc/GENZ_HYBRID_DESIGN.md)，Hybrid 前置条件见[Hybrid 输入契约](doc/HYBRID_INPUT_CONTRACT.md)。
 
 ### 阶段 1：原有六个后端的契约与复现基线
 
@@ -115,24 +133,26 @@ PV-LIO 最早在 FAST-LIO2 源码框架中以概率体素地图 VoxelMap 替换 
 
 ### 阶段 4：地图管理职责评估与 BIEVR 共同滤波设计
 
-- i-Octree 主线验收后，先评估 `src/map_manager/map_manager.cpp` 中 `MapManager` 类及各后端职责的拆分，明确统一门面、后端状态、原生实现所有权和 ODR 边界；头文件整理只是辅助。[类职责评估及分阶段方案](doc/MAP_MANAGER_REFACTOR_PLAN.md)已完成；2026-11-16 在当前 `lio_map_ws` 实施首个 i-Octree 非拥有 adapter 试点，抽出公共类型/配置及点面拟合，保留门面的状态所有权和更新顺序，并补五项黑盒契约用例。当前 checkout 节点及七个测试目标增量构建、`ldd -r`、CTest 7/7（54 用例，ASan 关闭）通过，详见[本轮结果](doc/workspace/evidence/MAP_MANAGER_ADAPTER_RESULTS.json)；尚未执行回放、逐位数值或性能 A/B。运行验收前不继续迁移其他后端，也不宣称已解决其余原生头的 ODR/静态状态问题。
+- i-Octree 主线验收后，先评估 `src/map_manager/map_manager.cpp` 中 `MapManager` 类及各后端职责的拆分，明确统一门面、后端状态、原生实现所有权和 ODR 边界；头文件整理只是辅助。[类职责评估及分阶段方案](doc/MAP_MANAGER_REFACTOR_PLAN.md)已完成；2026-11-16 在当前 `lio_map_ws` 实施首个 i-Octree 非拥有 adapter 试点，抽出公共类型/配置及点面拟合，保留门面的状态所有权和更新顺序，并补五项黑盒契约用例。11-16 该轮节点及七个测试目标增量构建、`ldd -r`、CTest 7/7（54 用例，ASan 关闭）通过，详见[本轮结果](doc/workspace/evidence/MAP_MANAGER_ADAPTER_RESULTS.json)；11-16 该轮当时未执行回放；后续当前节点的 i-Octree 30 秒专项回归已通过，见[专项记录](doc/workspace/evidence/MAP_ACCEPTANCE_20261117.json)。逐位数值或性能 A/B 仍待，不宣称已解决其余原生头的 ODR/静态状态问题。
 - BIEVR 的初始设计形成于 2026-11-15；首版已按当前作者快照 `2306022e` 实施定向高度图和公共 IKFoM bilinear 观测。历史草稿、当前差异和限制见[设计与实施记录](doc/BIEVR_IKFOM_PORT.md)；不把该适配称为作者 LM/Ceres 系统复现。
-- 当前已完成职责拆分评估、BIEVR 源契约/数学审查、首包接入及合成 oracle；11-17 SOLID 回归记录 01 短回归通过。高度噪声标定、退化效果、长序列和独立采样扩展仍待验，不把初始设计稿的旧前置列表当作当前实施状态。i-Octree adapter 的专门回归尚未执行，其待验状态不由本轮 BIEVR/iG-LIO 结果替代。
+- 当前已完成职责拆分评估、BIEVR 源契约/数学审查、首包接入及合成 oracle；11-17 SOLID 回归记录 01 短回归通过。197.190 秒支持窗回归也已通过；高度噪声标定、退化效果、更多独立序列和采样扩展仍待验，不把初始设计稿的旧前置列表当作当前实施状态。i-Octree adapter 的当前节点专项短回归现已独立通过；拆分前后数值等价与性能不由该运行完整性检查替代。
 
 ### 阶段 5：iG-LIO 点面地图已接入；GICP 观测仍待设计
 
-- `ig_lio_plane` 保留每格 `N, S=Σp, Q=Σppᵀ` 充分统计和原生点保留/维护规则；当前使用共享五点 float QR 平面拟合和标量点面观测。11-16 Round 2 构建、`ldd -r`、CTest 与配置合成测试通过，但该轮所需输入文件缺失，**当时未回放**；11-17 新 SOLID 回归记录 01 单独完成 iG-LIO 与 iG-LIO+GM 回归，不能以旧完整上游构建替代本地验证。新增配置字段与 `unique_ptr` 改变类布局，验收需全量重编所有消费者。详见[本轮运行记录](doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)与[iG-LIO 历史构建记录](doc/workspace/evidence/IG_LIO_RESULTS.json)。Round 1 的构建失败及修复见[iG-LIO 结果](doc/workspace/evidence/IG_LIO_RESULTS.json)。
+- `ig_lio_plane` 保留每格 `N, S=Σp, Q=Σppᵀ` 充分统计和原生点保留/维护规则；当前使用共享五点 float QR 平面拟合和标量点面观测。11-16 Round 2 构建、`ldd -r`、CTest 与配置合成测试通过，但该轮所需输入文件缺失，**当时未回放**；11-17 新 SOLID 回归记录 01 单独完成 iG-LIO 与 iG-LIO+GM 短回归；本轮 iG-LIO 默认权重又通过 197.190 秒支持窗回归（1959 帧），GM 长窗尚未执行，不能以旧完整上游构建替代本地验证。新增配置字段与 `unique_ptr` 改变类布局，验收需全量重编所有消费者。详见[本轮运行记录](doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)与[iG-LIO 历史构建记录](doc/workspace/evidence/IG_LIO_RESULTS.json)。Round 1 的构建失败及修复见[iG-LIO 结果](doc/workspace/evidence/IG_LIO_RESULTS.json)。
 - 完整 GICP 是后续独立观测设计：逐项研究 3 维残差、两侧协方差、完整信息矩阵与鲁棒权重。Cauchy 模型含 `rho[2]` 二阶项；不得把相关 3×3 信息或鲁棒二阶项直接压成一个标量对角 `R` 并声称与原生更新等价。若设计白化为标量观测行，必须证明/测试二次型和信息保持；否则注明近似及影响。
 - 完成条件：点面地图更新、容量淘汰和查询通过 oracle；另行完成 GICP 数学设计与状态映射审查，合成退化/奇异协方差/Jacobian 测试通过，再做短序列；原生适配与白化近似分开记录。
 
-### 阶段 6：BIEVR 短回归通过；Hybrid 等待语义输入
+### 阶段 6：BIEVR 短回归与支持长窗通过；Hybrid 等待语义输入
 
 - 11-17 SOLID 回归记录 01 短回归已完成：数据 SHA-256 为 `0e01bca27ae119dc9f04bf736b55dc2f5fbb500389fc944102f07f6d7816e694`，record 时间范围 `[12614334000000,12644334000000] ns`，输入 299 LiDAR / 6056 IMU。配置 `config/solid_point_time.yaml` 保留 SOLID 逐点绝对 timestamp；BIEVR、iG-LIO、iG-LIO+GM 三个 fresh master 运行均自然读至 EOF 并排空末帧，各输出 287 行。完整逐帧和哈希核对见[本轮运行记录](doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。
 - Hybrid：当前静态审查显示作者地图是原 voxel Gaussian 与 UnionFind 合并 Plane 的组合；逐点标签源和处理策略未定，且语义 bridge topic 当前未被 mapper 消费。先按[Hybrid 输入契约](doc/HYBRID_INPUT_CONTRACT.md)确认标签、帧/点对应、unknown/object 策略及过滤/降采样投票，再做带类型的 Plane/NDT 匹配和各自观测；缺标签的 Gaussian-only 路径独立命名，不计为完整 Hybrid。语义推理开销与地图/残差实验分别报告。
-- BIEVR：`bievr` 源码已接入，保留定向图像、融合/重投影与 LRU，使用公共完整去畸变云写图、公共降采样点注册；独立高度残差和 Huber 信息接共享滤波。11-17 SOLID 回归记录 01 回放通过，其他验收项仍待：长序列、噪声标定、GUI/设备、ATE、受控性能与地图引导采样。11-16 构建/合成历史记录见[TWO_TRACK_RESULTS](doc/workspace/evidence/TWO_TRACK_RESULTS.json)，其当时未回放。
+- BIEVR：`bievr` 源码已接入，保留定向图像、融合/重投影与 LRU，使用公共完整去畸变云写图、公共降采样点注册；独立高度残差和 Huber 信息接共享滤波。11-17 SOLID 回归记录 01 回放通过，本轮另通过 197.190 秒支持窗回归。其他验收项仍待：更多独立序列、噪声标定、GUI/设备、ATE、受控性能与地图引导采样。11-16 构建/合成历史记录见[TWO_TRACK_RESULTS](doc/workspace/evidence/TWO_TRACK_RESULTS.json)，其当时未回放。
 - 完成条件：所需输入可追溯、结构创新保留、残差和失效语义有合成测试、公共估计循环中没有隐藏求解器、每种采样/语义设置有清楚的 run manifest 与消融标签。
 
 ### 阶段 7：LIO-GVM 源码恢复后再设计 Gaussian 观测
+
+2026-11-17 已只读重查[作者 main](https://github.com/Ji1Xingyu/lio_gvm/tree/c80c968ed7ffe61af0a02a1b3c72fe03149c5c3e)和未截断的递归文件树，仍为 `c80c968e`，没有 `include/` 或定制 `fast_vgicp.hpp`；没有改动本地上游 checkout。复核见[源码缺口记录](doc/workspace/evidence/LIO_GVM_SOURCE_RECHECK_20261117.json)。
 
 - 先要求作者发布树包含编译所需的 Fast-VGICP、IKFoM 和地图定义；核对新提交与缺失接口的完整性，固定作者版本。
 - 之后才设计 Gaussian 匹配、残差、Jacobian、协方差/信息和退化处理；不得先将其降成点面残差以绕过源码缺口。

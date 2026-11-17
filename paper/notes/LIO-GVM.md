@@ -142,3 +142,7 @@ LIO-GVM 把概率信息用于两个环节：先用 Gaussian 相似度做数据�
 - `upstream/lio_gvm` 已收集，但作者发布缺少定制 Fast-VGICP、IKFoM 和地图头文件，现有独立构建以退出码 1 阻塞；当前尚不能完成观测核验或集成。
 - 保留候选须实现其 Gaussian 地图结构及配套分布观测，不能只用通用点容器代表 LIO-GVM。完整源码恢复后再检查均值/协方差、退化、信息映射及状态 Jacobian。
 - 不用通用依赖替代作者定制接口，也不把残差降成点面以绕开缺口。当前没有此后端 selector 或精度复现。
+
+## 2026-11-17 源码完整性复核
+
+只读核对作者远端 `main` 及未截断递归树，仍是 `c80c968ed7ffe61af0a02a1b3c72fe03149c5c3e`，缺少 `include/` 和依赖的定制 `fast_vgicp.hpp`。当前仍未接入地图 selector；没有改动本地作者 checkout，也未重做构建。查询依据和文件树见[复核记录](../../doc/workspace/evidence/LIO_GVM_SOURCE_RECHECK_20261117.json)。

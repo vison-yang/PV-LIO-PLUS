@@ -7,12 +7,14 @@
     "checked_on": "2026-11-17",
     "project_checkout": {
       "branch": "master",
-      "base_commit": "8e001c73a035d514cff53121fba970f9aee4a541",
+      "base_commit": "acc32793e31026f75e96849f7f6764121e09ba89",
       "local_paths_relative_to": "PV-LIO-PLUS checkout root",
       "workspace_paths_relative_to": "lio_map_ws workspace root",
-      "uncommitted_changes": true,
       "working_tree_provenance_record": "doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json",
-      "validation_base_commit_before_history_cleanup": "3d4d0e3395a9d790dac8fc6a32eaefcfc9c26702"
+      "validation_base_commit_before_history_cleanup": "3d4d0e3395a9d790dac8fc6a32eaefcfc9c26702",
+      "code_delivery_commit": "acc32793e31026f75e96849f7f6764121e09ba89",
+      "code_delivery_status": "committed_and_pushed; documentation followup tracked separately",
+      "snapshot_note": "The original runtime was built from its historical base plus a captured working tree. This checkout entry records subsequent delivery, without relabeling old test identities."
     },
     "ig_lio": {
       "author_repository": "https://github.com/zijiechenrobotics/ig_lio",
@@ -34,9 +36,10 @@
         "method": "Safety-focused local reimplementation based on the pinned upstream voxel-map source; not a byte-for-byte copy of the complete author package.",
         "selector": "ig_lio_plane",
         "observation": "Shared five-point float-QR scalar point-to-plane adapter; author GICP is not included.",
-        "status": "Source-integrated; node build/link, synthetic tests and first complete-input 30-second SOLID point-time regression passed. Author GICP and long-sequence acceptance remain separate.",
+        "status": "Source-integrated; build/link and synthetic history retained separately. Current 30-second and 197.190-second IMU-supported point-plane replays passed. Author GICP remains unimplemented; calibrated accuracy is unvalidated.",
         "validation_record": "doc/workspace/evidence/IG_LIO_RESULTS.json",
-        "runtime_validation_record": "doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json"
+        "runtime_validation_record": "doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json",
+        "latest_runtime_validation_record": "doc/workspace/evidence/MAP_ACCEPTANCE_20261117.json"
       },
       "historical_build_record": {
         "path": "doc/workspace/BUILD_REPORT.md",
@@ -44,7 +47,7 @@
         "scope": "Build evidence for the earlier complete author checkout, not evidence that the complete checkout is currently present or builds from this snapshot."
       }
     },
-    "status_checked_at_commit": "8e001c73a035d514cff53121fba970f9aee4a541",
+    "status_checked_at_commit": "acc32793e31026f75e96849f7f6764121e09ba89",
     "bievr_lio": {
       "framework_status": "source_integrated",
       "implementation_status": "oriented_height_map_shared_ikfom_bilinear",
@@ -66,8 +69,9 @@
       },
       "native_path": "include/map_manager/native/bievr",
       "validation_record": "doc/workspace/evidence/TWO_TRACK_RESULTS.json",
-      "framework_replay_scope": "First complete-input 30-second SOLID point-time window: 299 LiDAR, 6056 IMU, 287 output frames, zero observation rejection; long sequence and calibrated accuracy remain unvalidated.",
-      "runtime_validation_record": "doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json"
+      "framework_replay_scope": "30-second short replay and current 197.190-second IMU-supported window passed input/output checks; longest supported window is 1971 LiDAR/39835 IMU and 1959 outputs. Last two unsupported LiDAR frames excluded. Noise/accuracy/performance remain unvalidated.",
+      "runtime_validation_record": "doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json",
+      "latest_runtime_validation_record": "doc/workspace/evidence/MAP_ACCEPTANCE_20261117.json"
     },
     "implementation_record": "doc/workspace/evidence/TWO_TRACK_RESULTS.json",
     "observation_components": {
@@ -133,7 +137,24 @@
     },
     "latest_validation_record": "doc/workspace/evidence/INTEGRATION_PROGRESS_20261117.json",
     "metadata_view": "Private platform/device names and paths are represented by neutral record aliases; original validation archives remain external.",
-    "history_commit_map": "doc/workspace/evidence/HISTORY_COMMIT_MAP_20261117.json"
+    "history_commit_map": "doc/workspace/evidence/HISTORY_COMMIT_MAP_20261117.json",
+    "lio_gvm": {
+      "workspace_path": "upstream/LIO-GVM",
+      "author_main_commit": "c80c968ed7ffe61af0a02a1b3c72fe03149c5c3e",
+      "framework_status": "blocked_source_incomplete",
+      "remote_read_only_recheck": "doc/workspace/evidence/LIO_GVM_SOURCE_RECHECK_20261117.json",
+      "note": "Read-only remote main and untruncated tree still lack include/ and custom fast_vgicp.hpp; no upstream files or refs changed."
+    },
+    "latest_runtime_validation_record": "doc/workspace/evidence/MAP_ACCEPTANCE_20261117.json",
+    "i_octree_adapter": {
+      "status": "current_node_short_replay_passed",
+      "runtime_validation_record": "doc/workspace/evidence/MAP_ACCEPTANCE_20261117.json",
+      "frames": 287,
+      "pre_post_refactor_bitwise_equivalence": false,
+      "controlled_performance_ab": false,
+      "window_enabled_runtime_tested": false,
+      "storage_ownership": "MapManager"
+    }
   },
   "sources": [
     {
@@ -295,7 +316,7 @@
       "local_commit": "a75b362f085271505351b1fdc592f46d77d1f5aa",
       "branch": "main",
       "build_group": "catkin-src",
-      "scope": "eligible candidate incremental voxel map with sufficient statistics and native maintenance retained; point-plane adapter variant first, GICP residual/full covariance adaptation requires separate design and validation",
+      "scope": "Historical complete author source collection; the integrated ig_lio_plane variant retains incremental voxel sufficient statistics and native point maintenance. The current complete checkout is absent; current implementation and validation are recorded in current_snapshot. Full GICP remains a separate design task.",
       "local_changes": [],
       "compatibility_patch": "patches/ig_lio.patch",
       "patch_base_commit": "2d79259e3aaa5bbb10d6b13234398760bbacf8f5",
@@ -423,6 +444,6 @@
   },
   "patches_note": "Patches are full worktree deltas against the pinned author commit, including relevant compatibility edits already present when this task began. They do not replace the source repositories. Apply only to the matching clean author baseline.",
   "scope_reviewed_on": "2026-11-16",
-  "scope_note": "Two integration tracks: first, new or improved map structures with their observations; second, separable observation/weight components without importing another estimator or substantial pre/postprocessing. Eleven map selectors are source-integrated including bievr; two map candidates still lack selectors. Fixed-scale GM is opt-in on four common point-plane backends; GenZ hybrid and full iG-LIO GICP remain open. Current build/synthetic verification is in doc/workspace/evidence/TWO_TRACK_RESULTS.json; replay remains pending. Original source pins and 2026-11-14 upstream build outcomes are historical; current implementation identities are separate in current_snapshot.",
+  "scope_note": "Two integration tracks: first, new or improved map structures with their observations; second, separable observation/weight components without importing another estimator or substantial pre/postprocessing. Eleven map selectors are source-integrated including bievr; Hybrid and LIO-GVM lack selectors and required inputs/sources. Fixed-scale GM is opt-in on four common point-plane backends; GenZ hybrid and full iG-LIO GICP remain open. Build/synthetic history is in doc/workspace/evidence/TWO_TRACK_RESULTS.json and INTEGRATION_PROGRESS_20261117.json; the latter also records three complete-input 30-second runs for BIEVR, iG-LIO point-plane and iG-LIO+GM. Followup current-node i-Octree short and BIEVR/iG-LIO 197.190-second IMU-supported window acceptance are in doc/workspace/evidence/MAP_ACCEPTANCE_20261117.json; no full-bag tail or accuracy claim. LIO-GVM remote source incompleteness was rechecked separately. Original source pins and 2026-11-14 upstream build outcomes are historical; current implementation identities are in current_snapshot.",
   "map_structure_eligibility_reviewed_on": "2026-11-15"
 }

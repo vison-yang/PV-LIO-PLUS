@@ -5,8 +5,8 @@ sections; the 2026-11-17 runs below on the SOLID point-time dataset (record 01) 
 document records eleven `MapManager` backend paths, contract fixes, separate
 synthetic test suites, and complete-input replays. BIEVR and `ig_lio_plane`
 runtime acceptance passed on the listed SOLID point-time dataset (record 01). The i-Octree adapter
-refactor pilot remains separately pending its dedicated replay and equivalence
-checks. i-Octree feature `5c27a79` is cherry-picked into main as `6876a8e`;
+refactor pilot has a separate acceptance record; replay and pre/post-refactor equivalence
+are tracked independently below. The current-node 30-second i-Octree replay passed; pre/post-refactor bitwise equivalence, performance and window-mode replay remain unvalidated. i-Octree feature `5c27a79` is cherry-picked into main as `6876a8e`;
 the main node/link, CTest 7/7 (49 regular GTest cases, ASan off), and a
 30-second complete-input replay passed. Its isolated sanitizer/numerical tests
 and feature 30/141-second replays also passed. hVox feature commit `997c00a` is cherry-picked into main as `c81f12f`;
@@ -21,7 +21,7 @@ future adapter boundaries remain in the
 
 ## 2026-11-17 SOLID point-time dataset (record 01) runtime acceptance
 
-本轮运行时原始基线为 `master` `3d4d0e3` 加纳入本轮构建/运行 manifest 的未提交源码；117 个源码/配置/测试文件最终哈希复核一致，运行期间源码、输入与 node binary 均未漂移。增量构建 13 个目标退出 0，node `ldd -r` 退出 0；CTest 13/13、105 个 GTest（0 failure/error/disabled），另有 12 个 Python 配置测试及 185 次 mapping 比较通过。ASan/UBSan 未启用。
+本轮改动已于 `acc3279` 交付；以下保留实际运行身份，不将后续提交写成原构建基线。本轮运行时原始基线为 `master` `3d4d0e3` 加纳入本轮构建/运行 manifest 的未提交源码；117 个源码/配置/测试文件最终哈希复核一致，运行期间源码、输入与 node binary 均未漂移。增量构建 13 个目标退出 0，node `ldd -r` 退出 0；CTest 13/13、105 个 GTest（0 failure/error/disabled），另有 12 个 Python 配置测试及 185 次 mapping 比较通过。ASan/UBSan 未启用。
 
 三次均使用同一份 SOLID 逐点时标数据（回归记录 01）：SHA-256 `0e01bca27ae119dc9f04bf736b55dc2f5fbb500389fc944102f07f6d7816e694`，30 秒记录窗 `[12614334000000,12644334000000] ns`，299 LiDAR、6056 IMU；配置为 `config/solid_point_time.yaml`，保留真实逐点绝对时间并用 `point_absolute` 将其减去消息 header stamp。每次 replay 的输入计数及 header/payload 哈希均与源 record 相符；所选窗口迭代器自然耗尽后末帧排空，节点退出 0，各有 287 行 Odometry、timing 和 trajectory，首末时间为 `12615.699065` / `12644.323818` 秒，时间和轨迹有限、四元数单位化、8 个计时列非负。每次 PCD 均含 3,072,986 个 XYZ 点。
 
@@ -33,6 +33,23 @@ future adapter boundaries remain in the
 
 未收敛迭代帧不等于观测被拒绝；表中三次均有 0 个被拒绝观测，不能描述成所有帧均收敛。revision 增长证明地图更新调用提交，不表示每个点都贡献入图。GM on/off 只比较了 `ig_lio_plane` 的 `c=0.1 m` 组合；其他三个兼容地图尚未做 A/B。该 30 秒回归不是长序列、噪声标定、ATE、GUI/设备验证或受控性能比较，也没有精度改善结论。逐项来源、检查布尔值和摘要哈希见[本轮运行证据](workspace/evidence/INTEGRATION_PROGRESS_20261117.json)。
 
+## 2026-11-17 当前节点专项与支持长窗验收
+
+本轮复用上轮已构建的 node（SHA-256 `ccad1442137974442ee06737f2d12f9436b999bc6a8c21da110377cd07e7fa1c`），89 个 C++/CMake 输入逐项匹配，未重编、未重跑 CTest。三个运行均在 `acc3279`、干净工作树下顺序使用独立 ROS master；源码、配置、二进制及原始输入运行期间未漂移。
+
+| 后端 | 记录窗/输出 | 有效约束/帧 | 拒绝观测 | converged 帧 | revision |
+| --- | --- | ---: | ---: | ---: | --- |
+| `i_octree` adapter | 30 秒 / 287 帧 | 539–1368 | 0 | 165/287 | 4→290 |
+| `bievr` | 197.190 秒 / 1959 帧 | 309–2496 | 0 | 798/1959 | 4→1962 |
+| `ig_lio_plane` | 197.190 秒 / 1959 帧 | 310–2788 | 0 | 274/1959 | 4→1962 |
+
+短窗输入为 299 LiDAR / 6056 IMU；两个长窗各为 1971 LiDAR / 39835 IMU，窗口 `[12614334000000,12811524000000] ns`。原 197.4 秒 bag 有 1973 LiDAR：末两帧点时刻分别为 `12811623812819`、`12811723810529 ns`，超过末 IMU `12811524000000 ns`，因此裁去。窗口末帧点时刻为 `12811523812025 ns`，有完整 IMU 支持；1959 帧预期由输入/初始化规则独立推导（1971−1 首帧−10 IMU 初始化−1 初始地图），未按实际输出反推。
+
+三次监测的输入计数与 header/payload 哈希均匹配原消息，自然耗尽所选窗口并排空末帧，节点正常退出 0；轨迹/时间严格递增、有限且四元数单位化，八列计时非负。短窗累计 PCD 为 3,072,986 点，两个长窗各 20,371,697 点；PCD 数量是累计输出点云，不是后端存储单元数。独立实际 XYZ 扫描结果见同一记录的质量复核。未收敛帧与观测拒绝分别记录，不把所有输出帧称为收敛。
+
+本轮没有真值精度、噪声标定、GUI/设备或受控性能结论；GM 长窗和其他三个兼容后端 A/B、i-Octree 拆分前后逐位等价及窗口模式运行仍待验。逐次 summary、配置身份与 SHA 见[验收证据](workspace/evidence/MAP_ACCEPTANCE_20261117.json)。
+
+
 ## Observation and weighting track
 
 The [second integration track](OBSERVATION_INTEGRATION_PLAN.md) now has an opt-in fixed-scale GM weighting component for `ikdtree`, `ivox`, `i_octree`, and `ig_lio_plane`. Defaults retain the backend path. GenZ hybrid observations remain unimplemented and unsupported selections fail at startup.
@@ -41,7 +58,7 @@ The [second integration track](OBSERVATION_INTEGRATION_PLAN.md) now has an opt-i
 
 The `bievr` height-map variant is source-integrated from the current official author snapshot `2306022e341e98ce84244f92ba7d26f047b41dbc`. It retains oriented pixels, weighted fusion, normal reprojection and LRU; uses full common undistorted clouds for updates, common downsampled registration points, exact masked-bilinear derivatives and 12-column shared IKFoM observations. It does not import author LM/Ceres or map-guided sampling. The old upstream build was for a different snapshot and remains historical.
 
-Current node build/link, synthetic tests and source identities are recorded in the historical [two-track results](workspace/evidence/TWO_TRACK_RESULTS.json); that 2026-11-16 package did not replay. The 2026-11-17 BIEVR run on the SOLID point-time dataset (record 01) passed the short input/output checks in the [current run record](workspace/evidence/INTEGRATION_PROGRESS_20261117.json). Long replay, device/GUI, ATE and controlled performance remain untested. Height sigma is not calibrated. Native n>=4 maturity and m>=23 rows do not establish rank or observability; sparse initial maps may stall. New BIEVR/GM paths reject invalid/fewer-than-23 rows, restore predicted x/P after any rejected iteration or nonfinite final estimate, and skip map updates. Invalid input is prechecked before mutation; runtime resource/numerical failures can partially update map state, invalidate revision and propagate, rather than guarantee transactional recovery.
+Current node build/link, synthetic tests and source identities are recorded in the historical [two-track results](workspace/evidence/TWO_TRACK_RESULTS.json); that 2026-11-16 package did not replay. The 2026-11-17 BIEVR run on the SOLID point-time dataset (record 01) passed the short input/output checks in the [current run record](workspace/evidence/INTEGRATION_PROGRESS_20261117.json). A later 197.190-second IMU-supported replay passed as recorded above; additional independent sequences, device/GUI, ATE and controlled performance remain untested. Height sigma is not calibrated. Native n>=4 maturity and m>=23 rows do not establish rank or observability; sparse initial maps may stall. New BIEVR/GM paths reject invalid/fewer-than-23 rows, restore predicted x/P after any rejected iteration or nonfinite final estimate, and skip map updates. Invalid input is prechecked before mutation; runtime resource/numerical failures can partially update map state, invalidate revision and propagate, rather than guarantee transactional recovery.
 
 ## Contract fixes
 
@@ -56,13 +73,15 @@ Current node build/link, synthetic tests and source identities are recorded in t
   `< r` comparison, and only searches the configured nearby-grid domain.
 - **Configuration safety:** for ikd-tree/iVox, the radius must be positive and
   finite; its square must also be finite and nonzero. `MapManager::configure`
-  validates before clearing an initialized map. The three shipped YAML comments
-  describe metres and preserve their numeric values. The 2026-11-15 check below
+  validates before clearing an initialized map. At the 2026-11-15 radius-contract fix, the three shipped YAML comments
+  described metres without changing their values. The later backend-profile split changed
+  several defaults; the effective baseline is documented in [configuration notes](../config/README.md). The 2026-11-15 check below
   records the then-current nine-selector example manifest, including `octvox`,
   `r_voxelmap`, `hvox`, and `i_octree`.
 - **Migration:** an old ikd-tree setting `v` was compared as squared distance;
   to reproduce that threshold, set the new radius to `sqrt(v)` metres. Existing
-  iVox values already represented metres and remain unchanged.
+  iVox values already represented metres and were unchanged by that contract fix;
+  later profile defaults are recorded separately in the configuration notes.
 
 The later diagnostic fix `f6403f0` moves residual-sum accumulation outside
 the point-map, OctVox and C3P OpenMP loops. Observation `h/H/R` expressions
@@ -201,7 +220,8 @@ node and seven test targets built, `ldd -r` passed, and CTest passed 7/7
 (54 GTest cases, including five new cases; ASan off). See the
 [current results](workspace/evidence/MAP_MANAGER_ADAPTER_RESULTS.json) and
 [refactor progress](MAP_MANAGER_REFACTOR_PLAN.md) for source and binary identity.
-Replay, bitwise equivalence, and performance A/B validation remain pending;
+The later current-node 30-second replay passed with 299 LiDAR / 6056 IMU messages and 287 outputs; see the [dedicated acceptance record](workspace/evidence/MAP_ACCEPTANCE_20261117.json).
+Bitwise equivalence and performance A/B validation remain pending;
 earlier backend replays do not validate this refactor.
 
 ### Unmatched-query outputs

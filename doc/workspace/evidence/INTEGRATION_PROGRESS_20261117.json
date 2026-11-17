@@ -417,5 +417,11 @@
     "history_commit_map": "doc/workspace/evidence/HISTORY_COMMIT_MAP_20261117.json",
     "original_validation_commit_retained": true
   },
-  "current_repository_base_commit": "8e001c73a035d514cff53121fba970f9aee4a541"
+  "current_repository_base_commit": "8e001c73a035d514cff53121fba970f9aee4a541",
+  "delivery": {
+    "commit": "acc32793e31026f75e96849f7f6764121e09ba89",
+    "pushed_branch": "origin/master",
+    "status": "committed_and_pushed_before_this_followup",
+    "note": "Historical build/source_state and final_static_checks above are preserved as recorded; this field records subsequent delivery, not a rebuilt binary."
+  }
 }
